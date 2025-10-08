@@ -1,0 +1,114 @@
+PROJECT BRIEF – CONTEXT-LINKED REASONING EXTENSION
+==================================================
+
+OVERVIEW
+--------
+Goal: Build a Chrome extension that captures text from pages you visit, extracts entities & claims using Chrome’s built-in AI, and allows the user to query or compare across multiple tabs.
+Primary hackathon value: Showcases Chrome AI beyond simple summarization; provides structured cross-source reasoning.
+
+MVP OBJECTIVES
+--------------
+1. Auto-capture:
+   - When user opens a tab with a long-form article, extension captures main text and stores it locally with page title + URL.
+2. Entity & claim extraction:
+   - Use Chrome Summarizer / Prompt API to extract:
+       • Key entities (topics, people, orgs)
+       • 3-5 main claims or findings
+       • Optional sentiment/stance per claim
+3. Cross-page compare & query:
+   - In a sidebar UI, user can select 2 or more captured pages and ask for:
+       • “Compare these”
+       • Free-form questions like “Where do they agree or differ?”
+   - Extension searches stored entities/claims and uses Prompt API to generate a synthesis answer.
+
+HACKATHON SCOPE
+---------------
+Focus on these for demo:
+- Auto-capture text from tabs
+- Store structured summary (title, url, entities, claims)
+- Display captured pages in a sidebar list
+- Implement one interactive action: Compare two pages
+
+PROJECT STRUCTURE
+-----------------
+context-link/
+│
+├─ extension/
+│  ├─ manifest.json       // declares permissions, popup, sidebar, content scripts
+│  ├─ background.js       // handles storage & AI calls
+│  ├─ content.js          // extracts article text using Readability or DOM heuristics
+│  ├─ aiBridge.js         // wrapper for Chrome Summarizer & Prompt API
+│
+├─ remix-ui/              // Remix app for sidebar & popup
+│  ├─ app/                // Remix routes & components for UI
+│  ├─ public/
+│  └─ build/              // output copied into extension for sidebar/popup
+│
+└─ storage                // uses chrome.storage.local or IndexedDB
+
+DATA FLOW
+---------
+1. Tab loads → content.js extracts main article text → sends to background.
+2. background.js calls Summarizer/Prompt to extract entities & claims → stores JSON in chrome.storage.local.
+3. remix-ui sidebar loads stored pages for user to view.
+4. User selects two pages → sends compare request to background.
+5. background.js retrieves relevant claims → calls Prompt API for synthesis → returns answer to sidebar.
+
+AI PROMPTS
+----------
+For entity & claim extraction:
+“Extract the 3-5 most important entities (people, organizations, topics) and their main claims or findings from this article. Return as JSON: {entities:[], claims:[{entity,claim,stance(optional)}]}”
+
+For comparison:
+“Given these two sets of claims, summarize:
+- Where they agree
+- Where they differ
+- Any conflicting evidence or stance
+Return a concise human-readable answer.”
+
+TECH CHOICES
+------------
+- Use Chrome Manifest V3.
+- Use Readability.js to clean article text.
+- Use chrome.storage.local for quick hackathon storage.
+- Use Remix purely for building a polished sidebar/popup UI (no server).
+- Keep visualization minimal: list of captured pages + simple compare panel.
+
+HACKATHON DEMO FLOW
+-------------------
+1. Open 3 news articles on same topic.
+2. Click extension icon to open sidebar → see all 3 captured with title & 1-line summary.
+3. Select 2 articles → click “Compare” → show AI-generated side-by-side Agreements vs Differences.
+4. Optional: show query box “What is the main disagreement on subsidies?” → AI responds using stored data.
+
+TEAM ROLES
+----------
+- Dev A: extension core (content.js, background.js, aiBridge.js)
+- Dev B: Remix UI (sidebar & popup)
+- Dev C: integration & prompts tuning, demo video
+
+KEY SUCCESS FACTORS
+-------------------
+- Must work live in demo (capture → store → compare).
+- Clear visual storytelling: show value of cross-source reasoning.
+- Keep code simple; don’t overbuild a graph DB.
+- Focus on reliability of extraction + quality of AI responses.
+
+RISKS & MITIGATIONS
+-------------------
+- Extraction issues on dynamic sites → choose static demo pages (e.g., Wikipedia, news articles).
+- Prompt quality → test and tune early.
+- Time limits → aim for working core flow before styling.
+
+DEMO PAGES (GOOD FOR TESTING)
+-----------------------------
+- Wikipedia “Renewable energy policy”
+- A reputable news article on climate policy
+- Another article or think-tank report on same topic
+These will give overlapping entities & differing claims.
+
+ONE-LINER PITCH
+---------------
+“Context-Link turns your browser into a research assistant that understands all the pages you’ve read, extracts the key entities & claims, and lets you instantly compare or query them to discover agreements and conflicts.”
+
+END OF BRIEF
