@@ -1,0 +1,184 @@
+/* Context-Link Floating Liquid Glass Pill */
+
+/* main pill container - fixed position in top right corner */
+
+#context-link-pill {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 999999;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  pointer-events: none;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.liquid-glass-pill {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 50px;
+  padding: 12px 20px;
+  box-shadow: 
+    0 8px 32px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  pointer-events: all;
+  min-width: 60px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+/* shimmer effect that slides across the pill */
+.liquid-glass-pill::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s;
+}
+
+.liquid-glass-pill:hover::before {
+  left: 100%;
+}
+
+/* hover effects - lift up and glow more */
+.liquid-glass-pill:hover {
+  transform: translateY(-2px);
+  box-shadow: 
+    0 12px 40px rgba(0, 0, 0, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+/* the CL icon inside the pill */
+.pill-icon {
+  width: 20px;
+  height: 20px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.pill-text {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+/* the small colored dot that shows status */
+.pill-status {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #10b981;
+  animation: pulse 2s infinite;
+}
+
+.pill-status.processing {
+  background: #f59e0b;
+}
+
+.pill-status.error {
+  background: #ef4444;
+}
+
+/* animation for the status dot to pulse */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* when pill is clicked and expanded to show more content */
+.liquid-glass-pill.expanded {
+  border-radius: 20px;
+  padding: 16px;
+  min-width: 200px;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 12px;
+}
+
+.pill-content {
+  display: none;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.liquid-glass-pill.expanded .pill-content {
+  display: block;
+}
+
+.pill-actions {
+  display: none;
+  gap: 8px;
+}
+
+.liquid-glass-pill.expanded .pill-actions {
+  display: flex;
+}
+
+/* individual buttons like Capture and Compare */
+.pill-btn {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  padding: 8px 12px;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.pill-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+/* make it look good in dark mode too */
+@media (prefers-color-scheme: dark) {
+  .liquid-glass-pill {
+    background: rgba(0, 0, 0, 0.3);
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+  
+  .pill-text {
+    color: rgba(255, 255, 255, 0.95);
+  }
+}
+
+/* make it work on phones and tablets */
+@media (max-width: 768px) {
+  #context-link-pill {
+    top: 10px;
+    right: 10px;
+  }
+  
+  .liquid-glass-pill {
+    padding: 10px 16px;
+  }
+  
+  .liquid-glass-pill.expanded {
+    min-width: 180px;
+  }
+}
