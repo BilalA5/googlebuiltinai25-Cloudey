@@ -9,14 +9,16 @@ class AIBridge {
     this.loadApiKeys();
   }
 
-  // load API keys from environment
+  // load API keys from config
   async loadApiKeys() {
     try {
-      // In a real implementation, you'd load from .env or chrome.storage
-      this.geminiApiKey = 'your_gemini_api_key_here';
-      this.translationApiKey = 'your_translation_api_key_here';
+      // Load from config file
+      this.geminiApiKey = CONFIG.GEMINI_API_KEY;
+      this.translationApiKey = CONFIG.TRANSLATION_API_KEY;
       
-      if (this.geminiApiKey && this.translationApiKey) {
+      if (this.geminiApiKey && this.translationApiKey && 
+          this.geminiApiKey !== 'your_gemini_api_key_here' && 
+          this.translationApiKey !== 'your_translation_api_key_here') {
         this.isAvailable = true;
         console.log('Google Cloud APIs configured');
       } else {
@@ -200,7 +202,7 @@ class AIBridge {
 
   // call Gemini API
   async callGeminiAPI(prompt) {
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-nano:generateContent?key=${this.geminiApiKey}`, {
+    const response = await fetch(`${CONFIG.GEMINI_ENDPOINT}?key=${this.geminiApiKey}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -223,19 +225,19 @@ class AIBridge {
   }
 
   // translate content using Cloud Translation API
-  async translateContent(content, targetLanguage = 'en') {
+  async translateContent(content, targetLanguage = CONFIG.TRANSLATION_TARGET_LANGUAGE) {
     if (!this.isAvailable || !this.translationApiKey) {
       return content; // return original if translation fails
     }
 
     try {
-      const response = await fetch(`https://translation.googleapis.com/language/translate/v2?key=${this.translationApiKey}`, {
+      const response = await fetch(`${CONFIG.TRANSLATION_ENDPOINT}?key=${this.translationApiKey}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          q: content.substring(0, 5000), // limit content size
+          q: content.substring(0, CONFIG.MAX_CONTENT_LENGTH), // limit content size
           target: targetLanguage
         })
       });
