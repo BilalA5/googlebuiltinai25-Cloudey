@@ -13,6 +13,12 @@
     "scripting",
     "tabs"
   ],
+  "host_permissions": [
+    "https://*/*",
+    "http://*/*",
+    "https://generativelanguage.googleapis.com/*",
+    "https://translation.googleapis.com/*"
+  ],
   
   "host_permissions": [
     "https://*/*",
