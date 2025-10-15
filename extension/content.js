@@ -1,12 +1,22 @@
 // this runs on every webpage and creates the floating pill
 console.log('Context-Link content script loaded');
 
+// listen for contextual insights from background script
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (request.action === 'updateInsight') {
+    if (window.floatingPill) {
+      window.floatingPill.updateContextualInsight(request.data);
+    }
+  }
+});
+
 // main class that handles the floating pill
 class FloatingPill {
   constructor() {
     this.pill = null;
     this.isExpanded = false;
     this.isProcessing = false;
+    this.contextualInsight = null;
     this.init();
   }
 
@@ -15,6 +25,10 @@ class FloatingPill {
     this.createPill();
     this.attachEventListeners();
     this.checkForArticle();
+    this.loadContextualInsights();
+    
+    // store reference globally for message listener
+    window.floatingPill = this;
   }
 
   // creates the HTML for the floating pill
@@ -280,6 +294,93 @@ class FloatingPill {
     } else {
       this.setStatus('error');
       this.updateStatusText('No article content found');
+    }
+  }
+
+  // load contextual insights from storage
+  async loadContextualInsights() {
+    try {
+      const result = await chrome.storage.local.get(['contextualInsights']);
+      if (result.contextualInsights) {
+        this.updateContextualInsight(result.contextualInsights);
+      }
+    } catch (error) {
+      console.error('Failed to load contextual insights:', error);
+    }
+  }
+
+  // update pill with contextual insights
+  updateContextualInsight(insightData) {
+    this.contextualInsight = insightData;
+    
+    if (insightData.activity && insightData.insights) {
+      // update pill text to show context
+      const pillText = this.pill.querySelector('.pill-text');
+      const statusElement = this.pill.querySelector('#pill-status');
+      
+      // show contextual activity
+      pillText.textContent = this.getContextualText(insightData.activity);
+      statusElement.className = `pill-status ${this.getContextualStatus(insightData.activity)}`;
+      
+      // update expanded content if open
+      if (this.isExpanded) {
+        this.updateContent();
+      }
+      
+      // show brief insight
+      this.updateStatusText(insightData.insights);
+      
+      // add animation for new insights
+      this.showInsightAnimation();
+    }
+  }
+
+  // get contextual text based on activity
+  getContextualText(activity) {
+    switch (activity) {
+      case 'studying': return 'Studying';
+      case 'shopping': return 'Shopping';
+      case 'researching': return 'Researching';
+      case 'browsing': return 'Context-Link';
+      default: return 'Context-Link';
+    }
+  }
+
+  // get contextual status color
+  getContextualStatus(activity) {
+    switch (activity) {
+      case 'studying': return 'success';
+      case 'shopping': return 'processing';
+      case 'researching': return 'idle';
+      default: return 'idle';
+    }
+  }
+
+  // show animation when new insights are detected
+  showInsightAnimation() {
+    const pillElement = this.pill.querySelector('.liquid-glass-pill');
+    pillElement.style.animation = 'pulse 0.5s ease-in-out';
+    
+    setTimeout(() => {
+      pillElement.style.animation = '';
+    }, 500);
+  }
+
+  // update content with contextual information
+  updateContent() {
+    const title = document.title;
+    const url = window.location.href;
+    
+    const titleElement = this.pill.querySelector('.pill-title');
+    const summaryElement = this.pill.querySelector('.pill-summary');
+    
+    titleElement.textContent = title.length > 30 ? title.substring(0, 30) + '...' : title;
+    
+    // show contextual insight if available
+    if (this.contextualInsight && this.contextualInsight.insights) {
+      summaryElement.textContent = this.contextualInsight.insights;
+    } else {
+      summaryElement.textContent = this.extractPageSummary();
     }
   }
 }
