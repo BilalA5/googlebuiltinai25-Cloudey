@@ -54,6 +54,16 @@ class ContextLinkBackground {
           sendResponse({ success: true });
           break;
           
+        case 'refreshAnalysis':
+          await this.analyzeAllTabs();
+          sendResponse({ success: true });
+          break;
+          
+        case 'translateContent':
+          await this.translateContent();
+          sendResponse({ success: true });
+          break;
+          
         default:
           sendResponse({ error: 'Unknown action' });
       }
@@ -401,6 +411,36 @@ class ContextLinkBackground {
       url,
       content: content.replace(/\s+/g, ' ').trim().substring(0, 10000)
     };
+  }
+
+  // translate content using Chrome Translation API
+  async translateContent() {
+    try {
+      const pages = await this.getCapturedPages();
+      
+      for (const page of pages) {
+        if (page.content && page.content.length > 100) {
+          // use Chrome Translation API if available
+          if (typeof chrome.translate !== 'undefined') {
+            try {
+              const translated = await chrome.translate.translate(page.content, 'en');
+              page.translatedContent = translated;
+              page.translatedAt = new Date().toISOString();
+            } catch (error) {
+              console.warn('Translation failed for page:', page.title, error);
+            }
+          }
+        }
+      }
+      
+      // update storage with translated content
+      await chrome.storage.local.set({ capturedPages: pages });
+      console.log('Content translation completed');
+      
+    } catch (error) {
+      console.error('Translation process failed:', error);
+      throw error;
+    }
   }
 }
 
