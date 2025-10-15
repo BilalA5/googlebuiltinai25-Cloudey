@@ -1,9 +1,13 @@
 // this runs in the background and handles AI processing and storage
 console.log('Context-Link background script loaded');
 
+// import AI bridge
+importScripts('aiBridge.js');
+
 // main class that handles all the background work
 class ContextLinkBackground {
   constructor() {
+    this.aiBridge = new AIBridge();
     this.init();
   }
 
@@ -15,12 +19,15 @@ class ContextLinkBackground {
       return true; // Keep message channel open for async responses
     });
 
-    // watch for new tabs to maybe auto-capture
+    // watch for new tabs to auto-capture
     chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
       if (changeInfo.status === 'complete' && tab.url) {
         this.handleTabComplete(tabId, tab);
       }
     });
+
+    // capture all existing tabs on startup
+    this.captureAllTabs();
   }
 
   // handle all the different actions from content script and popup
@@ -78,10 +85,31 @@ class ContextLinkBackground {
     }
   }
 
-  // extract entities and claims from page content
+  // extract entities and claims from page content using AI
   async processWithAI(pageData) {
-    // right now just basic extraction, later use chrome AI apis
-    
+    try {
+      // use AI bridge for analysis
+      const analysis = await this.aiBridge.analyzePageContent(pageData);
+      
+      return {
+        ...pageData,
+        entities: analysis.entities || [],
+        claims: analysis.keyConcepts || [],
+        topics: analysis.topics || [],
+        intent: analysis.intent || 'browsing',
+        contentType: analysis.contentType || 'webpage',
+        processed: true,
+        processedAt: new Date().toISOString()
+      };
+    } catch (error) {
+      console.error('AI processing failed:', error);
+      // fallback to basic extraction
+      return this.fallbackProcessing(pageData);
+    }
+  }
+
+  // fallback processing when AI fails
+  fallbackProcessing(pageData) {
     const entities = this.extractEntities(pageData.content);
     const claims = this.extractClaims(pageData.content);
     
@@ -89,6 +117,9 @@ class ContextLinkBackground {
       ...pageData,
       entities,
       claims,
+      topics: entities.map(e => e.entity),
+      intent: 'browsing',
+      contentType: 'webpage',
       processed: true,
       processedAt: new Date().toISOString()
     };
@@ -246,9 +277,130 @@ class ContextLinkBackground {
     }
   }
 
+  // auto-capture all tabs on startup
+  async captureAllTabs() {
+    try {
+      const tabs = await chrome.tabs.query({});
+      console.log(`Found ${tabs.length} tabs to analyze`);
+      
+      for (const tab of tabs) {
+        if (tab.url && !tab.url.startsWith('chrome://') && !tab.url.startsWith('chrome-extension://')) {
+          await this.autoCaptureTab(tab);
+        }
+      }
+      
+      // analyze all tabs for context
+      await this.analyzeAllTabs();
+      
+    } catch (error) {
+      console.error('Failed to capture all tabs:', error);
+    }
+  }
+
+  // auto-capture individual tab
+  async autoCaptureTab(tab) {
+    try {
+      // inject content script to extract data
+      const results = await chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        func: this.extractPageData
+      });
+
+      if (results && results[0] && results[0].result) {
+        const pageData = results[0].result;
+        pageData.tabId = tab.id;
+        pageData.timestamp = new Date().toISOString();
+        
+        // process with AI
+        const processedData = await this.processWithAI(pageData);
+        await this.storePage(processedData);
+        
+        console.log('Auto-captured:', pageData.title);
+      }
+    } catch (error) {
+      console.error('Auto-capture failed for tab:', tab.id, error);
+    }
+  }
+
+  // analyze all tabs for contextual connections
+  async analyzeAllTabs() {
+    try {
+      const pages = await this.getCapturedPages();
+      if (pages.length < 2) return;
+
+      // use AI to detect context
+      const context = await this.aiBridge.detectContext(pages);
+      const insight = await this.aiBridge.generateInsight(context);
+      
+      // store contextual insights
+      await chrome.storage.local.set({ 
+        contextualInsights: {
+          activity: context.activity,
+          connections: context.connections,
+          insights: insight,
+          lastUpdated: new Date().toISOString()
+        }
+      });
+
+      // notify all content scripts about new insights
+      const tabs = await chrome.tabs.query({});
+      for (const tab of tabs) {
+        try {
+          await chrome.tabs.sendMessage(tab.id, {
+            action: 'updateInsight',
+            data: { activity: context.activity, insights: insight }
+          });
+        } catch (error) {
+          // ignore errors for tabs without content script
+        }
+      }
+
+      console.log('Context analysis complete:', context.activity);
+      
+    } catch (error) {
+      console.error('Context analysis failed:', error);
+    }
+  }
+
   async handleTabComplete(tabId, tab) {
-    // For now, we'll just log the completion
     console.log('Tab completed:', tab.url);
+    
+    // auto-capture the new tab
+    if (tab.url && !tab.url.startsWith('chrome://') && !tab.url.startsWith('chrome-extension://')) {
+      await this.autoCaptureTab(tab);
+      // re-analyze all tabs for new context
+      await this.analyzeAllTabs();
+    }
+  }
+
+  // function to extract page data (injected into tabs)
+  extractPageData() {
+    const title = document.title;
+    const url = window.location.href;
+    
+    let content = '';
+    const contentSelectors = [
+      'article', '[role="main"]', '.content', '.article-content', 
+      '.post-content', 'main', '.main-content'
+    ];
+    
+    for (const selector of contentSelectors) {
+      const element = document.querySelector(selector);
+      if (element) {
+        content = element.textContent;
+        break;
+      }
+    }
+    
+    if (!content) {
+      content = document.body.textContent;
+    }
+    
+    return {
+      title,
+      url,
+      content: content.replace(/\s+/g, ' ').trim().substring(0, 10000)
+    };
   }
 }
 
