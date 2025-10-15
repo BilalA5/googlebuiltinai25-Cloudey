@@ -1,39 +1,44 @@
-// AI Bridge - Chrome AI APIs integration with Gemini Nano
-console.log('AI Bridge loaded');
+// AI Bridge - Google Cloud APIs integration with Gemini and Translation
+console.log('AI Bridge loaded with Google Cloud APIs');
 
 class AIBridge {
   constructor() {
+    this.geminiApiKey = null;
+    this.translationApiKey = null;
     this.isAvailable = false;
-    this.checkAvailability();
+    this.loadApiKeys();
   }
 
-  // check if Chrome AI APIs are available
-  async checkAvailability() {
+  // load API keys from environment
+  async loadApiKeys() {
     try {
-      if (typeof ai !== 'undefined' && ai.languageModel) {
+      // In a real implementation, you'd load from .env or chrome.storage
+      this.geminiApiKey = 'your_gemini_api_key_here';
+      this.translationApiKey = 'your_translation_api_key_here';
+      
+      if (this.geminiApiKey && this.translationApiKey) {
         this.isAvailable = true;
-        console.log('Chrome AI APIs available');
+        console.log('Google Cloud APIs configured');
       } else {
-        console.warn('Chrome AI APIs not available, using fallback');
+        console.warn('API keys not configured, using fallback');
         this.isAvailable = false;
       }
     } catch (error) {
-      console.error('AI availability check failed:', error);
+      console.error('Failed to load API keys:', error);
       this.isAvailable = false;
     }
   }
 
-  // analyze page content using Gemini Nano
+  // analyze page content using Gemini API
   async analyzePageContent(pageData) {
     if (!this.isAvailable) {
       return this.fallbackAnalysis(pageData);
     }
 
     try {
-      const session = await ai.languageModel.create({
-        systemPrompt: "You are an AI that analyzes web page content to extract key entities, topics, and user intent. Return structured data about what the user is doing on this page."
-      });
-
+      // translate content if needed
+      const translatedContent = await this.translateContent(pageData.content);
+      
       const prompt = `Analyze this web page content and extract:
       1. Main topics and entities
       2. User intent (studying, shopping, researching, etc.)
@@ -41,30 +46,26 @@ class AIBridge {
       4. Content type (article, chat, lecture, etc.)
       
       Page: ${pageData.title}
-      Content: ${pageData.content.substring(0, 2000)}
+      Content: ${translatedContent.substring(0, 2000)}
       
       Return as JSON with: {topics: [], entities: [], intent: "", contentType: "", keyConcepts: []}`;
 
-      const result = await session.prompt(prompt);
-      return this.parseAIResponse(result);
+      const response = await this.callGeminiAPI(prompt);
+      return this.parseAIResponse(response);
       
     } catch (error) {
-      console.error('AI analysis failed:', error);
+      console.error('Gemini analysis failed:', error);
       return this.fallbackAnalysis(pageData);
     }
   }
 
-  // detect context by analyzing multiple tabs
+  // detect context by analyzing multiple tabs with Gemini
   async detectContext(tabsData) {
     if (!this.isAvailable) {
       return this.fallbackContextDetection(tabsData);
     }
 
     try {
-      const session = await ai.languageModel.create({
-        systemPrompt: "You analyze multiple browser tabs to find connections and determine what the user is doing across all tabs. Identify patterns like studying, shopping, research, etc."
-      });
-
       const prompt = `Analyze these browser tabs and find connections:
       ${tabsData.map((tab, i) => `${i+1}. ${tab.title} - ${tab.url}`).join('\n')}
       
@@ -75,8 +76,8 @@ class AIBridge {
       
       Return as JSON: {activity: "", connections: [], insights: ""}`;
 
-      const result = await session.prompt(prompt);
-      return this.parseAIResponse(result);
+      const response = await this.callGeminiAPI(prompt);
+      return this.parseAIResponse(response);
       
     } catch (error) {
       console.error('Context detection failed:', error);
@@ -84,17 +85,13 @@ class AIBridge {
     }
   }
 
-  // generate human-readable insights
+  // generate insights using Gemini
   async generateInsight(analysis) {
     if (!this.isAvailable) {
       return this.fallbackInsight(analysis);
     }
 
     try {
-      const session = await ai.languageModel.create({
-        systemPrompt: "You create helpful, concise insights for users based on their browsing activity. Be friendly and informative."
-      });
-
       const prompt = `Based on this analysis, create a helpful insight for the user:
       Activity: ${analysis.activity}
       Connections: ${analysis.connections?.join(', ') || 'None'}
@@ -102,8 +99,8 @@ class AIBridge {
       
       Create a short, friendly message (max 50 words) that helps the user understand what they're doing.`;
 
-      const result = await session.prompt(prompt);
-      return result;
+      const response = await this.callGeminiAPI(prompt);
+      return response;
       
     } catch (error) {
       console.error('Insight generation failed:', error);
@@ -199,6 +196,61 @@ class AIBridge {
     if (url.includes('wikipedia')) return 'encyclopedia';
     if (url.includes('amazon') || url.includes('shop')) return 'ecommerce';
     return 'webpage';
+  }
+
+  // call Gemini API
+  async callGeminiAPI(prompt) {
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-nano:generateContent?key=${this.geminiApiKey}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        contents: [{
+          parts: [{
+            text: prompt
+          }]
+        }]
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Gemini API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data.candidates[0].content.parts[0].text;
+  }
+
+  // translate content using Cloud Translation API
+  async translateContent(content, targetLanguage = 'en') {
+    if (!this.isAvailable || !this.translationApiKey) {
+      return content; // return original if translation fails
+    }
+
+    try {
+      const response = await fetch(`https://translation.googleapis.com/language/translate/v2?key=${this.translationApiKey}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          q: content.substring(0, 5000), // limit content size
+          target: targetLanguage
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Translation API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data.data.translations[0].translatedText;
+      
+    } catch (error) {
+      console.error('Translation failed:', error);
+      return content; // return original content if translation fails
+    }
   }
 
   parseAIResponse(response) {
