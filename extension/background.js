@@ -413,29 +413,29 @@ class ContextLinkBackground {
     };
   }
 
-  // translate content using Chrome Translation API
+  // translate content using Google Cloud Translation API
   async translateContent() {
     try {
       const pages = await this.getCapturedPages();
       
       for (const page of pages) {
         if (page.content && page.content.length > 100) {
-          // use Chrome Translation API if available
-          if (typeof chrome.translate !== 'undefined') {
-            try {
-              const translated = await chrome.translate.translate(page.content, 'en');
+          try {
+            // use AI Bridge translation method
+            const translated = await this.aiBridge.translateContent(page.content, 'en');
+            if (translated !== page.content) {
               page.translatedContent = translated;
               page.translatedAt = new Date().toISOString();
-            } catch (error) {
-              console.warn('Translation failed for page:', page.title, error);
             }
+          } catch (error) {
+            console.warn('Translation failed for page:', page.title, error);
           }
         }
       }
       
       // update storage with translated content
       await chrome.storage.local.set({ capturedPages: pages });
-      console.log('Content translation completed');
+      console.log('Content translation completed using Google Cloud Translation API');
       
     } catch (error) {
       console.error('Translation process failed:', error);
