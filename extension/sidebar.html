@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>exTendifAI - Detailed Insights</title>
+  <link rel="stylesheet" href="styles/sidebar.css">
+</head>
+<body>
+  <div class="sidebar-container">
+    <!-- Header -->
+    <header class="sidebar-header">
+      <div class="header-content">
+        <div class="logo">
+          <div class="logo-icon">CL</div>
+          <span class="logo-text">exTendifAI</span>
+        </div>
+        <button class="close-btn" id="close-btn">×</button>
+      </div>
+    </header>
+
+    <!-- Context Overview -->
+    <section class="context-overview">
+      <h2>Contextual Analysis</h2>
+      <div class="context-card">
+        <div class="activity-badge" id="activity-badge">
+          <span class="activity-icon">🔍</span>
+          <span class="activity-text">Analyzing</span>
+        </div>
+        <div class="insight-text" id="insight-text">
+          Finding connections between your open tabs...
+        </div>
+        <div class="connections-list" id="connections-list">
+          <!-- Dynamic connections will be added here -->
+        </div>
+      </div>
+    </section>
+
+    <!-- Tab Connections -->
+    <section class="connections-section">
+      <h3>Tab Connections</h3>
+      <div class="connections-grid" id="connections-grid">
+        <div class="empty-state">
+          <div class="empty-icon">🔗</div>
+          <p>No connections found yet</p>
+          <small>Open related tabs to see connections</small>
+        </div>
+      </div>
+    </section>
+
+    <!-- Detailed Analysis -->
+    <section class="analysis-section">
+      <h3>AI Analysis</h3>
+      <div class="analysis-tabs">
+        <button class="tab-btn active" data-tab="entities">Entities</button>
+        <button class="tab-btn" data-tab="topics">Topics</button>
+        <button class="tab-btn" data-tab="insights">Insights</button>
+      </div>
+      
+      <div class="tab-content">
+        <div class="tab-panel active" id="entities-panel">
+          <div class="entities-list" id="entities-list">
+            <!-- Dynamic entities will be added here -->
+          </div>
+        </div>
+        
+        <div class="tab-panel" id="topics-panel">
+          <div class="topics-list" id="topics-list">
+            <!-- Dynamic topics will be added here -->
+          </div>
+        </div>
+        
+        <div class="tab-panel" id="insights-panel">
+          <div class="insights-content" id="insights-content">
+            <!-- Dynamic insights will be added here -->
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Actions -->
+    <section class="actions-section">
+      <button class="action-btn primary" id="compare-btn">
+        <span class="btn-icon">⚖️</span>
+        Compare Selected
+      </button>
+      <button class="action-btn secondary" id="export-btn">
+        <span class="btn-icon">📤</span>
+        Export Data
+      </button>
+      <button class="action-btn secondary" id="translate-btn">
+        <span class="btn-icon">🌐</span>
+        Translate
+      </button>
+    </section>
+
+    <!-- Footer -->
+    <footer class="sidebar-footer">
+      <div class="footer-info">
+        <span class="ai-status" id="ai-status">AI Analysis Active</span>
+        <span class="separator">•</span>
+        <span class="last-updated" id="last-updated">Just now</span>
+      </div>
+    </footer>
+  </div>
+
+  <script src="sidebar.js"></script>
+</body>
+</html>
