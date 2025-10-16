@@ -4,14 +4,14 @@
 const CONFIG = {
   // Gemini API Key from Google AI Studio
   // Get it from: https://aistudio.google.com/app/apikey
-  GEMINI_API_KEY: 'your_gemini_api_key_here',
+  //GEMINI_API_KEY: 'AIzaSyAToduibeG4QNzdMtNnxAJfd4_hr_f8gJQ',
   
   // Cloud Translation API Key
   // Get it from: https://console.cloud.google.com/apis/credentials
-  TRANSLATION_API_KEY: 'your_translation_api_key_here',
   
-  // Optional: GCP Project ID
-  GCP_PROJECT_ID: 'your_project_id_here',
+  //TRANSLATION_API_KEY: 'AIzaSyDRe1obdGVdAFJ0jgfqrfazkpQDIhJH2FI',
+  
+  //RIGHT NOW WE ARE USING GEMINI NANO IN BROWSER NO NEED FOR API KEYS AS OF YET
   
   // API endpoints
   GEMINI_ENDPOINT: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-nano:generateContent',
