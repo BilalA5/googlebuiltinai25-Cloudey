@@ -22,13 +22,6 @@
     "service_worker": "background.js"
   },
   
-  "web_accessible_resources": [
-    {
-      "resources": ["config.js"],
-      "matches": ["<all_urls>"]
-    }
-  ],
-  
   "content_scripts": [
     {
       "matches": ["https://*/*", "http://*/*"],
@@ -60,7 +53,7 @@
   
   "web_accessible_resources": [
     {
-      "resources": ["assets/*"],
+      "resources": ["config.js", "assets/*"],
       "matches": ["<all_urls>"]
     }
   ]
