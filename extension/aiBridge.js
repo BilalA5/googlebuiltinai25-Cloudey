@@ -218,4 +218,10 @@ class AIBridge {
 }
 
 // export for use in other scripts
-window.AIBridge = AIBridge;
+if (typeof self !== 'undefined') {
+  // Service worker context
+  self.AIBridge = AIBridge;
+} else if (typeof window !== 'undefined') {
+  // Browser context
+  window.AIBridge = AIBridge;
+}
