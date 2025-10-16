@@ -413,7 +413,7 @@ class ContextLinkBackground {
     };
   }
 
-  // translate content using Google Cloud Translation API
+  // translate content using Chrome's built-in translation
   async translateContent() {
     try {
       const pages = await this.getCapturedPages();
@@ -421,9 +421,9 @@ class ContextLinkBackground {
       for (const page of pages) {
         if (page.content && page.content.length > 100) {
           try {
-            // use AI Bridge translation method
-            const translated = await this.aiBridge.translateContent(page.content, 'en');
-            if (translated !== page.content) {
+            // use Chrome's built-in translation if available
+            if (typeof chrome.translate !== 'undefined') {
+              const translated = await chrome.translate.translate(page.content, 'en');
               page.translatedContent = translated;
               page.translatedAt = new Date().toISOString();
             }
@@ -435,7 +435,7 @@ class ContextLinkBackground {
       
       // update storage with translated content
       await chrome.storage.local.set({ capturedPages: pages });
-      console.log('Content translation completed using Google Cloud Translation API');
+      console.log('Content translation completed using Chrome built-in translation');
       
     } catch (error) {
       console.error('Translation process failed:', error);
