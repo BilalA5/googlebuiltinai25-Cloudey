@@ -38,6 +38,12 @@ class AIBridge {
     }
 
     try {
+      // Check if we're in service worker context
+      if (typeof self !== 'undefined' && self.importScripts) {
+        console.log('Running in service worker, using fallback analysis');
+        return this.fallbackAnalysis(pageData);
+      }
+
       const session = await ai.languageModel.create({
         systemPrompt: "You are an AI that analyzes web page content to extract key entities, topics, and user intent. Return structured data about what the user is doing on this page."
       });
@@ -69,6 +75,12 @@ class AIBridge {
     }
 
     try {
+      // Check if we're in service worker context
+      if (typeof self !== 'undefined' && self.importScripts) {
+        console.log('Running in service worker, using fallback context detection');
+        return this.fallbackContextDetection(tabsData);
+      }
+
       const session = await ai.languageModel.create({
         systemPrompt: "You analyze multiple browser tabs to find connections and determine what the user is doing across all tabs. Identify patterns like studying, shopping, research, etc."
       });
@@ -99,6 +111,12 @@ class AIBridge {
     }
 
     try {
+      // Check if we're in service worker context
+      if (typeof self !== 'undefined' && self.importScripts) {
+        console.log('Running in service worker, using fallback insight');
+        return this.fallbackInsight(analysis);
+      }
+
       const session = await ai.languageModel.create({
         systemPrompt: "You create helpful, concise insights for users based on their browsing activity. Be friendly and informative."
       });
