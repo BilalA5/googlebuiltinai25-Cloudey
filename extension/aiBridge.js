@@ -10,6 +10,14 @@ class AIBridge {
   // check if Gemini Nano is available
   async checkAvailability() {
     try {
+      // Check if we're in a service worker context
+      if (typeof self !== 'undefined' && self.importScripts) {
+        // Service worker context - AI might not be available
+        console.warn('Running in service worker context, AI may not be available');
+        this.isAvailable = false;
+        return;
+      }
+      
       if (typeof ai !== 'undefined' && ai.languageModel) {
         this.isAvailable = true;
         console.log('Gemini Nano (in-browser) available');
