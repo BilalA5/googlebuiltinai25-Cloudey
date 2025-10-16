@@ -48,7 +48,7 @@
   "icons": {
     "16": "assets/icon16.png",
     "48": "assets/icon48.png",
-    "128": "assets/icon128.png"
+    "192": "assets/icon192.png"
   },
   
   "web_accessible_resources": [
