@@ -39,7 +39,7 @@ class FloatingPill {
     
     this.pill.innerHTML = `
       <div class="liquid-glass-pill">
-        <div class="pill-icon">CL</div>
+        <div class="pill-icon">⚡</div>
         <span class="pill-text">exTendifAI</span>
         <div class="pill-status" id="pill-status"></div>
         <div class="pill-content">
