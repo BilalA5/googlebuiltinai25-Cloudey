@@ -2,7 +2,7 @@
 
   "manifest_version": 3,
   "name": "exTendifAI",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Captures text from pages, extracts entities & claims using Chrome AI, and allows cross-page comparison and reasoning.",
   
   
@@ -36,8 +36,8 @@
     "default_title": "Context-Link Reasoning",
     "default_icon": {
       "16": "assets/icon16.png",
-      "48": "assets/icon48.png",
-      "128": "assets/icon128.png"
+      "32": "assets/icon32.png",
+      "192": "assets/icon192.png"
     }
   },
   
