@@ -8,9 +8,13 @@ importScripts('chatManager.js');
 // main class that handles all the background work
 class ContextLinkBackground {
   constructor() {
-    this.aiBridge = new AIBridge();
-    this.chatManager = new ChatManager();
-    this.init();
+    try {
+      this.aiBridge = new AIBridge();
+      this.chatManager = new ChatManager();
+      this.init();
+    } catch (error) {
+      console.error('Background script initialization failed:', error);
+    }
   }
 
   // setup message listeners and tab watchers
@@ -67,8 +71,16 @@ class ContextLinkBackground {
           break;
 
         case 'chat':
-          const chatResponse = await this.handleChat(request);
-          sendResponse(chatResponse);
+          try {
+            const chatResponse = await this.handleChat(request);
+            sendResponse(chatResponse);
+          } catch (error) {
+            console.error('Chat handling error:', error);
+            sendResponse({
+              success: false,
+              response: 'Sorry, I encountered an error processing your request.'
+            });
+          }
           break;
 
         case 'getChatHistory':
