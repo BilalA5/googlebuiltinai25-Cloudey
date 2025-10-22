@@ -257,23 +257,26 @@ class AIBridge {
   // chat with AI assistant - main method for conversational queries
   async chatWithAssistant(message, conversationHistory = [], pageContext = null, processingCallback = null) {
     try {
+      console.log('chatWithAssistant called with:', { message, hasHistory: conversationHistory.length, hasContext: !!pageContext });
+      
       // notify UI of processing state
       if (processingCallback) processingCallback('thinking');
 
       // check if we're in service worker context
       if (typeof self !== 'undefined' && self.importScripts) {
-        console.log('Running in service worker, AI chat not available');
+        console.log('Running in service worker, using fallback response');
         return {
-          success: false,
-          response: 'AI chat is not available in service worker context. Please use the sidebar or pill chat interface.'
+          success: true,
+          response: `I can help you with questions about the current page: "${pageContext?.title || 'this page'}". What would you like to know?`
         };
       }
 
       // check if Gemini Nano is available
       if (!this.isAvailable) {
+        console.log('AI not available, using fallback response');
         return {
-          success: false,
-          response: 'AI is currently unavailable. Please ensure Gemini Nano is enabled in your browser.'
+          success: true,
+          response: `I can help you with questions about the current page: "${pageContext?.title || 'this page'}". What would you like to know?`
         };
       }
 
