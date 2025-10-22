@@ -66,13 +66,27 @@ class FloatingPill {
   // handle clicks and hover events
   attachEventListeners() {
     const pillElement = this.pill.querySelector('.liquid-glass-pill');
+    const chatBtn = this.pill.querySelector('#chat-btn');
     const captureBtn = this.pill.querySelector('#capture-btn');
     const compareBtn = this.pill.querySelector('#compare-btn');
+    const pillIcon = this.pill.querySelector('.pill-icon');
+
+    // pill icon opens chat overlay
+    pillIcon.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.openMiniChat();
+    });
 
     // make pill expand when clicked
     pillElement.addEventListener('click', (e) => {
-      if (e.target.classList.contains('pill-btn')) return; // Don't toggle if clicking buttons
+      if (e.target.classList.contains('pill-btn') || e.target.classList.contains('pill-icon')) return;
       this.toggleExpanded();
+    });
+
+    // chat button opens mini chat overlay
+    chatBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.openMiniChat();
     });
 
     // capture button saves the page
