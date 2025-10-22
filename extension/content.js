@@ -570,20 +570,20 @@ class FloatingPill {
     }
   }
 
-  addMiniChatMessage(role, content) {
-    const chatMessages = document.getElementById('mini-chat-messages');
+  addCometMessage(role, content) {
+    const chatMessages = document.getElementById('comet-messages');
     
     // remove empty state if exists
-    const emptyState = chatMessages.querySelector('.chat-empty');
+    const emptyState = chatMessages.querySelector('.comet-empty');
     if (emptyState) {
       emptyState.remove();
     }
 
     const messageDiv = document.createElement('div');
-    messageDiv.className = `message ${role}`;
+    messageDiv.className = `comet-message ${role}`;
     
     const contentDiv = document.createElement('div');
-    contentDiv.className = 'message-content';
+    contentDiv.className = 'comet-message-content';
     contentDiv.textContent = content;
     
     messageDiv.appendChild(contentDiv);
@@ -593,25 +593,23 @@ class FloatingPill {
     chatMessages.scrollTop = chatMessages.scrollHeight;
   }
 
-  showMiniThinkingIndicator() {
-    const chatMessages = document.getElementById('mini-chat-messages');
+  showCometThinkingIndicator() {
+    const chatMessages = document.getElementById('comet-messages');
     
     const thinkingDiv = document.createElement('div');
-    thinkingDiv.id = 'mini-thinking-indicator';
-    thinkingDiv.className = 'thinking-indicator thinking';
+    thinkingDiv.id = 'comet-thinking-indicator';
+    thinkingDiv.className = 'comet-thinking-indicator';
     thinkingDiv.innerHTML = `
-      <span class="icon">🧠</span>
-      <span class="text">
-        Thinking<span class="animated-dots"><span class="dot"></span><span class="dot"></span><span class="dot"></span></span>
-      </span>
+      <span class="comet-thinking-icon">⚡</span>
+      <span class="comet-thinking-text">Thinking...</span>
     `;
 
     chatMessages.appendChild(thinkingDiv);
     chatMessages.scrollTop = chatMessages.scrollHeight;
   }
 
-  hideMiniThinkingIndicator() {
-    const indicator = document.getElementById('mini-thinking-indicator');
+  hideCometThinkingIndicator() {
+    const indicator = document.getElementById('comet-thinking-indicator');
     if (indicator) {
       indicator.remove();
     }
