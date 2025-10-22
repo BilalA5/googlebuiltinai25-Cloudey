@@ -474,43 +474,29 @@ class FloatingPill {
     dropdown.style.height = `${dropdownHeight}px`;
   }
 
-  attachMiniChatListeners(overlay) {
-    const closeBtn = overlay.querySelector('#close-chat-btn');
-    const backdrop = overlay.querySelector('.chat-overlay-backdrop');
-    const openSidebarBtn = overlay.querySelector('#open-sidebar-btn');
-    const sendBtn = overlay.querySelector('#mini-send-btn');
-    const input = overlay.querySelector('#mini-chat-input');
+  attachCometListeners(dropdown) {
+    const closeBtn = dropdown.querySelector('#comet-close-btn');
+    const sendBtn = dropdown.querySelector('#comet-send-btn');
+    const input = dropdown.querySelector('#comet-input');
 
-    // close overlay
+    // close dropdown
     closeBtn.addEventListener('click', () => {
-      overlay.style.opacity = '0';
+      dropdown.style.opacity = '0';
+      dropdown.style.transform = 'translateY(-10px)';
       setTimeout(() => {
-        overlay.style.display = 'none';
+        dropdown.style.display = 'none';
       }, 300);
-    });
-
-    backdrop.addEventListener('click', () => {
-      overlay.style.opacity = '0';
-      setTimeout(() => {
-        overlay.style.display = 'none';
-      }, 300);
-    });
-
-    // open in sidebar
-    openSidebarBtn.addEventListener('click', () => {
-      chrome.runtime.sendMessage({ action: 'openSidebar' });
-      overlay.style.display = 'none';
     });
 
     // send message
     sendBtn.addEventListener('click', () => {
-      this.sendMiniChatMessage(input);
+      this.sendCometMessage(input);
     });
 
     input.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
-        this.sendMiniChatMessage(input);
+        this.sendCometMessage(input);
       }
     });
 
@@ -522,32 +508,44 @@ class FloatingPill {
 
     // escape key to close
     document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && overlay.style.display !== 'none') {
-        overlay.style.opacity = '0';
+      if (e.key === 'Escape' && dropdown.style.display !== 'none') {
+        dropdown.style.opacity = '0';
+        dropdown.style.transform = 'translateY(-10px)';
         setTimeout(() => {
-          overlay.style.display = 'none';
+          dropdown.style.display = 'none';
+        }, 300);
+      }
+    });
+
+    // click outside to close
+    document.addEventListener('click', (e) => {
+      if (!dropdown.contains(e.target) && !this.pill.contains(e.target)) {
+        dropdown.style.opacity = '0';
+        dropdown.style.transform = 'translateY(-10px)';
+        setTimeout(() => {
+          dropdown.style.display = 'none';
         }, 300);
       }
     });
   }
 
-  async sendMiniChatMessage(input) {
+  async sendCometMessage(input) {
     const message = input.value.trim();
     if (!message) return;
 
-    // add user message to mini chat
-    this.addMiniChatMessage('user', message);
+    // add user message to comet chat
+    this.addCometMessage('user', message);
     input.value = '';
     input.style.height = 'auto';
 
     // show thinking indicator
-    this.showMiniThinkingIndicator();
+    this.showCometThinkingIndicator();
 
     try {
       const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
       const tabId = tabs[0]?.id;
 
-      console.log('Sending chat message:', { message, tabId });
+      console.log('Sending comet message:', { message, tabId });
 
       const response = await chrome.runtime.sendMessage({
         action: 'chat',
@@ -556,19 +554,19 @@ class FloatingPill {
         includeContext: true
       });
 
-      console.log('Chat response:', response);
+      console.log('Comet response:', response);
 
-      this.hideMiniThinkingIndicator();
+      this.hideCometThinkingIndicator();
 
       if (response && response.success) {
-        this.addMiniChatMessage('assistant', response.response);
+        this.addCometMessage('assistant', response.response);
       } else {
-        this.addMiniChatMessage('assistant', response?.response || 'Sorry, I encountered an error.');
+        this.addCometMessage('assistant', response?.response || 'Sorry, I encountered an error.');
       }
     } catch (error) {
-      console.error('Mini chat error:', error);
-      this.hideMiniThinkingIndicator();
-      this.addMiniChatMessage('assistant', 'Sorry, I encountered an error. Please try again.');
+      console.error('Comet chat error:', error);
+      this.hideCometThinkingIndicator();
+      this.addCometMessage('assistant', 'Sorry, I encountered an error. Please try again.');
     }
   }
 
