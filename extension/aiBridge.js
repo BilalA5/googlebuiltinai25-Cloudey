@@ -241,6 +241,129 @@ class AIBridge {
       return { raw: response };
     }
   }
+
+  // chat with AI assistant - main method for conversational queries
+  async chatWithAssistant(message, conversationHistory = [], pageContext = null, processingCallback = null) {
+    try {
+      // notify UI of processing state
+      if (processingCallback) processingCallback('thinking');
+
+      // check if we're in service worker context
+      if (typeof self !== 'undefined' && self.importScripts) {
+        console.log('Running in service worker, AI chat not available');
+        return {
+          success: false,
+          response: 'AI chat is not available in service worker context. Please use the sidebar or pill chat interface.'
+        };
+      }
+
+      // check if Gemini Nano is available
+      if (!this.isAvailable) {
+        return {
+          success: false,
+          response: 'AI is currently unavailable. Please ensure Gemini Nano is enabled in your browser.'
+        };
+      }
+
+      // determine if we need page context
+      const needsContext = this.shouldInjectContext(message, conversationHistory, pageContext);
+      
+      if (needsContext && processingCallback) {
+        processingCallback('contextualizing');
+      }
+
+      // build system prompt with context
+      const systemPrompt = this.buildSystemPrompt(pageContext, needsContext);
+
+      // build conversation context
+      const conversationContext = this.buildConversationContext(conversationHistory, message);
+
+      if (processingCallback) processingCallback('reasoning');
+
+      // create AI session
+      const session = await ai.languageModel.create({
+        systemPrompt: systemPrompt
+      });
+
+      // get response from AI
+      const response = await session.prompt(conversationContext);
+
+      return {
+        success: true,
+        response: response,
+        usedContext: needsContext
+      };
+
+    } catch (error) {
+      console.error('Chat with assistant failed:', error);
+      return {
+        success: false,
+        response: 'Sorry, I encountered an error processing your request. Please try again.',
+        error: error.message
+      };
+    }
+  }
+
+  // determine if page context should be injected
+  shouldInjectContext(message, history, pageContext) {
+    if (!pageContext) return false;
+
+    // always inject on first message
+    if (history.length === 0) return true;
+
+    // check for page-related keywords
+    const pageKeywords = [
+      'this page', 'this article', 'this site', 'here',
+      'summarize', 'summary', 'what does this say',
+      'explain this', 'what is this about', 'current page',
+      'on this page', 'what am i reading'
+    ];
+
+    const lowerMessage = message.toLowerCase();
+    return pageKeywords.some(keyword => lowerMessage.includes(keyword));
+  }
+
+  // build system prompt with optional page context
+  buildSystemPrompt(pageContext, includeContext) {
+    let prompt = `You are exTendifAI, an intelligent AI assistant built into the browser. You can answer questions using both general knowledge and specific information from web pages the user is viewing.
+
+Be helpful, concise, and accurate. If you don't know something, admit it rather than guessing.`;
+
+    if (includeContext && pageContext) {
+      prompt += `\n\nCurrent Page Context:
+- Page Title: ${pageContext.title}
+- URL: ${pageContext.url}
+- Content Type: ${pageContext.contentType || 'unknown'}
+- Main Topics: ${pageContext.mainTopics?.join(', ') || 'none identified'}
+- Key Entities: ${pageContext.entities?.join(', ') || 'none identified'}
+- Summary: ${pageContext.summary || 'No summary available'}
+
+Use this context to answer questions about the current page when relevant.`;
+    }
+
+    return prompt;
+  }
+
+  // build conversation context from history
+  buildConversationContext(history, currentMessage) {
+    let context = '';
+
+    // include last 10 messages for context (to avoid token limits)
+    const recentHistory = history.slice(-10);
+    
+    if (recentHistory.length > 0) {
+      context += 'Previous conversation:\n';
+      recentHistory.forEach(msg => {
+        const role = msg.role === 'user' ? 'User' : 'Assistant';
+        context += `${role}: ${msg.content}\n`;
+      });
+      context += '\n';
+    }
+
+    context += `User: ${currentMessage}`;
+
+    return context;
+  }
 }
 
 // export for use in other scripts
