@@ -458,6 +458,130 @@ class ContextLinkBackground {
       throw error;
     }
   }
+
+  // handle chat messages
+  async handleChat(request) {
+    try {
+      const { message, tabId, includeContext } = request;
+
+      // notify UI of processing state
+      chrome.tabs.sendMessage(tabId, {
+        action: 'processingState',
+        state: 'thinking'
+      }).catch(() => {});
+
+      // add user message to history
+      await this.chatManager.addMessage(tabId, 'user', message);
+
+      // get conversation history
+      const history = await this.chatManager.getHistory(tabId);
+
+      // get page context if needed
+      let pageContext = null;
+      if (includeContext) {
+        // check if we have cached context
+        pageContext = await this.chatManager.getPageContext(tabId);
+
+        if (!pageContext) {
+          // extract page context
+          chrome.tabs.sendMessage(tabId, {
+            action: 'processingState',
+            state: 'contextualizing'
+          }).catch(() => {});
+
+          pageContext = await this.extractPageContext(tabId);
+          if (pageContext) {
+            await this.chatManager.setPageContext(tabId, pageContext);
+          }
+        }
+      }
+
+      // check if this is page-related query
+      const isPageRelated = this.chatManager.isPageRelatedQuery(message);
+      if (isPageRelated && !pageContext) {
+        pageContext = await this.extractPageContext(tabId);
+        if (pageContext) {
+          await this.chatManager.setPageContext(tabId, pageContext);
+        }
+      }
+
+      // notify reasoning state
+      chrome.tabs.sendMessage(tabId, {
+        action: 'processingState',
+        state: 'reasoning'
+      }).catch(() => {});
+
+      // get AI response
+      const aiResponse = await this.aiBridge.chatWithAssistant(
+        message,
+        history,
+        pageContext,
+        (state) => {
+          chrome.tabs.sendMessage(tabId, {
+            action: 'processingState',
+            state: state
+          }).catch(() => {});
+        }
+      );
+
+      if (aiResponse.success) {
+        // add assistant response to history
+        await this.chatManager.addMessage(tabId, 'assistant', aiResponse.response);
+
+        return {
+          success: true,
+          response: aiResponse.response,
+          usedContext: aiResponse.usedContext
+        };
+      } else {
+        return {
+          success: false,
+          response: aiResponse.response
+        };
+      }
+    } catch (error) {
+      console.error('Chat handling failed:', error);
+      return {
+        success: false,
+        response: 'Sorry, I encountered an error processing your request.'
+      };
+    }
+  }
+
+  // extract page context for chat
+  async extractPageContext(tabId) {
+    try {
+      const tab = await chrome.tabs.get(tabId);
+      
+      // get captured page data if available
+      const pages = await this.getCapturedPages();
+      const capturedPage = pages.find(p => p.url === tab.url);
+
+      if (capturedPage) {
+        return {
+          title: capturedPage.title,
+          url: capturedPage.url,
+          contentType: capturedPage.intent || 'webpage',
+          mainTopics: capturedPage.topics || [],
+          entities: capturedPage.entities || [],
+          summary: capturedPage.content?.substring(0, 500) || ''
+        };
+      }
+
+      // if not captured, return basic context
+      return {
+        title: tab.title,
+        url: tab.url,
+        contentType: 'webpage',
+        mainTopics: [],
+        entities: [],
+        summary: ''
+      };
+    } catch (error) {
+      console.error('Failed to extract page context:', error);
+      return null;
+    }
+  }
 }
 
 // start the background service
