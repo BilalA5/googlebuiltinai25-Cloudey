@@ -523,23 +523,23 @@ class FloatingPill {
     });
   }
 
-  async sendCometMessage(input) {
+  async sendPillChatMessage(input) {
     const message = input.value.trim();
     if (!message) return;
 
-    // add user message to comet chat
-    this.addCometMessage('user', message);
+    // add user message to pill chat
+    this.addPillChatMessage('user', message);
     input.value = '';
     input.style.height = 'auto';
 
     // show thinking indicator
-    this.showCometThinkingIndicator();
+    this.showPillChatThinkingIndicator();
 
     try {
       const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
       const tabId = tabs[0]?.id;
 
-      console.log('Sending comet message:', { message, tabId });
+      console.log('Sending pill chat message:', { message, tabId });
 
       const response = await chrome.runtime.sendMessage({
         action: 'chat',
@@ -548,36 +548,36 @@ class FloatingPill {
         includeContext: true
       });
 
-      console.log('Comet response:', response);
+      console.log('Pill chat response:', response);
 
-      this.hideCometThinkingIndicator();
+      this.hidePillChatThinkingIndicator();
 
       if (response && response.success) {
-        this.addCometMessage('assistant', response.response);
+        this.addPillChatMessage('assistant', response.response);
       } else {
-        this.addCometMessage('assistant', response?.response || 'Sorry, I encountered an error.');
+        this.addPillChatMessage('assistant', response?.response || 'Sorry, I encountered an error.');
       }
     } catch (error) {
-      console.error('Comet chat error:', error);
-      this.hideCometThinkingIndicator();
-      this.addCometMessage('assistant', 'Sorry, I encountered an error. Please try again.');
+      console.error('Pill chat error:', error);
+      this.hidePillChatThinkingIndicator();
+      this.addPillChatMessage('assistant', 'Sorry, I encountered an error. Please try again.');
     }
   }
 
-  addCometMessage(role, content) {
-    const chatMessages = document.getElementById('comet-messages');
+  addPillChatMessage(role, content) {
+    const chatMessages = document.getElementById('pill-chat-messages');
     
     // remove empty state if exists
-    const emptyState = chatMessages.querySelector('.comet-empty');
+    const emptyState = chatMessages.querySelector('.pill-chat-empty');
     if (emptyState) {
       emptyState.remove();
     }
 
     const messageDiv = document.createElement('div');
-    messageDiv.className = `comet-message ${role}`;
+    messageDiv.className = `pill-chat-message ${role}`;
     
     const contentDiv = document.createElement('div');
-    contentDiv.className = 'comet-message-content';
+    contentDiv.className = 'pill-chat-message-content';
     contentDiv.textContent = content;
     
     messageDiv.appendChild(contentDiv);
@@ -587,23 +587,23 @@ class FloatingPill {
     chatMessages.scrollTop = chatMessages.scrollHeight;
   }
 
-  showCometThinkingIndicator() {
-    const chatMessages = document.getElementById('comet-messages');
+  showPillChatThinkingIndicator() {
+    const chatMessages = document.getElementById('pill-chat-messages');
     
     const thinkingDiv = document.createElement('div');
-    thinkingDiv.id = 'comet-thinking-indicator';
-    thinkingDiv.className = 'comet-thinking-indicator';
+    thinkingDiv.id = 'pill-chat-thinking-indicator';
+    thinkingDiv.className = 'pill-chat-thinking-indicator';
     thinkingDiv.innerHTML = `
-      <span class="comet-thinking-icon">⚡</span>
-      <span class="comet-thinking-text">Thinking...</span>
+      <span class="pill-chat-thinking-icon">⚡</span>
+      <span class="pill-chat-thinking-text">Thinking...</span>
     `;
 
     chatMessages.appendChild(thinkingDiv);
     chatMessages.scrollTop = chatMessages.scrollHeight;
   }
 
-  hideCometThinkingIndicator() {
-    const indicator = document.getElementById('comet-thinking-indicator');
+  hidePillChatThinkingIndicator() {
+    const indicator = document.getElementById('pill-chat-thinking-indicator');
     if (indicator) {
       indicator.remove();
     }
