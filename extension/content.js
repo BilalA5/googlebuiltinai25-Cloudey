@@ -82,38 +82,48 @@ class FloatingPill {
   attachEventListeners() {
     const pillElement = this.pill.querySelector('.liquid-glass-pill');
     const chatBtn = this.pill.querySelector('#chat-btn');
-    const captureBtn = this.pill.querySelector('#capture-btn');
-    const compareBtn = this.pill.querySelector('#compare-btn');
     const pillIcon = this.pill.querySelector('.pill-icon');
+    const chatSendBtn = this.pill.querySelector('#pill-chat-send-btn');
+    const chatInput = this.pill.querySelector('#pill-chat-input');
 
-    // pill icon opens chat overlay
+    // pill icon opens chat
     pillIcon.addEventListener('click', (e) => {
       e.stopPropagation();
       this.openMiniChat();
     });
 
-    // make pill expand when clicked
+    // make pill expand when clicked (but not when clicking chat elements)
     pillElement.addEventListener('click', (e) => {
-      if (e.target.classList.contains('pill-btn') || e.target.classList.contains('pill-icon')) return;
+      if (e.target.classList.contains('pill-btn') || 
+          e.target.classList.contains('pill-icon') ||
+          e.target.closest('.pill-chat-container')) return;
       this.toggleExpanded();
     });
 
-    // chat button opens mini chat overlay
+    // chat button opens chat inside pill
     chatBtn.addEventListener('click', (e) => {
       e.stopPropagation();
       this.openMiniChat();
     });
 
-    // capture button saves the page
-    captureBtn.addEventListener('click', (e) => {
+    // send message in pill chat
+    chatSendBtn.addEventListener('click', (e) => {
       e.stopPropagation();
-      this.capturePage();
+      this.sendPillChatMessage(chatInput);
     });
 
-    // compare button opens comparison view
-    compareBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      this.showComparison();
+    // enter key to send message
+    chatInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        this.sendPillChatMessage(chatInput);
+      }
+    });
+
+    // auto-resize textarea
+    chatInput.addEventListener('input', () => {
+      chatInput.style.height = 'auto';
+      chatInput.style.height = Math.min(chatInput.scrollHeight, 100) + 'px';
     });
 
     // show preview on hover
