@@ -1,13 +1,14 @@
 // this runs in the background and handles AI processing and storage
 console.log('Context-Link background script loaded');
 
-// import AI bridge
-importScripts('aiBridge.js');
+// import AI bridge and chat manager
+importScripts('aiBridge.js', 'chatManager.js');
 
 // main class that handles all the background work
 class ContextLinkBackground {
   constructor() {
     this.aiBridge = new AIBridge();
+    this.chatManager = new ChatManager();
     this.init();
   }
 
@@ -61,6 +62,21 @@ class ContextLinkBackground {
           
         case 'translateContent':
           await this.translateContent();
+          sendResponse({ success: true });
+          break;
+
+        case 'chat':
+          const chatResponse = await this.handleChat(request);
+          sendResponse(chatResponse);
+          break;
+
+        case 'getChatHistory':
+          const history = await this.chatManager.getHistory(request.tabId);
+          sendResponse({ history });
+          break;
+
+        case 'clearChatHistory':
+          await this.chatManager.clearTabHistory(request.tabId);
           sendResponse({ success: true });
           break;
           
