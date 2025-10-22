@@ -47,9 +47,7 @@ class FloatingPill {
           <div class="pill-summary">Extracting entities and claims</div>
         </div>
         <div class="pill-actions">
-          <button class="pill-btn" id="chat-btn">Chat</button>
-          <button class="pill-btn" id="capture-btn">Capture</button>
-          <button class="pill-btn" id="compare-btn">Compare</button>
+          <button class="pill-btn" id="chat-btn">Ask</button>
         </div>
       </div>
     `;
@@ -399,64 +397,81 @@ class FloatingPill {
     }
   }
 
-  // open mini chat overlay
+  // open comet-style dropdown chat
   openMiniChat() {
-    // check if overlay already exists
-    let overlay = document.getElementById('extendif-chat-overlay');
+    // check if dropdown already exists
+    let dropdown = document.getElementById('extendif-chat-dropdown');
     
-    if (overlay) {
-      overlay.style.display = 'flex';
+    if (dropdown) {
+      dropdown.style.display = 'block';
       return;
     }
 
-    // create chat overlay
-    overlay = document.createElement('div');
-    overlay.id = 'extendif-chat-overlay';
-    overlay.className = 'chat-overlay';
+    // create comet-style dropdown
+    dropdown = document.createElement('div');
+    dropdown.id = 'extendif-chat-dropdown';
+    dropdown.className = 'comet-dropdown';
     
-    overlay.innerHTML = `
-      <div class="chat-overlay-backdrop"></div>
-      <div class="mini-chat-container">
-        <div class="mini-chat-header">
-          <div class="chat-header-title">
-            <span class="chat-icon">⚡</span>
-            <span>exTendifAI</span>
-          </div>
-          <div class="chat-header-actions">
-            <button class="icon-btn" id="open-sidebar-btn" title="Open in sidebar">↗️</button>
-            <button class="icon-btn" id="close-chat-btn">×</button>
-          </div>
+    dropdown.innerHTML = `
+      <div class="comet-header">
+        <div class="comet-title">
+          <span class="comet-icon">⚡</span>
+          <span>exTendifAI</span>
         </div>
-        
-        <div class="mini-chat-messages" id="mini-chat-messages">
-          <div class="chat-empty">
-            <div class="icon">⚡</div>
-            <div class="title">Ask me anything!</div>
-            <div class="subtitle">Quick chat powered by Gemini Nano</div>
-          </div>
+        <button class="comet-close" id="comet-close-btn">×</button>
+      </div>
+      
+      <div class="comet-messages" id="comet-messages">
+        <div class="comet-empty">
+          <div class="comet-empty-icon">⚡</div>
+          <div class="comet-empty-text">Ask me anything about this page</div>
         </div>
-        
-        <div class="mini-chat-input-container">
-          <textarea 
-            id="mini-chat-input" 
-            class="mini-chat-input" 
-            placeholder="Ask me anything..."
-            rows="1"
-          ></textarea>
-          <button id="mini-send-btn" class="mini-send-btn">⚡</button>
-        </div>
+      </div>
+      
+      <div class="comet-input-container">
+        <textarea 
+          id="comet-input" 
+          class="comet-input" 
+          placeholder="Ask me anything..."
+          rows="1"
+        ></textarea>
+        <button id="comet-send-btn" class="comet-send-btn">⚡</button>
       </div>
     `;
 
-    document.body.appendChild(overlay);
+    document.body.appendChild(dropdown);
+
+    // position dropdown near pill
+    this.positionCometDropdown(dropdown);
 
     // attach event listeners
-    this.attachMiniChatListeners(overlay);
+    this.attachCometListeners(dropdown);
 
     // fade in animation
     setTimeout(() => {
-      overlay.style.opacity = '1';
+      dropdown.style.opacity = '1';
+      dropdown.style.transform = 'translateY(0)';
     }, 10);
+  }
+
+  positionCometDropdown(dropdown) {
+    const pillRect = this.pill.getBoundingClientRect();
+    const dropdownWidth = 400;
+    const dropdownHeight = 500;
+    
+    // position below pill, centered
+    const left = Math.max(20, Math.min(
+      pillRect.left + (pillRect.width / 2) - (dropdownWidth / 2),
+      window.innerWidth - dropdownWidth - 20
+    ));
+    
+    const top = pillRect.bottom + 10;
+    
+    dropdown.style.position = 'fixed';
+    dropdown.style.left = `${left}px`;
+    dropdown.style.top = `${top}px`;
+    dropdown.style.width = `${dropdownWidth}px`;
+    dropdown.style.height = `${dropdownHeight}px`;
   }
 
   attachMiniChatListeners(overlay) {
