@@ -9,9 +9,13 @@ importScripts('chatManager.js');
 class ContextLinkBackground {
   constructor() {
     try {
+      console.log('Initializing background script...');
       this.aiBridge = new AIBridge();
+      console.log('AIBridge initialized:', this.aiBridge);
       this.chatManager = new ChatManager();
+      console.log('ChatManager initialized:', this.chatManager);
       this.init();
+      console.log('Background script initialization complete');
     } catch (error) {
       console.error('Background script initialization failed:', error);
     }
