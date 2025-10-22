@@ -31,6 +31,18 @@ class AIBridge {
     }
   }
 
+  // fallback analysis when AI is not available
+  fallbackAnalysis(pageData) {
+    console.log('Using fallback analysis for:', pageData.title);
+    return {
+      topics: ['web content', 'information'],
+      entities: [pageData.title],
+      intent: 'browsing',
+      contentType: 'webpage',
+      keyConcepts: ['content', 'information']
+    };
+  }
+
   // analyze page content using Gemini Nano
   async analyzePageContent(pageData) {
     if (!this.isAvailable) {
