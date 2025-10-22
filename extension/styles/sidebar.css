@@ -19,9 +19,8 @@ body {
   display: flex;
   flex-direction: column;
   height: 100vh;
-  background: rgba(12, 9, 8, 0.95);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  background: #1a1a1a;
+  overflow: hidden;
 }
 
 /* Header */
