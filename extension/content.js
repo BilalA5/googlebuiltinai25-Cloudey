@@ -47,6 +47,7 @@ class FloatingPill {
           <div class="pill-summary">Extracting entities and claims</div>
         </div>
         <div class="pill-actions">
+          <button class="pill-btn" id="chat-btn">Chat</button>
           <button class="pill-btn" id="capture-btn">Capture</button>
           <button class="pill-btn" id="compare-btn">Compare</button>
         </div>
