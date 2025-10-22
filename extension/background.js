@@ -2,7 +2,8 @@
 console.log('Context-Link background script loaded');
 
 // import AI bridge and chat manager
-importScripts('aiBridge.js', 'chatManager.js');
+importScripts('aiBridge.js');
+importScripts('chatManager.js');
 
 // main class that handles all the background work
 class ContextLinkBackground {
