@@ -2,8 +2,8 @@
 
   "manifest_version": 3,
   "name": "exTendifAI",
-  "version": "1.0.1",
-  "description": "Captures text from pages, extracts entities & claims using Chrome AI, and allows cross-page comparison and reasoning.",
+  "version": "2.0.0",
+  "description": "Your AI assistant powered by Gemini Nano. Chat with pages, get instant answers, and contextual insights across tabs.",
   
   
   "permissions": [
@@ -33,7 +33,7 @@
   
   "action": {
     "default_popup": "popup.html",
-    "default_title": "Context-Link Reasoning",
+    "default_title": "exTendifAI - AI Assistant",
     "default_icon": {
       "16": "assets/icon16.png",
       "48": "assets/icon48.png",
