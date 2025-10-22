@@ -532,6 +532,8 @@ class FloatingPill {
       const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
       const tabId = tabs[0]?.id;
 
+      console.log('Sending chat message:', { message, tabId });
+
       const response = await chrome.runtime.sendMessage({
         action: 'chat',
         message: message,
@@ -539,12 +541,14 @@ class FloatingPill {
         includeContext: true
       });
 
+      console.log('Chat response:', response);
+
       this.hideMiniThinkingIndicator();
 
-      if (response.success) {
+      if (response && response.success) {
         this.addMiniChatMessage('assistant', response.response);
       } else {
-        this.addMiniChatMessage('assistant', response.response || 'Sorry, I encountered an error.');
+        this.addMiniChatMessage('assistant', response?.response || 'Sorry, I encountered an error.');
       }
     } catch (error) {
       console.error('Mini chat error:', error);
