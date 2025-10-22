@@ -418,3 +418,71 @@ body {
 .connections-section::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.5);
 }
+
+/* Collapsible Context Badge Section */
+.context-badge-section {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.context-badge-header {
+  padding: 16px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.context-badge-header:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.context-badge-header .activity-badge {
+  margin-bottom: 0;
+  background: rgba(66, 133, 244, 0.2);
+  border-color: rgba(66, 133, 244, 0.3);
+}
+
+.context-badge-header .activity-text {
+  color: #4285F4;
+}
+
+.toggle-icon {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+  transition: transform 0.3s;
+}
+
+.context-badge-header.expanded .toggle-icon {
+  transform: rotate(180deg);
+}
+
+.context-details {
+  max-height: 400px;
+  overflow-y: auto;
+  transition: max-height 0.3s ease;
+  padding: 0 24px 16px;
+}
+
+.context-details.collapsed {
+  max-height: 0;
+  padding: 0 24px;
+  overflow: hidden;
+}
+
+/* Chat Section - Main Area */
+.chat-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 0;
+}
+
+.chat-section .chat-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
