@@ -3,8 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>exTendifAI - Detailed Insights</title>
+  <title>exTendifAI - AI Assistant</title>
   <link rel="stylesheet" href="styles/sidebar.css">
+  <link rel="stylesheet" href="styles/chat.css">
 </head>
 <body>
   <div class="sidebar-container">
@@ -19,78 +20,85 @@
       </div>
     </header>
 
-    <!-- Context Overview -->
-    <section class="context-overview">
-      <h2>Contextual Analysis</h2>
-      <div class="context-card">
+    <!-- Context Badge - Collapsible -->
+    <section class="context-badge-section" id="context-badge-section">
+      <div class="context-badge-header" id="context-badge-toggle">
         <div class="activity-badge" id="activity-badge">
-          <span class="activity-icon">🔍</span>
-          <span class="activity-text">Analyzing</span>
+          <span class="activity-icon">📄</span>
+          <span class="activity-text" id="activity-text">Reading: Current Page</span>
         </div>
-        <div class="insight-text" id="insight-text">
-          Finding connections between your open tabs...
-        </div>
-        <div class="connections-list" id="connections-list">
-          <!-- Dynamic connections will be added here -->
-        </div>
-      </div>
-    </section>
-
-    <!-- Tab Connections -->
-    <section class="connections-section">
-      <h3>Tab Connections</h3>
-      <div class="connections-grid" id="connections-grid">
-        <div class="empty-state">
-          <div class="empty-icon">🔗</div>
-          <p>No connections found yet</p>
-          <small>Open related tabs to see connections</small>
-        </div>
-      </div>
-    </section>
-
-    <!-- Detailed Analysis -->
-    <section class="analysis-section">
-      <h3>AI Analysis</h3>
-      <div class="analysis-tabs">
-        <button class="tab-btn active" data-tab="entities">Entities</button>
-        <button class="tab-btn" data-tab="topics">Topics</button>
-        <button class="tab-btn" data-tab="insights">Insights</button>
+        <span class="toggle-icon">▼</span>
       </div>
       
-      <div class="tab-content">
-        <div class="tab-panel active" id="entities-panel">
-          <div class="entities-list" id="entities-list">
-            <!-- Dynamic entities will be added here -->
+      <div class="context-details collapsed" id="context-details">
+        <div class="context-card">
+          <div class="insight-text" id="insight-text">
+            Finding connections between your open tabs...
+          </div>
+          <div class="connections-list" id="connections-list">
+            <!-- Dynamic connections will be added here -->
           </div>
         </div>
         
-        <div class="tab-panel" id="topics-panel">
-          <div class="topics-list" id="topics-list">
-            <!-- Dynamic topics will be added here -->
-          </div>
+        <div class="analysis-tabs">
+          <button class="tab-btn active" data-tab="entities">Entities</button>
+          <button class="tab-btn" data-tab="topics">Topics</button>
         </div>
         
-        <div class="tab-panel" id="insights-panel">
-          <div class="insights-content" id="insights-content">
-            <!-- Dynamic insights will be added here -->
+        <div class="tab-content">
+          <div class="tab-panel active" id="entities-panel">
+            <div class="entities-list" id="entities-list">
+              <!-- Dynamic entities will be added here -->
+            </div>
+          </div>
+          
+          <div class="tab-panel" id="topics-panel">
+            <div class="topics-list" id="topics-list">
+              <!-- Dynamic topics will be added here -->
+            </div>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- Actions -->
+    <!-- Chat Interface -->
+    <section class="chat-section">
+      <div class="chat-container">
+        <div class="chat-messages" id="chat-messages">
+          <div class="chat-empty">
+            <div class="icon">⚡</div>
+            <div class="title">Ask me anything!</div>
+            <div class="subtitle">I can help with page content, general knowledge, and cross-tab insights</div>
+          </div>
+        </div>
+        
+        <div class="chat-input-container">
+          <div class="chat-input-wrapper">
+            <textarea 
+              id="chat-input" 
+              class="chat-input" 
+              placeholder="Ask me anything about this page..."
+              rows="1"
+            ></textarea>
+            <button id="send-btn" class="send-btn">⚡</button>
+          </div>
+          <label class="context-toggle">
+            <input type="checkbox" id="context-toggle" checked>
+            <span>🌐 Include page context</span>
+          </label>
+        </div>
+      </div>
+    </section>
+
+    <!-- Quick Actions -->
     <section class="actions-section">
-      <button class="action-btn primary" id="compare-btn">
-        <span class="btn-icon">⚖️</span>
-        Compare Selected
+      <button class="action-btn secondary" id="clear-chat-btn">
+        <span class="btn-icon">🗑️</span>
+        Clear Chat
       </button>
-      <button class="action-btn secondary" id="export-btn">
+      <button class="action-btn secondary" id="export-chat-btn">
         <span class="btn-icon">📤</span>
-        Export Data
-      </button>
-      <button class="action-btn secondary" id="translate-btn">
-        <span class="btn-icon">🌐</span>
-        Translate
+        Export
       </button>
     </section>
 
