@@ -398,6 +398,207 @@ class FloatingPill {
       summaryElement.textContent = this.extractPageSummary();
     }
   }
+
+  // open mini chat overlay
+  openMiniChat() {
+    // check if overlay already exists
+    let overlay = document.getElementById('extendif-chat-overlay');
+    
+    if (overlay) {
+      overlay.style.display = 'flex';
+      return;
+    }
+
+    // create chat overlay
+    overlay = document.createElement('div');
+    overlay.id = 'extendif-chat-overlay';
+    overlay.className = 'chat-overlay';
+    
+    overlay.innerHTML = `
+      <div class="chat-overlay-backdrop"></div>
+      <div class="mini-chat-container">
+        <div class="mini-chat-header">
+          <div class="chat-header-title">
+            <span class="chat-icon">⚡</span>
+            <span>exTendifAI</span>
+          </div>
+          <div class="chat-header-actions">
+            <button class="icon-btn" id="open-sidebar-btn" title="Open in sidebar">↗️</button>
+            <button class="icon-btn" id="close-chat-btn">×</button>
+          </div>
+        </div>
+        
+        <div class="mini-chat-messages" id="mini-chat-messages">
+          <div class="chat-empty">
+            <div class="icon">⚡</div>
+            <div class="title">Ask me anything!</div>
+            <div class="subtitle">Quick chat powered by Gemini Nano</div>
+          </div>
+        </div>
+        
+        <div class="mini-chat-input-container">
+          <textarea 
+            id="mini-chat-input" 
+            class="mini-chat-input" 
+            placeholder="Ask me anything..."
+            rows="1"
+          ></textarea>
+          <button id="mini-send-btn" class="mini-send-btn">⚡</button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(overlay);
+
+    // attach event listeners
+    this.attachMiniChatListeners(overlay);
+
+    // fade in animation
+    setTimeout(() => {
+      overlay.style.opacity = '1';
+    }, 10);
+  }
+
+  attachMiniChatListeners(overlay) {
+    const closeBtn = overlay.querySelector('#close-chat-btn');
+    const backdrop = overlay.querySelector('.chat-overlay-backdrop');
+    const openSidebarBtn = overlay.querySelector('#open-sidebar-btn');
+    const sendBtn = overlay.querySelector('#mini-send-btn');
+    const input = overlay.querySelector('#mini-chat-input');
+
+    // close overlay
+    closeBtn.addEventListener('click', () => {
+      overlay.style.opacity = '0';
+      setTimeout(() => {
+        overlay.style.display = 'none';
+      }, 300);
+    });
+
+    backdrop.addEventListener('click', () => {
+      overlay.style.opacity = '0';
+      setTimeout(() => {
+        overlay.style.display = 'none';
+      }, 300);
+    });
+
+    // open in sidebar
+    openSidebarBtn.addEventListener('click', () => {
+      chrome.runtime.sendMessage({ action: 'openSidebar' });
+      overlay.style.display = 'none';
+    });
+
+    // send message
+    sendBtn.addEventListener('click', () => {
+      this.sendMiniChatMessage(input);
+    });
+
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        this.sendMiniChatMessage(input);
+      }
+    });
+
+    // auto-resize textarea
+    input.addEventListener('input', () => {
+      input.style.height = 'auto';
+      input.style.height = Math.min(input.scrollHeight, 100) + 'px';
+    });
+
+    // escape key to close
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && overlay.style.display !== 'none') {
+        overlay.style.opacity = '0';
+        setTimeout(() => {
+          overlay.style.display = 'none';
+        }, 300);
+      }
+    });
+  }
+
+  async sendMiniChatMessage(input) {
+    const message = input.value.trim();
+    if (!message) return;
+
+    // add user message to mini chat
+    this.addMiniChatMessage('user', message);
+    input.value = '';
+    input.style.height = 'auto';
+
+    // show thinking indicator
+    this.showMiniThinkingIndicator();
+
+    try {
+      const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+      const tabId = tabs[0]?.id;
+
+      const response = await chrome.runtime.sendMessage({
+        action: 'chat',
+        message: message,
+        tabId: tabId,
+        includeContext: true
+      });
+
+      this.hideMiniThinkingIndicator();
+
+      if (response.success) {
+        this.addMiniChatMessage('assistant', response.response);
+      } else {
+        this.addMiniChatMessage('assistant', response.response || 'Sorry, I encountered an error.');
+      }
+    } catch (error) {
+      console.error('Mini chat error:', error);
+      this.hideMiniThinkingIndicator();
+      this.addMiniChatMessage('assistant', 'Sorry, I encountered an error. Please try again.');
+    }
+  }
+
+  addMiniChatMessage(role, content) {
+    const chatMessages = document.getElementById('mini-chat-messages');
+    
+    // remove empty state if exists
+    const emptyState = chatMessages.querySelector('.chat-empty');
+    if (emptyState) {
+      emptyState.remove();
+    }
+
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `message ${role}`;
+    
+    const contentDiv = document.createElement('div');
+    contentDiv.className = 'message-content';
+    contentDiv.textContent = content;
+    
+    messageDiv.appendChild(contentDiv);
+    chatMessages.appendChild(messageDiv);
+
+    // scroll to bottom
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+  }
+
+  showMiniThinkingIndicator() {
+    const chatMessages = document.getElementById('mini-chat-messages');
+    
+    const thinkingDiv = document.createElement('div');
+    thinkingDiv.id = 'mini-thinking-indicator';
+    thinkingDiv.className = 'thinking-indicator thinking';
+    thinkingDiv.innerHTML = `
+      <span class="icon">🧠</span>
+      <span class="text">
+        Thinking<span class="animated-dots"><span class="dot"></span><span class="dot"></span><span class="dot"></span></span>
+      </span>
+    `;
+
+    chatMessages.appendChild(thinkingDiv);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+  }
+
+  hideMiniThinkingIndicator() {
+    const indicator = document.getElementById('mini-thinking-indicator');
+    if (indicator) {
+      indicator.remove();
+    }
+  }
 }
 
 // start the pill when page loads
