@@ -46,6 +46,23 @@ class FloatingPill {
           <div class="pill-title">Analyzing page...</div>
           <div class="pill-summary">Extracting entities and claims</div>
         </div>
+        <div class="pill-chat-container" id="pill-chat-container" style="display: none;">
+          <div class="pill-chat-messages" id="pill-chat-messages">
+            <div class="pill-chat-empty">
+              <div class="pill-chat-empty-icon">⚡</div>
+              <div class="pill-chat-empty-text">Ask me anything about this page</div>
+            </div>
+          </div>
+          <div class="pill-chat-input-container">
+            <textarea 
+              id="pill-chat-input" 
+              class="pill-chat-input" 
+              placeholder="Ask me anything..."
+              rows="1"
+            ></textarea>
+            <button id="pill-chat-send-btn" class="pill-chat-send-btn">⚡</button>
+          </div>
+        </div>
         <div class="pill-actions">
           <button class="pill-btn" id="chat-btn">Ask</button>
         </div>
@@ -397,61 +414,28 @@ class FloatingPill {
     }
   }
 
-  // open comet-style dropdown chat
+  // open chat inside pill
   openMiniChat() {
-    // check if dropdown already exists
-    let dropdown = document.getElementById('extendif-chat-dropdown');
+    const chatContainer = document.getElementById('pill-chat-container');
+    const pillContent = this.pill.querySelector('.pill-content');
+    const pillActions = this.pill.querySelector('.pill-actions');
     
-    if (dropdown) {
-      dropdown.style.display = 'block';
-      return;
+    // toggle chat visibility
+    if (chatContainer.style.display === 'none') {
+      chatContainer.style.display = 'block';
+      pillContent.style.display = 'none';
+      pillActions.style.display = 'none';
+      
+      // focus input
+      setTimeout(() => {
+        const input = document.getElementById('pill-chat-input');
+        input.focus();
+      }, 100);
+    } else {
+      chatContainer.style.display = 'none';
+      pillContent.style.display = 'block';
+      pillActions.style.display = 'flex';
     }
-
-    // create comet-style dropdown
-    dropdown = document.createElement('div');
-    dropdown.id = 'extendif-chat-dropdown';
-    dropdown.className = 'comet-dropdown';
-    
-    dropdown.innerHTML = `
-      <div class="comet-header">
-        <div class="comet-title">
-          <span class="comet-icon">⚡</span>
-          <span>exTendifAI</span>
-        </div>
-        <button class="comet-close" id="comet-close-btn">×</button>
-      </div>
-      
-      <div class="comet-messages" id="comet-messages">
-        <div class="comet-empty">
-          <div class="comet-empty-icon">⚡</div>
-          <div class="comet-empty-text">Ask me anything about this page</div>
-        </div>
-      </div>
-      
-      <div class="comet-input-container">
-        <textarea 
-          id="comet-input" 
-          class="comet-input" 
-          placeholder="Ask me anything..."
-          rows="1"
-        ></textarea>
-        <button id="comet-send-btn" class="comet-send-btn">⚡</button>
-      </div>
-    `;
-
-    document.body.appendChild(dropdown);
-
-    // position dropdown near pill
-    this.positionCometDropdown(dropdown);
-
-    // attach event listeners
-    this.attachCometListeners(dropdown);
-
-    // fade in animation
-    setTimeout(() => {
-      dropdown.style.opacity = '1';
-      dropdown.style.transform = 'translateY(0)';
-    }, 10);
   }
 
   positionCometDropdown(dropdown) {
