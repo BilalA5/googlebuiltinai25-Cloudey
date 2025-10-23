@@ -125,7 +125,7 @@ async function generateAIResponse(message, pageContext, history = []) {
     // build context for AI
     let contextPrompt = '';
     if (pageContext) {
-      contextPrompt = `You are an AI assistant helping with a webpage. 
+      contextPrompt = `You are an AI assistant helping with a webpage. You have access to the current page content and conversation history.
       
 Page Title: ${pageContext.title}
 Page URL: ${pageContext.url}
@@ -133,13 +133,23 @@ Page Content: ${pageContext.content.substring(0, 2000)}...${conversationContext}
 
 Current User Question: ${message}
 
-Please provide a helpful, contextual response based on the page content and conversation history. Be specific and helpful. If the user asks about specific content on the page, try to reference it. Don't repeat previous responses.`;
+Instructions:
+- Provide a helpful, contextual response based on the page content and conversation history
+- Be specific and detailed in your answers
+- If the user asks about algorithms, search, or technical topics, provide educational explanations
+- Reference specific content from the page when relevant
+- Don't repeat previous responses - be original and helpful
+- If you don't know something, say so and offer to help with what you can`;
     } else {
-      contextPrompt = `You are an AI assistant.${conversationContext}
+      contextPrompt = `You are an AI assistant with general knowledge.${conversationContext}
 
 Current User Question: ${message}
 
-Please provide a helpful, specific response. Be conversational and useful. Don't repeat previous responses.`;
+Instructions:
+- Provide a helpful, specific response based on your knowledge
+- Be conversational and useful
+- Don't repeat previous responses - be original
+- If you don't know something, say so and offer to help with what you can`;
     }
     
     // use Gemini Nano
@@ -183,7 +193,11 @@ function generateFallbackResponse(message, pageContext, history = []) {
   if (pageContext) {
     // provide more specific responses based on the page
     if (pageContext.title.toLowerCase().includes('youtube')) {
-      if (message.toLowerCase().includes('video') || message.toLowerCase().includes('watch')) {
+      if (message.toLowerCase().includes('algorithm') || message.toLowerCase().includes('recommend')) {
+        return `YouTube's algorithm uses machine learning to personalize your feed based on your watch history, likes, subscriptions, and engagement patterns. It considers factors like video performance, user behavior, and content relevance to suggest videos you're likely to enjoy.`;
+      } else if (message.toLowerCase().includes('search')) {
+        return `YouTube's search algorithm ranks videos based on relevance, engagement metrics (views, likes, comments), recency, and user behavior. It also considers video quality, title keywords, and description content to provide the most relevant results.`;
+      } else if (message.toLowerCase().includes('video') || message.toLowerCase().includes('watch')) {
         return `I can help you find videos on YouTube! What type of content are you looking for? I can suggest channels, explain video topics, or help you discover new content.`;
       }
       return `I can see you're on YouTube! I can help you find videos, explain content, or answer questions about what you're watching. What would you like to know?`;

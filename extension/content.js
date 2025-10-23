@@ -581,8 +581,13 @@ class FloatingPill {
     messageDiv.appendChild(contentDiv);
     chatMessages.appendChild(messageDiv);
 
-    // scroll to bottom
-    chatMessages.scrollTop = chatMessages.scrollHeight;
+    // force scroll to bottom with smooth animation
+    setTimeout(() => {
+      chatMessages.scrollTo({
+        top: chatMessages.scrollHeight,
+        behavior: 'smooth'
+      });
+    }, 100);
   }
 
   showPillChatThinkingIndicator() {

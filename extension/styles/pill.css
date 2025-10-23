@@ -218,12 +218,15 @@
 .pill-chat-messages {
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
   padding: 16px;
   display: flex;
   flex-direction: column;
   gap: 12px;
   background: rgba(255, 255, 255, 0.02);
   scroll-behavior: smooth;
+  max-height: 300px;
+  min-height: 200px;
 }
 
 .pill-chat-messages::-webkit-scrollbar {
