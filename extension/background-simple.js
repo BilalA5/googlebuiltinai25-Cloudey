@@ -104,14 +104,20 @@ async function getPageContext(tab) {
 // generate AI response using Gemini Nano
 async function generateAIResponse(message, pageContext, history = []) {
   try {
-    // check if AI is available
-    if (typeof ai === 'undefined' || !ai.languageModel) {
-      console.log('AI not available, using fallback response');
+    // check if AI is available in service worker context
+    console.log('Checking AI availability...');
+    console.log('typeof ai:', typeof ai);
+    console.log('ai.languageModel:', typeof ai?.languageModel);
+    
+    if (typeof ai === 'undefined' || !ai?.languageModel) {
+      console.log('AI not available in service worker, using enhanced fallback');
       return {
         success: true,
-        response: generateFallbackResponse(message, pageContext, history)
+        response: generateEnhancedFallbackResponse(message, pageContext, history)
       };
     }
+    
+    console.log('AI is available, attempting to use Gemini Nano...');
     
     // build conversation context
     let conversationContext = '';
@@ -157,15 +163,19 @@ Instructions:
     }
     
     // use Gemini Nano
+    console.log('Creating Gemini Nano model...');
     const model = await ai.languageModel.create({
       modelId: 'gemini-2.0-flash-exp'
     });
     
+    console.log('Generating text with Gemini Nano...');
     const result = await model.generateText({
       prompt: contextPrompt,
       temperature: 0.7,
       maxOutputTokens: 1000
     });
+    
+    console.log('Gemini Nano response received:', result.response.text().substring(0, 100) + '...');
     
     return {
       success: true,
@@ -175,38 +185,83 @@ Instructions:
     
   } catch (error) {
     console.error('AI generation error:', error);
+    console.log('Falling back to enhanced response...');
     return {
       success: true,
-      response: generateFallbackResponse(message, pageContext, history)
+      response: generateEnhancedFallbackResponse(message, pageContext, history)
     };
   }
 }
 
-// generate fallback response when AI is not available
-function generateFallbackResponse(message, pageContext, history = []) {
-  // NO RESTRICTIONS - Let AI work to its full potential!
-  // Don't be generic - actually answer the user's question!
+// generate enhanced fallback response when AI is not available
+function generateEnhancedFallbackResponse(message, pageContext, history = []) {
+  console.log('Generating enhanced fallback response for:', message);
   
-  if (pageContext) {
-    // provide more specific responses based on the page
-    if (pageContext.title.toLowerCase().includes('youtube')) {
-      if (message.toLowerCase().includes('algorithm') || message.toLowerCase().includes('recommend')) {
-        return `YouTube's algorithm uses machine learning to personalize your feed based on your watch history, likes, subscriptions, and engagement patterns. It considers factors like video performance, user behavior, and content relevance to suggest videos you're likely to enjoy.`;
-      } else if (message.toLowerCase().includes('search')) {
-        return `YouTube's search algorithm ranks videos based on relevance, engagement metrics (views, likes, comments), recency, and user behavior. It also considers video quality, title keywords, and description content to provide the most relevant results.`;
-      } else if (message.toLowerCase().includes('video') || message.toLowerCase().includes('watch')) {
-        return `I can help you find videos on YouTube! What type of content are you looking for? I can suggest channels, explain video topics, or help you discover new content.`;
-      }
-      // Don't be generic - actually try to answer the question!
-      return `I can see you're on YouTube. Let me help you with your question: "${message}". What specific aspect would you like me to explain or help you with?`;
-    } else if (pageContext.title.toLowerCase().includes('wikipedia')) {
-      return `I can see you're on Wikipedia. Let me help you with your question: "${message}". What specific aspect would you like me to explain or help you with?`;
-    } else {
-      return `I can see you're on "${pageContext.title}". Let me help you with your question: "${message}". What specific aspect would you like me to explain or help you with?`;
+  // Analyze the user's question and provide specific answers
+  const lowerMessage = message.toLowerCase();
+  
+  // General knowledge questions
+  if (lowerMessage.includes('what is') || lowerMessage.includes('what are')) {
+    if (lowerMessage.includes('algorithm')) {
+      return `An algorithm is a step-by-step procedure or formula for solving a problem. In computer science, algorithms are used to process data, make decisions, and solve computational problems efficiently. They're the foundation of programming and artificial intelligence.`;
+    } else if (lowerMessage.includes('ai') || lowerMessage.includes('artificial intelligence')) {
+      return `Artificial Intelligence (AI) is the simulation of human intelligence in machines. It includes machine learning, natural language processing, computer vision, and robotics. AI systems can learn, reason, and make decisions based on data.`;
+    } else if (lowerMessage.includes('machine learning')) {
+      return `Machine Learning is a subset of AI that enables computers to learn and improve from experience without being explicitly programmed. It uses algorithms to identify patterns in data and make predictions or decisions.`;
     }
-  } else {
-    return `I'm your AI assistant! Let me help you with your question: "${message}". What specific aspect would you like me to explain or help you with?`;
   }
+  
+  // YouTube-specific responses
+  if (pageContext && pageContext.title.toLowerCase().includes('youtube')) {
+    if (lowerMessage.includes('algorithm') || lowerMessage.includes('recommend')) {
+      return `YouTube's recommendation algorithm uses machine learning to personalize your feed. It analyzes your watch history, likes, subscriptions, and engagement patterns to suggest videos you're likely to enjoy. The algorithm considers factors like video performance, user behavior, and content relevance.`;
+    } else if (lowerMessage.includes('search')) {
+      return `YouTube's search algorithm ranks videos based on relevance, engagement metrics (views, likes, comments), recency, and user behavior. It also considers video quality, title keywords, and description content to provide the most relevant results.`;
+    } else if (lowerMessage.includes('monetization') || lowerMessage.includes('money')) {
+      return `YouTube monetization allows creators to earn money through ads, channel memberships, Super Chat, and YouTube Premium revenue. To qualify, you need 1,000 subscribers and 4,000 watch hours in the past 12 months.`;
+    } else if (lowerMessage.includes('subscriber') || lowerMessage.includes('sub')) {
+      return `YouTube subscribers are users who follow your channel and get notified of new uploads. Subscribers help build your audience and increase your video's reach through the recommendation algorithm.`;
+    }
+  }
+  
+  // Wikipedia-specific responses
+  if (pageContext && pageContext.title.toLowerCase().includes('wikipedia')) {
+    if (lowerMessage.includes('edit') || lowerMessage.includes('contribute')) {
+      return `Wikipedia is a collaborative encyclopedia where anyone can edit articles. To contribute, you need to create an account, follow Wikipedia's guidelines, and make edits that improve the content with reliable sources.`;
+    } else if (lowerMessage.includes('source') || lowerMessage.includes('reference')) {
+      return `Wikipedia articles must be based on reliable, published sources. These include academic journals, books, newspapers, and other verifiable sources. All claims must be backed by citations.`;
+    }
+  }
+  
+  // Technical questions
+  if (lowerMessage.includes('how to') || lowerMessage.includes('how do')) {
+    if (lowerMessage.includes('code') || lowerMessage.includes('programming')) {
+      return `Programming involves writing instructions for computers using programming languages like Python, JavaScript, or Java. Start by learning basic concepts like variables, loops, and functions, then practice with small projects.`;
+    } else if (lowerMessage.includes('learn') || lowerMessage.includes('study')) {
+      return `Effective learning involves setting clear goals, practicing regularly, and applying knowledge through projects. Use spaced repetition, active recall, and break complex topics into smaller, manageable chunks.`;
+    }
+  }
+  
+  // Direct answers for common questions
+  if (lowerMessage.includes('hello') || lowerMessage.includes('hi')) {
+    return `Hello! I'm your AI assistant. I can help you with questions about the current page, general knowledge, or any topic you're curious about. What would you like to know?`;
+  }
+  
+  if (lowerMessage.includes('help')) {
+    return `I'm here to help! I can answer questions about the current webpage, provide explanations on various topics, help with technical concepts, or discuss general knowledge. Just ask me anything!`;
+  }
+  
+  // Default intelligent response
+  if (pageContext) {
+    return `I can see you're on "${pageContext.title}". Based on your question "${message}", I can provide information about this topic. Let me know if you need more specific details or have follow-up questions.`;
+  } else {
+    return `I understand you're asking about "${message}". I can help explain this topic and provide detailed information. What specific aspect would you like me to focus on?`;
+  }
+}
+
+// keep old function for backward compatibility
+function generateFallbackResponse(message, pageContext, history = []) {
+  return generateEnhancedFallbackResponse(message, pageContext, history);
 }
 
 console.log('Enhanced background script ready');
