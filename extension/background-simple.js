@@ -213,7 +213,9 @@ function generateEnhancedFallbackResponse(message, pageContext, history = []) {
   
   // YouTube-specific responses
   if (pageContext && pageContext.title.toLowerCase().includes('youtube')) {
-    if (lowerMessage.includes('algorithm') || lowerMessage.includes('recommend')) {
+    if (lowerMessage.includes('recommend') || lowerMessage.includes('suggest') || lowerMessage.includes('video')) {
+      return `I can help you find great YouTube videos! Try searching for specific topics like "machine learning tutorials", "cooking recipes", or "productivity tips". You can also browse trending videos, check out channels you're subscribed to, or explore YouTube's "Recommended for you" section based on your watch history.`;
+    } else if (lowerMessage.includes('algorithm') || lowerMessage.includes('recommend')) {
       return `YouTube's recommendation algorithm uses machine learning to personalize your feed. It analyzes your watch history, likes, subscriptions, and engagement patterns to suggest videos you're likely to enjoy. The algorithm considers factors like video performance, user behavior, and content relevance.`;
     } else if (lowerMessage.includes('search')) {
       return `YouTube's search algorithm ranks videos based on relevance, engagement metrics (views, likes, comments), recency, and user behavior. It also considers video quality, title keywords, and description content to provide the most relevant results.`;
@@ -230,6 +232,23 @@ function generateEnhancedFallbackResponse(message, pageContext, history = []) {
       return `Wikipedia is a collaborative encyclopedia where anyone can edit articles. To contribute, you need to create an account, follow Wikipedia's guidelines, and make edits that improve the content with reliable sources.`;
     } else if (lowerMessage.includes('source') || lowerMessage.includes('reference')) {
       return `Wikipedia articles must be based on reliable, published sources. These include academic journals, books, newspapers, and other verifiable sources. All claims must be backed by citations.`;
+    }
+  }
+  
+  // Excel and spreadsheet questions
+  if (lowerMessage.includes('excel') || lowerMessage.includes('formula') || lowerMessage.includes('spreadsheet')) {
+    if (lowerMessage.includes('sum') || lowerMessage.includes('add') || lowerMessage.includes('total')) {
+      return `To sum values in Excel, use =SUM(A1:A10) to add cells A1 through A10, or =SUM(A1, A2, A3) for specific cells. For conditional sums, use =SUMIF(range, criteria, sum_range) or =SUMIFS(sum_range, criteria_range1, criteria1, criteria_range2, criteria2).`;
+    } else if (lowerMessage.includes('average') || lowerMessage.includes('mean')) {
+      return `To calculate averages in Excel, use =AVERAGE(A1:A10) for a range, or =AVERAGE(A1, A2, A3) for specific cells. For conditional averages, use =AVERAGEIF(range, criteria, average_range) or =AVERAGEIFS(average_range, criteria_range1, criteria1).`;
+    } else if (lowerMessage.includes('count') || lowerMessage.includes('number')) {
+      return `To count cells in Excel, use =COUNT(A1:A10) for numbers, =COUNTA(A1:A10) for non-empty cells, or =COUNTIF(range, criteria) for conditional counting. For multiple conditions, use =COUNTIFS(criteria_range1, criteria1, criteria_range2, criteria2).`;
+    } else if (lowerMessage.includes('lookup') || lowerMessage.includes('find') || lowerMessage.includes('search')) {
+      return `For lookups in Excel, use =VLOOKUP(lookup_value, table_array, col_index_num, [range_lookup]) for vertical lookups, or =XLOOKUP(lookup_value, lookup_array, return_array) for more flexible lookups. For horizontal lookups, use =HLOOKUP.`;
+    } else if (lowerMessage.includes('if') || lowerMessage.includes('condition')) {
+      return `For conditional logic in Excel, use =IF(logical_test, value_if_true, value_if_false). For multiple conditions, use =IFS(condition1, result1, condition2, result2) or nested IF statements. You can also use =AND() and =OR() for complex conditions.`;
+    } else {
+      return `I can help with Excel formulas! Common formulas include =SUM() for addition, =AVERAGE() for means, =COUNT() for counting, =VLOOKUP() for lookups, and =IF() for conditions. What specific calculation do you need help with?`;
     }
   }
   
