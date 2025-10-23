@@ -31,10 +31,11 @@
   cursor: pointer;
   pointer-events: all;
   min-width: 60px;
-  max-width: 300px; /* Limit maximum width */
+  max-width: 320px; /* Match chat container width */
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
-  overflow: hidden;
+  overflow: visible; /* Allow chat to extend beyond pill */
+  z-index: 1000;
 }
 
 /* shimmer effect that slides across the pill */
@@ -125,7 +126,7 @@
 .liquid-glass-pill.expanded {
   border-radius: 20px;
   padding: 16px;
-  min-width: 200px;
+  min-width: 320px; /* Match chat container width */
   flex-direction: column;
   align-items: stretch;
   gap: 12px;
@@ -213,6 +214,8 @@
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.15);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  position: relative;
+  z-index: 1000;
 }
 
 .pill-chat-messages {
@@ -273,9 +276,9 @@
 .pill-chat-message {
   display: flex;
   flex-direction: column;
-  max-width: 85%;
+  max-width: 80%; /* Slightly smaller for better alignment */
   animation: fadeIn 0.4s ease;
-  margin-bottom: 4px;
+  margin-bottom: 8px; /* More spacing between messages */
 }
 
 .pill-chat-message.user {
@@ -296,6 +299,7 @@
   color: rgba(255, 255, 255, 0.95);
   position: relative;
   transition: all 0.2s ease;
+  margin: 2px 0; /* Add margin for better spacing */
 }
 
 .pill-chat-message.user .pill-chat-message-content {

@@ -117,7 +117,7 @@ async function generateAIResponse(message, pageContext, history = []) {
     let conversationContext = '';
     if (history.length > 0) {
       conversationContext = '\n\nPrevious conversation:\n';
-      history.slice(-6).forEach(msg => { // Last 6 messages for context
+      history.slice(-4).forEach(msg => { // Last 4 messages for context
         conversationContext += `${msg.role}: ${msg.content}\n`;
       });
     }
@@ -180,14 +180,14 @@ Instructions:
 
 // generate fallback response when AI is not available
 function generateFallbackResponse(message, pageContext, history = []) {
-  // check if this is a repeated question
-  const recentMessages = history.slice(-4);
-  const isRepeated = recentMessages.some(msg => 
-    msg.role === 'user' && msg.content.toLowerCase() === message.toLowerCase()
+  // only check for exact repetition in last 2 messages, not 4
+  const recentMessages = history.slice(-2);
+  const isExactRepeat = recentMessages.some(msg => 
+    msg.role === 'user' && msg.content.toLowerCase().trim() === message.toLowerCase().trim()
   );
   
-  if (isRepeated) {
-    return `I see you've asked this before. Let me try a different approach. Could you rephrase your question or be more specific about what you'd like to know?`;
+  if (isExactRepeat) {
+    return `I see you've asked this exact question before. Let me try a different approach. Could you rephrase your question or be more specific about what you'd like to know?`;
   }
   
   if (pageContext) {
