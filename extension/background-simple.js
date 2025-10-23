@@ -1,6 +1,9 @@
 // enhanced background script with AI integration
 console.log('Enhanced background script loaded');
 
+// store conversation history per tab
+const conversationHistory = new Map();
+
 // AI-powered message handler
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   console.log('Background received message:', request);
@@ -12,10 +15,13 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         break;
         
       case 'getChatHistory':
-        sendResponse({ history: [] });
+        const tabId = sender.tab?.id || 'default';
+        sendResponse({ history: conversationHistory.get(tabId) || [] });
         break;
         
       case 'clearChatHistory':
+        const clearTabId = sender.tab?.id || 'default';
+        conversationHistory.delete(clearTabId);
         sendResponse({ success: true });
         break;
         
@@ -36,18 +42,31 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 // handle chat requests with AI
 async function handleChatRequest(request, sender, sendResponse) {
   const { message, includeContext } = request;
+  const tabId = sender.tab?.id || 'default';
   
-  console.log('Processing chat request:', { message, includeContext });
+  console.log('Processing chat request:', { message, includeContext, tabId });
   
   try {
+    // get conversation history for this tab
+    const history = conversationHistory.get(tabId) || [];
+    
     // get page context if needed
     let pageContext = null;
     if (includeContext) {
       pageContext = await getPageContext(sender.tab);
     }
     
-    // generate AI response
-    const aiResponse = await generateAIResponse(message, pageContext);
+    // add user message to history
+    history.push({ role: 'user', content: message, timestamp: Date.now() });
+    
+    // generate AI response with conversation context
+    const aiResponse = await generateAIResponse(message, pageContext, history);
+    
+    // add AI response to history
+    if (aiResponse.success) {
+      history.push({ role: 'assistant', content: aiResponse.response, timestamp: Date.now() });
+      conversationHistory.set(tabId, history);
+    }
     
     console.log('AI response generated:', aiResponse);
     sendResponse(aiResponse);
@@ -83,15 +102,24 @@ async function getPageContext(tab) {
 }
 
 // generate AI response using Gemini Nano
-async function generateAIResponse(message, pageContext) {
+async function generateAIResponse(message, pageContext, history = []) {
   try {
     // check if AI is available
     if (typeof ai === 'undefined' || !ai.languageModel) {
       console.log('AI not available, using fallback response');
       return {
         success: true,
-        response: generateFallbackResponse(message, pageContext)
+        response: generateFallbackResponse(message, pageContext, history)
       };
+    }
+    
+    // build conversation context
+    let conversationContext = '';
+    if (history.length > 0) {
+      conversationContext = '\n\nPrevious conversation:\n';
+      history.slice(-6).forEach(msg => { // Last 6 messages for context
+        conversationContext += `${msg.role}: ${msg.content}\n`;
+      });
     }
     
     // build context for AI
@@ -101,15 +129,17 @@ async function generateAIResponse(message, pageContext) {
       
 Page Title: ${pageContext.title}
 Page URL: ${pageContext.url}
-Page Content: ${pageContext.content.substring(0, 2000)}...
+Page Content: ${pageContext.content.substring(0, 2000)}...${conversationContext}
 
-User Question: ${message}
+Current User Question: ${message}
 
-Please provide a helpful, contextual response based on the page content. Be specific and helpful. If the user asks about specific content on the page, try to reference it.`;
+Please provide a helpful, contextual response based on the page content and conversation history. Be specific and helpful. If the user asks about specific content on the page, try to reference it. Don't repeat previous responses.`;
     } else {
-      contextPrompt = `You are an AI assistant. User Question: ${message}
+      contextPrompt = `You are an AI assistant.${conversationContext}
 
-Please provide a helpful, specific response. Be conversational and useful.`;
+Current User Question: ${message}
+
+Please provide a helpful, specific response. Be conversational and useful. Don't repeat previous responses.`;
     }
     
     // use Gemini Nano
@@ -133,16 +163,29 @@ Please provide a helpful, specific response. Be conversational and useful.`;
     console.error('AI generation error:', error);
     return {
       success: true,
-      response: generateFallbackResponse(message, pageContext)
+      response: generateFallbackResponse(message, pageContext, history)
     };
   }
 }
 
 // generate fallback response when AI is not available
-function generateFallbackResponse(message, pageContext) {
+function generateFallbackResponse(message, pageContext, history = []) {
+  // check if this is a repeated question
+  const recentMessages = history.slice(-4);
+  const isRepeated = recentMessages.some(msg => 
+    msg.role === 'user' && msg.content.toLowerCase() === message.toLowerCase()
+  );
+  
+  if (isRepeated) {
+    return `I see you've asked this before. Let me try a different approach. Could you rephrase your question or be more specific about what you'd like to know?`;
+  }
+  
   if (pageContext) {
     // provide more specific responses based on the page
     if (pageContext.title.toLowerCase().includes('youtube')) {
+      if (message.toLowerCase().includes('video') || message.toLowerCase().includes('watch')) {
+        return `I can help you find videos on YouTube! What type of content are you looking for? I can suggest channels, explain video topics, or help you discover new content.`;
+      }
       return `I can see you're on YouTube! I can help you find videos, explain content, or answer questions about what you're watching. What would you like to know?`;
     } else if (pageContext.title.toLowerCase().includes('wikipedia')) {
       return `I can see you're on Wikipedia! I can help explain concepts, summarize articles, or answer questions about the topic you're reading. What would you like to know?`;
