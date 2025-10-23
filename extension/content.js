@@ -24,7 +24,8 @@ class FloatingPill {
   init() {
     this.createPill();
     this.attachEventListeners();
-    this.checkForArticle();
+    this.setStatus('idle'); // Set to green by default
+    this.updateStatusText('Ready to chat');
     this.loadContextualInsights();
     
     // store reference globally for message listener
@@ -332,8 +333,9 @@ class FloatingPill {
       this.setStatus('idle');
       this.updateStatusText('Ready to capture');
     } else {
-      this.setStatus('error');
-      this.updateStatusText('No article content found');
+      // don't show error for pages without articles - just set to idle
+      this.setStatus('idle');
+      this.updateStatusText('Ready to chat');
     }
   }
 
