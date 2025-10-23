@@ -16,10 +16,10 @@
 }
 
 .liquid-glass-pill {
-  background: #ffffff;
+  background: rgba(0, 0, 0, 0.3);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 50px;
   padding: 12px 20px;
   box-shadow: 
@@ -86,7 +86,7 @@
 }
 
 .pill-text {
-  color: #000000;
+  color: rgba(255, 255, 255, 0.9);
   font-size: 14px;
   font-weight: 500;
   white-space: nowrap;
@@ -132,7 +132,7 @@
 
 .pill-content {
   display: none;
-  color: #000000;
+  color: rgba(255, 255, 255, 0.9);
   font-size: 13px;
   line-height: 1.4;
 }
