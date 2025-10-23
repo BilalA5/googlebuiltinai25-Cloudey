@@ -536,15 +536,11 @@ class FloatingPill {
     this.showPillChatThinkingIndicator();
 
     try {
-      const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-      const tabId = tabs[0]?.id;
-
-      console.log('Sending pill chat message:', { message, tabId });
+      console.log('Sending pill chat message:', { message });
 
       const response = await chrome.runtime.sendMessage({
         action: 'chat',
         message: message,
-        tabId: tabId,
         includeContext: true
       });
 
