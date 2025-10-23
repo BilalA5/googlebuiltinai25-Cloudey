@@ -105,9 +105,11 @@ Page Content: ${pageContext.content.substring(0, 2000)}...
 
 User Question: ${message}
 
-Please provide a helpful, contextual response based on the page content.`;
+Please provide a helpful, contextual response based on the page content. Be specific and helpful. If the user asks about specific content on the page, try to reference it.`;
     } else {
-      contextPrompt = `You are an AI assistant. User Question: ${message}`;
+      contextPrompt = `You are an AI assistant. User Question: ${message}
+
+Please provide a helpful, specific response. Be conversational and useful.`;
     }
     
     // use Gemini Nano
@@ -139,9 +141,16 @@ Please provide a helpful, contextual response based on the page content.`;
 // generate fallback response when AI is not available
 function generateFallbackResponse(message, pageContext) {
   if (pageContext) {
-    return `I can help you with questions about "${pageContext.title}". Based on the page content, I can provide insights and answer questions about what you're viewing. What would you like to know?`;
+    // provide more specific responses based on the page
+    if (pageContext.title.toLowerCase().includes('youtube')) {
+      return `I can see you're on YouTube! I can help you find videos, explain content, or answer questions about what you're watching. What would you like to know?`;
+    } else if (pageContext.title.toLowerCase().includes('wikipedia')) {
+      return `I can see you're on Wikipedia! I can help explain concepts, summarize articles, or answer questions about the topic you're reading. What would you like to know?`;
+    } else {
+      return `I can see you're on "${pageContext.title}". I can help explain the content, answer questions, or provide insights about what you're viewing. What would you like to know?`;
+    }
   } else {
-    return `I can help you with questions about "${message}". I'm your AI assistant and I'm here to help! What would you like to know?`;
+    return `I'm your AI assistant! I can help with general questions, explanations, or any topic you'd like to discuss. What would you like to know?`;
   }
 }
 

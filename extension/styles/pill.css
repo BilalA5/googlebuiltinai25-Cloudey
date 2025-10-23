@@ -31,6 +31,7 @@
   cursor: pointer;
   pointer-events: all;
   min-width: 60px;
+  max-width: 300px; /* Limit maximum width */
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   overflow: hidden;
@@ -203,6 +204,7 @@
   display: none;
   flex-direction: column;
   height: 300px;
+  width: 280px; /* Fixed width for vertical layout */
   background: rgba(255, 255, 255, 0.05);
   border-radius: 12px;
   margin-top: 8px;
