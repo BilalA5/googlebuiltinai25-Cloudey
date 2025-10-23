@@ -122,7 +122,7 @@ async function generateAIResponse(message, pageContext, history = []) {
       });
     }
     
-    // build context for AI
+    // build context for AI - NO RESTRICTIONS!
     let contextPrompt = '';
     if (pageContext) {
       contextPrompt = `You are an AI assistant helping with a webpage. You have access to the current page content and conversation history.
@@ -138,8 +138,9 @@ Instructions:
 - Be specific and detailed in your answers
 - If the user asks about algorithms, search, or technical topics, provide educational explanations
 - Reference specific content from the page when relevant
-- Don't repeat previous responses - be original and helpful
-- If you don't know something, say so and offer to help with what you can`;
+- Answer every question to the best of your ability
+- Use your full knowledge and capabilities
+- Be helpful and informative`;
     } else {
       contextPrompt = `You are an AI assistant with general knowledge.${conversationContext}
 
@@ -148,8 +149,9 @@ Current User Question: ${message}
 Instructions:
 - Provide a helpful, specific response based on your knowledge
 - Be conversational and useful
-- Don't repeat previous responses - be original
-- If you don't know something, say so and offer to help with what you can`;
+- Answer every question to the best of your ability
+- Use your full knowledge and capabilities
+- Be helpful and informative`;
     }
     
     // use Gemini Nano
@@ -180,16 +182,7 @@ Instructions:
 
 // generate fallback response when AI is not available
 function generateFallbackResponse(message, pageContext, history = []) {
-  // only check for exact repetition in last 2 messages, not 4
-  const recentMessages = history.slice(-2);
-  const isExactRepeat = recentMessages.some(msg => 
-    msg.role === 'user' && msg.content.toLowerCase().trim() === message.toLowerCase().trim()
-  );
-  
-  if (isExactRepeat) {
-    return `I see you've asked this exact question before. Let me try a different approach. Could you rephrase your question or be more specific about what you'd like to know?`;
-  }
-  
+  // NO RESTRICTIONS - Let AI work to its full potential!
   if (pageContext) {
     // provide more specific responses based on the page
     if (pageContext.title.toLowerCase().includes('youtube')) {
