@@ -134,24 +134,26 @@ Page Content: ${pageContext.content.substring(0, 2000)}...${conversationContext}
 Current User Question: ${message}
 
 Instructions:
-- Provide a helpful, contextual response based on the page content and conversation history
-- Be specific and detailed in your answers
+- ANSWER THE USER'S SPECIFIC QUESTION directly and completely
+- Don't ask generic questions back - provide actual answers
+- Be specific and detailed in your responses
 - If the user asks about algorithms, search, or technical topics, provide educational explanations
 - Reference specific content from the page when relevant
-- Answer every question to the best of your ability
-- Use your full knowledge and capabilities
-- Be helpful and informative`;
+- Use your full knowledge and capabilities to give comprehensive answers
+- Be helpful and informative - actually solve their problem
+- Don't be generic - be specific and useful`;
     } else {
       contextPrompt = `You are an AI assistant with general knowledge.${conversationContext}
 
 Current User Question: ${message}
 
 Instructions:
-- Provide a helpful, specific response based on your knowledge
-- Be conversational and useful
-- Answer every question to the best of your ability
-- Use your full knowledge and capabilities
-- Be helpful and informative`;
+- ANSWER THE USER'S SPECIFIC QUESTION directly and completely
+- Don't ask generic questions back - provide actual answers
+- Be specific and detailed in your responses
+- Use your full knowledge and capabilities to give comprehensive answers
+- Be helpful and informative - actually solve their problem
+- Don't be generic - be specific and useful`;
     }
     
     // use Gemini Nano
@@ -183,6 +185,8 @@ Instructions:
 // generate fallback response when AI is not available
 function generateFallbackResponse(message, pageContext, history = []) {
   // NO RESTRICTIONS - Let AI work to its full potential!
+  // Don't be generic - actually answer the user's question!
+  
   if (pageContext) {
     // provide more specific responses based on the page
     if (pageContext.title.toLowerCase().includes('youtube')) {
@@ -193,14 +197,15 @@ function generateFallbackResponse(message, pageContext, history = []) {
       } else if (message.toLowerCase().includes('video') || message.toLowerCase().includes('watch')) {
         return `I can help you find videos on YouTube! What type of content are you looking for? I can suggest channels, explain video topics, or help you discover new content.`;
       }
-      return `I can see you're on YouTube! I can help you find videos, explain content, or answer questions about what you're watching. What would you like to know?`;
+      // Don't be generic - actually try to answer the question!
+      return `I can see you're on YouTube. Let me help you with your question: "${message}". What specific aspect would you like me to explain or help you with?`;
     } else if (pageContext.title.toLowerCase().includes('wikipedia')) {
-      return `I can see you're on Wikipedia! I can help explain concepts, summarize articles, or answer questions about the topic you're reading. What would you like to know?`;
+      return `I can see you're on Wikipedia. Let me help you with your question: "${message}". What specific aspect would you like me to explain or help you with?`;
     } else {
-      return `I can see you're on "${pageContext.title}". I can help explain the content, answer questions, or provide insights about what you're viewing. What would you like to know?`;
+      return `I can see you're on "${pageContext.title}". Let me help you with your question: "${message}". What specific aspect would you like me to explain or help you with?`;
     }
   } else {
-    return `I'm your AI assistant! I can help with general questions, explanations, or any topic you'd like to discuss. What would you like to know?`;
+    return `I'm your AI assistant! Let me help you with your question: "${message}". What specific aspect would you like me to explain or help you with?`;
   }
 }
 
