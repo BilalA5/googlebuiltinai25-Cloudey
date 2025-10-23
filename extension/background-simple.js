@@ -110,10 +110,10 @@ async function generateAIResponse(message, pageContext, history = []) {
     console.log('ai.languageModel:', typeof ai?.languageModel);
     
     if (typeof ai === 'undefined' || !ai?.languageModel) {
-      console.log('AI not available in service worker, using enhanced fallback');
+      console.log('AI not available in service worker, using minimal fallback');
       return {
         success: true,
-        response: generateEnhancedFallbackResponse(message, pageContext, history)
+        response: generateFallbackResponse(message, pageContext, history)
       };
     }
     
@@ -128,38 +128,25 @@ async function generateAIResponse(message, pageContext, history = []) {
       });
     }
     
-    // build context for AI - NO RESTRICTIONS!
+    // build context for AI - FULL GEMINI NANO POWER!
     let contextPrompt = '';
     if (pageContext) {
-      contextPrompt = `You are an AI assistant helping with a webpage. You have access to the current page content and conversation history.
-      
-Page Title: ${pageContext.title}
-Page URL: ${pageContext.url}
-Page Content: ${pageContext.content.substring(0, 2000)}...${conversationContext}
+      contextPrompt = `You are a helpful AI assistant. Answer the user's question directly and completely.
 
-Current User Question: ${message}
+Page Context:
+Title: ${pageContext.title}
+URL: ${pageContext.url}
+Content: ${pageContext.content.substring(0, 2000)}${conversationContext}
 
-Instructions:
-- ANSWER THE USER'S SPECIFIC QUESTION directly and completely
-- Don't ask generic questions back - provide actual answers
-- Be specific and detailed in your responses
-- If the user asks about algorithms, search, or technical topics, provide educational explanations
-- Reference specific content from the page when relevant
-- Use your full knowledge and capabilities to give comprehensive answers
-- Be helpful and informative - actually solve their problem
-- Don't be generic - be specific and useful`;
+User Question: ${message}
+
+Provide a direct, helpful answer using your full knowledge and capabilities.`;
     } else {
-      contextPrompt = `You are an AI assistant with general knowledge.${conversationContext}
+      contextPrompt = `You are a helpful AI assistant. Answer the user's question directly and completely.${conversationContext}
 
-Current User Question: ${message}
+User Question: ${message}
 
-Instructions:
-- ANSWER THE USER'S SPECIFIC QUESTION directly and completely
-- Don't ask generic questions back - provide actual answers
-- Be specific and detailed in your responses
-- Use your full knowledge and capabilities to give comprehensive answers
-- Be helpful and informative - actually solve their problem
-- Don't be generic - be specific and useful`;
+Provide a direct, helpful answer using your full knowledge and capabilities.`;
     }
     
     // use Gemini Nano
@@ -185,102 +172,24 @@ Instructions:
     
   } catch (error) {
     console.error('AI generation error:', error);
-    console.log('Falling back to enhanced response...');
+    console.log('Falling back to minimal response...');
     return {
       success: true,
-      response: generateEnhancedFallbackResponse(message, pageContext, history)
+      response: generateFallbackResponse(message, pageContext, history)
     };
   }
 }
 
-// generate enhanced fallback response when AI is not available
-function generateEnhancedFallbackResponse(message, pageContext, history = []) {
-  console.log('Generating enhanced fallback response for:', message);
-  
-  // Analyze the user's question and provide specific answers
-  const lowerMessage = message.toLowerCase();
-  
-  // General knowledge questions
-  if (lowerMessage.includes('what is') || lowerMessage.includes('what are')) {
-    if (lowerMessage.includes('algorithm')) {
-      return `An algorithm is a step-by-step procedure or formula for solving a problem. In computer science, algorithms are used to process data, make decisions, and solve computational problems efficiently. They're the foundation of programming and artificial intelligence.`;
-    } else if (lowerMessage.includes('ai') || lowerMessage.includes('artificial intelligence')) {
-      return `Artificial Intelligence (AI) is the simulation of human intelligence in machines. It includes machine learning, natural language processing, computer vision, and robotics. AI systems can learn, reason, and make decisions based on data.`;
-    } else if (lowerMessage.includes('machine learning')) {
-      return `Machine Learning is a subset of AI that enables computers to learn and improve from experience without being explicitly programmed. It uses algorithms to identify patterns in data and make predictions or decisions.`;
-    }
-  }
-  
-  // YouTube-specific responses
-  if (pageContext && pageContext.title.toLowerCase().includes('youtube')) {
-    if (lowerMessage.includes('recommend') || lowerMessage.includes('suggest') || lowerMessage.includes('video')) {
-      return `I can help you find great YouTube videos! Try searching for specific topics like "machine learning tutorials", "cooking recipes", or "productivity tips". You can also browse trending videos, check out channels you're subscribed to, or explore YouTube's "Recommended for you" section based on your watch history.`;
-    } else if (lowerMessage.includes('algorithm') || lowerMessage.includes('recommend')) {
-      return `YouTube's recommendation algorithm uses machine learning to personalize your feed. It analyzes your watch history, likes, subscriptions, and engagement patterns to suggest videos you're likely to enjoy. The algorithm considers factors like video performance, user behavior, and content relevance.`;
-    } else if (lowerMessage.includes('search')) {
-      return `YouTube's search algorithm ranks videos based on relevance, engagement metrics (views, likes, comments), recency, and user behavior. It also considers video quality, title keywords, and description content to provide the most relevant results.`;
-    } else if (lowerMessage.includes('monetization') || lowerMessage.includes('money')) {
-      return `YouTube monetization allows creators to earn money through ads, channel memberships, Super Chat, and YouTube Premium revenue. To qualify, you need 1,000 subscribers and 4,000 watch hours in the past 12 months.`;
-    } else if (lowerMessage.includes('subscriber') || lowerMessage.includes('sub')) {
-      return `YouTube subscribers are users who follow your channel and get notified of new uploads. Subscribers help build your audience and increase your video's reach through the recommendation algorithm.`;
-    }
-  }
-  
-  // Wikipedia-specific responses
-  if (pageContext && pageContext.title.toLowerCase().includes('wikipedia')) {
-    if (lowerMessage.includes('edit') || lowerMessage.includes('contribute')) {
-      return `Wikipedia is a collaborative encyclopedia where anyone can edit articles. To contribute, you need to create an account, follow Wikipedia's guidelines, and make edits that improve the content with reliable sources.`;
-    } else if (lowerMessage.includes('source') || lowerMessage.includes('reference')) {
-      return `Wikipedia articles must be based on reliable, published sources. These include academic journals, books, newspapers, and other verifiable sources. All claims must be backed by citations.`;
-    }
-  }
-  
-  // Excel and spreadsheet questions
-  if (lowerMessage.includes('excel') || lowerMessage.includes('formula') || lowerMessage.includes('spreadsheet')) {
-    if (lowerMessage.includes('sum') || lowerMessage.includes('add') || lowerMessage.includes('total')) {
-      return `To sum values in Excel, use =SUM(A1:A10) to add cells A1 through A10, or =SUM(A1, A2, A3) for specific cells. For conditional sums, use =SUMIF(range, criteria, sum_range) or =SUMIFS(sum_range, criteria_range1, criteria1, criteria_range2, criteria2).`;
-    } else if (lowerMessage.includes('average') || lowerMessage.includes('mean')) {
-      return `To calculate averages in Excel, use =AVERAGE(A1:A10) for a range, or =AVERAGE(A1, A2, A3) for specific cells. For conditional averages, use =AVERAGEIF(range, criteria, average_range) or =AVERAGEIFS(average_range, criteria_range1, criteria1).`;
-    } else if (lowerMessage.includes('count') || lowerMessage.includes('number')) {
-      return `To count cells in Excel, use =COUNT(A1:A10) for numbers, =COUNTA(A1:A10) for non-empty cells, or =COUNTIF(range, criteria) for conditional counting. For multiple conditions, use =COUNTIFS(criteria_range1, criteria1, criteria_range2, criteria2).`;
-    } else if (lowerMessage.includes('lookup') || lowerMessage.includes('find') || lowerMessage.includes('search')) {
-      return `For lookups in Excel, use =VLOOKUP(lookup_value, table_array, col_index_num, [range_lookup]) for vertical lookups, or =XLOOKUP(lookup_value, lookup_array, return_array) for more flexible lookups. For horizontal lookups, use =HLOOKUP.`;
-    } else if (lowerMessage.includes('if') || lowerMessage.includes('condition')) {
-      return `For conditional logic in Excel, use =IF(logical_test, value_if_true, value_if_false). For multiple conditions, use =IFS(condition1, result1, condition2, result2) or nested IF statements. You can also use =AND() and =OR() for complex conditions.`;
-    } else {
-      return `I can help with Excel formulas! Common formulas include =SUM() for addition, =AVERAGE() for means, =COUNT() for counting, =VLOOKUP() for lookups, and =IF() for conditions. What specific calculation do you need help with?`;
-    }
-  }
-  
-  // Technical questions
-  if (lowerMessage.includes('how to') || lowerMessage.includes('how do')) {
-    if (lowerMessage.includes('code') || lowerMessage.includes('programming')) {
-      return `Programming involves writing instructions for computers using programming languages like Python, JavaScript, or Java. Start by learning basic concepts like variables, loops, and functions, then practice with small projects.`;
-    } else if (lowerMessage.includes('learn') || lowerMessage.includes('study')) {
-      return `Effective learning involves setting clear goals, practicing regularly, and applying knowledge through projects. Use spaced repetition, active recall, and break complex topics into smaller, manageable chunks.`;
-    }
-  }
-  
-  // Direct answers for common questions
-  if (lowerMessage.includes('hello') || lowerMessage.includes('hi')) {
-    return `Hello! I'm your AI assistant. I can help you with questions about the current page, general knowledge, or any topic you're curious about. What would you like to know?`;
-  }
-  
-  if (lowerMessage.includes('help')) {
-    return `I'm here to help! I can answer questions about the current webpage, provide explanations on various topics, help with technical concepts, or discuss general knowledge. Just ask me anything!`;
-  }
-  
-  // Default intelligent response
-  if (pageContext) {
-    return `I can see you're on "${pageContext.title}". Based on your question "${message}", I can provide information about this topic. Let me know if you need more specific details or have follow-up questions.`;
-  } else {
-    return `I understand you're asking about "${message}". I can help explain this topic and provide detailed information. What specific aspect would you like me to focus on?`;
-  }
-}
-
-// keep old function for backward compatibility
+// generate fallback response when AI is not available - MINIMAL FALLBACK ONLY
 function generateFallbackResponse(message, pageContext, history = []) {
-  return generateEnhancedFallbackResponse(message, pageContext, history);
+  console.log('AI not available, using minimal fallback');
+  
+  // Only provide a simple fallback when Gemini Nano is completely unavailable
+  if (pageContext) {
+    return `I can see you're on "${pageContext.title}". I'm your AI assistant, but I'm having trouble accessing my full capabilities right now. Please try again in a moment.`;
+  } else {
+    return `I'm your AI assistant, but I'm having trouble accessing my full capabilities right now. Please try again in a moment.`;
+  }
 }
 
 console.log('Enhanced background script ready');
