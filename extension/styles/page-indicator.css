@@ -1,0 +1,104 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
+
+/* Page Indicator Container */
+#side-panel-indicator {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 999999;
+  pointer-events: all;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Minimal Arrow Button */
+.indicator-button {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 18px;
+  color: rgba(255, 255, 255, 0.8);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  border: none;
+  outline: none;
+}
+
+.indicator-button:hover {
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  color: rgba(255, 255, 255, 0.95);
+  transform: scale(1.1);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
+}
+
+.indicator-button:active {
+  transform: scale(0.95);
+}
+
+/* Close Button */
+.indicator-close {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: rgba(200, 50, 50, 0.3);
+  border: 1px solid rgba(255, 100, 100, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 12px;
+  color: rgba(255, 150, 150, 0.8);
+  transition: all 0.2s ease;
+  opacity: 0;
+  pointer-events: none;
+}
+
+#side-panel-indicator:hover .indicator-close {
+  opacity: 1;
+  pointer-events: all;
+}
+
+.indicator-close:hover {
+  background: rgba(220, 70, 70, 0.4);
+  border-color: rgba(255, 120, 120, 0.5);
+  color: rgba(255, 255, 255, 0.95);
+  transform: scale(1.1);
+}
+
+.indicator-close:active {
+  transform: scale(0.9);
+}
+
+/* Hidden state */
+#side-panel-indicator.hidden {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(100px) scale(0.8);
+}
+
+/* Animation for appearing */
+@keyframes slideInArrow {
+  from {
+    opacity: 0;
+    transform: translateX(100px) scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+#side-panel-indicator.visible {
+  animation: slideInArrow 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
