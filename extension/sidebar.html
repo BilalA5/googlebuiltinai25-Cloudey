@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>exTendifAI - Side Panel</title>
+  <link rel="stylesheet" href="styles/sidebar.css">
+</head>
+<body>
+  <div id="side-panel-container">
+    <!-- Search Bar at Top -->
+    <div class="search-bar-wrapper">
+      <div class="search-bar">
+        <input 
+          type="text" 
+          id="chat-input" 
+          class="search-input" 
+          placeholder="Ask anything..."
+          autocomplete="off"
+        >
+        <button id="microphone-btn" class="search-icon microphone-btn" title="Voice input">
+          🎤
+        </button>
+        <button id="send-btn" class="search-icon send-btn" title="Send message">
+          ▶
+        </button>
+      </div>
+    </div>
+
+    <!-- Messages Container -->
+    <div id="messages-container" class="messages-container">
+      <div class="empty-state">
+        <p>Start a conversation</p>
+      </div>
+    </div>
+  </div>
+
+  <script src="sidebar.js"></script>
+</body>
+</html>
