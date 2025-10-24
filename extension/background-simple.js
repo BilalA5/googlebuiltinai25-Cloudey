@@ -24,6 +24,12 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         conversationHistory.delete(clearTabId);
         sendResponse({ success: true });
         break;
+      
+      case 'openSidePanel':
+        // Open side panel for the current tab
+        chrome.sidePanel.open({ tabId: sender.tab.id });
+        sendResponse({ success: true });
+        break;
         
       default:
         sendResponse({ error: 'Unknown action' });
