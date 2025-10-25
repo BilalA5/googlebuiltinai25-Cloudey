@@ -28,13 +28,28 @@ function createIndicator() {
   // open side panel when clicked
   button.addEventListener('click', () => {
     console.log('Opening side panel...');
-    chrome.runtime.sendMessage({
-      action: 'openSidePanel'
-    }, (response) => {
-      if (response && response.success) {
-        console.log('Side panel opened');
+    try {
+      // Check if extension context is still valid
+      if (!chrome.runtime?.id) {
+        console.log('Extension context invalidated, reloading page...');
+        window.location.reload();
+        return;
       }
-    });
+      
+      chrome.runtime.sendMessage({
+        action: 'openSidePanel'
+      }, (response) => {
+        if (chrome.runtime.lastError) {
+          console.log('Extension context error:', chrome.runtime.lastError.message);
+          return;
+        }
+        if (response && response.success) {
+          console.log('Side panel opened');
+        }
+      });
+    } catch (error) {
+      console.log('Error opening side panel:', error);
+    }
   });
   
   // close indicator when X is clicked
@@ -62,12 +77,21 @@ window.addEventListener('beforeunload', () => {
 
 // listen for messages from background
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  if (request.action === 'showIndicator') {
-    const indicator = document.getElementById('side-panel-indicator');
-    if (indicator) {
-      indicator.classList.remove('hidden');
-      indicator.classList.add('visible');
+  try {
+    if (!chrome.runtime?.id) {
+      console.log('Extension context invalidated in message listener');
+      return;
     }
+    
+    if (request.action === 'showIndicator') {
+      const indicator = document.getElementById('side-panel-indicator');
+      if (indicator) {
+        indicator.classList.remove('hidden');
+        indicator.classList.add('visible');
+      }
+    }
+  } catch (error) {
+    console.log('Error in message listener:', error);
   }
 });
 
