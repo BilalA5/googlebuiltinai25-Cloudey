@@ -173,10 +173,22 @@ micBtn.addEventListener('click', async () => {
       stream.getTracks().forEach(track => track.stop());
       recognition.start();
     } catch (error) {
-      console.error('Microphone permission denied:', error);
-      announceToScreenReader('Microphone permission denied. Please enable microphone access in Chrome settings.', 'assertive');
+      const errorName = error.name || 'Unknown error';
+      const errorMessage = error.message || '';
+      console.error('Microphone permission denied:', errorName, errorMessage);
+      
+      let userMessage = 'Microphone permission denied. Please enable microphone access in Chrome settings.';
+      if (errorName === 'NotAllowedError' || errorName === 'PermissionDeniedError') {
+        userMessage = 'Microphone access denied. Please allow microphone access in Chrome settings and reload.';
+      } else if (errorName === 'NotFoundError') {
+        userMessage = 'No microphone found. Please connect a microphone.';
+      } else if (errorName === 'NotReadableError') {
+        userMessage = 'Microphone is being used by another application. Please close other apps using the microphone.';
+      }
+      
+      announceToScreenReader(userMessage, 'assertive');
       micBtn.disabled = true;
-      micBtn.title = 'Microphone access denied - click to enable';
+      micBtn.title = 'Microphone access denied';
     }
   }
 });
