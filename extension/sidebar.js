@@ -79,7 +79,24 @@ if (SpeechRecognition) {
   
   recognition.onerror = (event) => {
     console.error('Speech recognition error:', event.error);
-    announceToScreenReader('Voice input failed. Please try again.', 'assertive');
+    
+    let errorMessage = 'Voice input failed. Please try again.';
+    
+    if (event.error === 'not-allowed') {
+      errorMessage = 'Microphone permission denied. Please enable microphone access in Chrome settings.';
+      micBtn.disabled = true;
+      micBtn.title = 'Microphone access denied';
+    } else if (event.error === 'no-speech') {
+      errorMessage = 'No speech detected. Please try again.';
+    } else if (event.error === 'audio-capture') {
+      errorMessage = 'No microphone found. Please check your microphone.';
+    } else if (event.error === 'network') {
+      errorMessage = 'Network error. Please check your connection.';
+    }
+    
+    announceToScreenReader(errorMessage, 'assertive');
+    isListening = false;
+    micBtn.classList.remove('listening');
   };
 }
 
@@ -140,15 +157,27 @@ chatInput.addEventListener('keydown', (e) => {
   }
 });
 
-micBtn.addEventListener('click', () => {
+micBtn.addEventListener('click', async () => {
   if (!recognition) {
     announceToScreenReader('Speech recognition not supported in this browser', 'assertive');
     return;
   }
+  
   if (isListening) {
     recognition.stop();
   } else {
-    recognition.start();
+    // Check if microphone permission is granted before starting
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      // Permission granted, stop the test stream and start recognition
+      stream.getTracks().forEach(track => track.stop());
+      recognition.start();
+    } catch (error) {
+      console.error('Microphone permission denied:', error);
+      announceToScreenReader('Microphone permission denied. Please enable microphone access in Chrome settings.', 'assertive');
+      micBtn.disabled = true;
+      micBtn.title = 'Microphone access denied - click to enable';
+    }
   }
 });
 
