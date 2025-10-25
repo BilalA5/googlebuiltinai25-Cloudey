@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48">
+  <defs>
+    <linearGradient id="cloudey-gradient-48" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#E1BEE7;stop-opacity:1" />
+      <stop offset="30%" style="stop-color:#CE93D8;stop-opacity:1" />
+      <stop offset="60%" style="stop-color:#BA68C8;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#9C27B0;stop-opacity:1" />
+    </linearGradient>
+    <filter id="glass-effect-48">
+      <feGaussianBlur stdDeviation="0.3" result="blur"/>
+      <feColorMatrix type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 0.2 0" result="shadow"/>
+    </filter>
+  </defs>
+  
+  <!-- Background circle for glass effect -->
+  <circle cx="24" cy="24" r="22" fill="rgba(255,255,255,0.1)" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
+  
+  <!-- Cloudey ribbon knot icon -->
+  <path d="M 10 20 Q 15 10 24 15 Q 33 10 38 20 Q 33 30 24 25 Q 15 30 10 20 Z" 
+        fill="url(#cloudey-gradient-48)" 
+        filter="url(#glass-effect-48)"
+        opacity="0.9"/>
+  
+  <!-- Overlapping ribbon sections -->
+  <path d="M 12 22 Q 17 12 24 17 Q 31 12 36 22" 
+        fill="none" 
+        stroke="rgba(255,255,255,0.4)" 
+        stroke-width="1" 
+        stroke-linecap="round"/>
+</svg>

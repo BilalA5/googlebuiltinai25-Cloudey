@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="192" height="192" viewBox="0 0 192 192">
+  <defs>
+    <linearGradient id="cloudey-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#E1BEE7;stop-opacity:1" />
+      <stop offset="30%" style="stop-color:#CE93D8;stop-opacity:1" />
+      <stop offset="60%" style="stop-color:#BA68C8;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#9C27B0;stop-opacity:1" />
+    </linearGradient>
+    <filter id="glass-effect">
+      <feGaussianBlur stdDeviation="0.5" result="blur"/>
+      <feColorMatrix type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 0.3 0" result="shadow"/>
+    </filter>
+  </defs>
+  
+  <!-- Background circle for glass effect -->
+  <circle cx="96" cy="96" r="88" fill="rgba(255,255,255,0.1)" stroke="rgba(255,255,255,0.2)" stroke-width="2"/>
+  
+  <!-- Cloudey ribbon knot icon -->
+  <path d="M 40 80 Q 60 40 96 60 Q 132 40 152 80 Q 132 120 96 100 Q 60 120 40 80 Z" 
+        fill="url(#cloudey-gradient)" 
+        filter="url(#glass-effect)"
+        opacity="0.9"/>
+  
+  <!-- Overlapping ribbon sections for 3D effect -->
+  <path d="M 50 85 Q 70 50 96 70 Q 122 50 142 85" 
+        fill="none" 
+        stroke="rgba(255,255,255,0.4)" 
+        stroke-width="3" 
+        stroke-linecap="round"/>
+  
+  <path d="M 50 95 Q 70 130 96 110 Q 122 130 142 95" 
+        fill="none" 
+        stroke="rgba(0,0,0,0.2)" 
+        stroke-width="2" 
+        stroke-linecap="round"/>
+</svg>
