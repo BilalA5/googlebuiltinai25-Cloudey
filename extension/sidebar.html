@@ -9,6 +9,22 @@
 <body>
   <div id="side-panel-container">
     
+    <!-- Header -->
+    <div class="sidebar-header">
+      <div class="header-left">
+        <img src="assets/cloudey-icon-16.svg" alt="Cloudey" class="header-logo">
+        <span class="header-title">Cloudey</span>
+      </div>
+      <div class="header-right">
+        <button id="fab-toggle" class="header-fab" title="Quick actions" aria-label="Quick actions menu">
+          <span class="icon-wrapper"></span>
+        </button>
+        <button id="close-btn" class="header-close" title="Close panel" aria-label="Close panel">
+          <span class="icon-wrapper"></span>
+        </button>
+      </div>
+    </div>
+    
     <!-- Messages Container -->
     <div id="messages-container" class="messages-container">
       <div class="empty-state">
@@ -100,29 +116,24 @@
         </button>
       </div>
       
-      <!-- Floating Action Menu -->
-      <div class="fab-menu">
-        <button id="fab-toggle" class="fab-button" title="Quick actions" aria-label="Quick actions menu">
+      <!-- Floating Action Menu (moved to header) -->
+      <div id="fab-actions" class="fab-actions hidden">
+        <button class="fab-action" data-action="summarize" title="Summarize page">
           <span class="icon-wrapper"></span>
+          <span class="fab-label">Summarize</span>
         </button>
-        <div id="fab-actions" class="fab-actions hidden">
-          <button class="fab-action" data-action="summarize" title="Summarize page">
-            <span class="icon-wrapper"></span>
-            <span class="fab-label">Summarize</span>
-          </button>
-          <button class="fab-action" data-action="improve" title="Improve writing">
-            <span class="icon-wrapper"></span>
-            <span class="fab-label">Improve</span>
-          </button>
-          <button class="fab-action" data-action="rewrite" title="Rewrite text">
-            <span class="icon-wrapper"></span>
-            <span class="fab-label">Rewrite</span>
-          </button>
-          <button class="fab-action" data-action="translate" title="Translate">
-            <span class="icon-wrapper"></span>
-            <span class="fab-label">Translate</span>
-          </button>
-        </div>
+        <button class="fab-action" data-action="improve" title="Improve writing">
+          <span class="icon-wrapper"></span>
+          <span class="fab-label">Improve</span>
+        </button>
+        <button class="fab-action" data-action="rewrite" title="Rewrite text">
+          <span class="icon-wrapper"></span>
+          <span class="fab-label">Rewrite</span>
+        </button>
+        <button class="fab-action" data-action="translate" title="Translate">
+          <span class="icon-wrapper"></span>
+          <span class="fab-label">Translate</span>
+        </button>
       </div>
     </div>
     

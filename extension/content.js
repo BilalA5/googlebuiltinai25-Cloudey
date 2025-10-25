@@ -13,7 +13,7 @@ function createIndicator() {
   
   indicator.innerHTML = `
     <button class="indicator-button" title="Open Cloudey side panel">
-      <img src="${chrome.runtime.getURL('assets/cloudey-icon-16.svg')}" alt="Cloudey" class="cloudey-logo">
+      <img src="${chrome.runtime.getURL('assets/cloudey-icon.svg')}" alt="Cloudey" class="cloudey-logo">
     </button>
     <button class="indicator-close" title="Close indicator">
       ✕

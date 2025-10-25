@@ -14,6 +14,7 @@ const attachmentChips = document.getElementById('attachment-chips');
 const assistantTypingRow = document.getElementById('assistant-typing-row');
 const fabToggle = document.getElementById('fab-toggle');
 const fabActions = document.getElementById('fab-actions');
+const closeBtn = document.getElementById('close-btn');
 const ariaPolite = document.getElementById('aria-polite');
 const ariaAssertive = document.getElementById('aria-assertive');
 
@@ -31,7 +32,8 @@ function initializeIcons() {
   document.querySelector('.mic-btn .icon-wrapper').innerHTML = icons.mic;
   document.querySelector('.send-btn .icon-wrapper').innerHTML = icons.send;
   document.querySelector('.stop-btn .icon-wrapper').innerHTML = icons.stop;
-  document.querySelector('.fab-button .icon-wrapper').innerHTML = icons.plus;
+  document.querySelector('.header-fab .icon-wrapper').innerHTML = icons.plus;
+  document.querySelector('.header-close .icon-wrapper').innerHTML = icons.x;
   
   // FAB action icons
   const fabActionButtons = document.querySelectorAll('.fab-action');
@@ -157,6 +159,11 @@ attachBtn.addEventListener('click', () => {
 fileInput.addEventListener('change', handleFileSelection);
 
 stopBtn.addEventListener('click', stopGeneration);
+
+// Close button
+closeBtn.addEventListener('click', () => {
+  window.close();
+});
 
 // FAB menu toggle
 fabToggle.addEventListener('click', () => {
