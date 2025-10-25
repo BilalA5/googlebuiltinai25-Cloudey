@@ -110,13 +110,13 @@ async function getPageContext(tab) {
 // generate AI response using Gemini Nano
 async function generateAIResponse(message, pageContext, history = []) {
   try {
-    // check if AI is available in service worker context
+    // check if AI is available
     console.log('Checking AI availability...');
-    console.log('typeof ai:', typeof ai);
-    console.log('ai.languageModel:', typeof ai?.languageModel);
+    console.log('typeof self.ai:', typeof self.ai);
+    console.log('self.ai?.languageModel:', typeof self.ai?.languageModel);
     
-    if (typeof ai === 'undefined' || !ai?.languageModel) {
-      console.log('AI not available in service worker, using minimal fallback');
+    if (typeof self.ai === 'undefined' || !self.ai?.languageModel) {
+      console.log('AI not available, using minimal fallback');
       return {
         success: true,
         response: generateFallbackResponse(message, pageContext, history)
@@ -124,6 +124,18 @@ async function generateAIResponse(message, pageContext, history = []) {
     }
     
     console.log('AI is available, attempting to use Gemini Nano...');
+    
+    // Check if model capabilities are available
+    const capabilities = await self.ai.languageModel.capabilities();
+    console.log('AI capabilities:', capabilities);
+    
+    if (capabilities.available === 'no') {
+      console.log('AI model not available on this device');
+      return {
+        success: true,
+        response: generateFallbackResponse(message, pageContext, history)
+      };
+    }
     
     // build conversation context
     let conversationContext = '';
@@ -155,29 +167,30 @@ User Question: ${message}
 Provide a direct, helpful answer using your full knowledge and capabilities.`;
     }
     
-    // use Gemini Nano
-    console.log('Creating Gemini Nano model...');
-    const model = await ai.languageModel.create({
-      modelId: 'gemini-2.0-flash-exp'
-    });
-    
-    console.log('Generating text with Gemini Nano...');
-    const result = await model.generateText({
-      prompt: contextPrompt,
+    // use Gemini Nano with correct API
+    console.log('Creating Gemini Nano session...');
+    const session = await self.ai.languageModel.create({
       temperature: 0.7,
-      maxOutputTokens: 1000
+      topK: 40
     });
     
-    console.log('Gemini Nano response received:', result.response.text().substring(0, 100) + '...');
+    console.log('Prompting Gemini Nano...');
+    const result = await session.prompt(contextPrompt);
+    
+    console.log('Gemini Nano response received:', result.substring(0, 100) + '...');
+    
+    // Cleanup session
+    session.destroy();
     
     return {
       success: true,
-      response: result.response.text(),
+      response: result,
       usedContext: !!pageContext
     };
     
   } catch (error) {
     console.error('AI generation error:', error);
+    console.error('Error details:', error.message, error.stack);
     console.log('Falling back to minimal response...');
     return {
       success: true,
