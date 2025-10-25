@@ -1,81 +1,145 @@
-# exTendifAI - Contextual Link Reasoning Chrome Extension
+# exTendifAI - AI-Powered Browser Assistant
 
-A Chrome extension that analyzes your browser tabs to provide contextual insights and connections using Google Cloud APIs.
+> Your intelligent browsing companion powered by Chrome's built-in AI APIs and Gemini Nano
 
-## Features
+## 🌟 Features
 
-- **Auto-capture**: Automatically captures content from all open tabs
-- **AI Analysis**: Uses Gemini API for intelligent content analysis
-- **Multi-language Support**: Cloud Translation API for analyzing content in any language
-- **Contextual Insights**: Detects patterns like studying, shopping, research across tabs
-- **Floating UI**: Beautiful liquid glass pill interface on every page
-- **Detailed Analysis**: Sidebar with comprehensive tab analysis and connections
+### 🤖 AI-Powered Chat
+- **Contextual Understanding**: Automatically analyzes current page content to provide relevant answers
+- **Conversation History**: Maintains chat history per tab during browser session
+- **Typewriter Effect**: Smooth, readable AI response animation (25-40ms per character)
+- **Voice Input**: Speak your questions using the Web Speech API
 
-## Setup Instructions
+### ⚡ Quick Actions (FAB Menu)
+- **📄 Summarize Page**: Get instant key-point summaries of any webpage
+- **✏️ Improve Writing**: Enhance selected text for clarity and professionalism
+- **🔄 Rewrite Text**: Generate alternative phrasings of selected content
+- **🌐 Translate**: Detect and translate text between languages
 
-### 1. Get Google Cloud API Keys
+### 🎨 Modern UI/UX
+- **Bottom-Docked Chat**: Comet-inspired design with fixed bottom bar
+- **Glassmorphism**: Beautiful frosted glass aesthetic throughout
+- **Auto-Resizing Input**: Textarea expands from 1 to 4 lines seamlessly
+- **Suggestion Chips**: Quick-start prompts for common tasks
+- **Dark Theme**: Easy on the eyes with proper contrast ratios
 
-#### Gemini API Key
-1. Go to [Google AI Studio](https://aistudio.google.com/app/apikey)
-2. Create a new API key
-3. Copy the key
+### ♿ Accessibility First
+- **ARIA Labels**: Full screen reader support
+- **Keyboard Navigation**: Complete keyboard control (Tab, Enter, Shift+Enter, Esc, /, S)
+- **High Contrast Mode**: Automatic adaptation for visually impaired users
+- **Reduced Motion**: Respects user motion preferences
+- **Live Regions**: Real-time announcements for assistive technologies
 
-#### Cloud Translation API Key
-1. Go to [Google Cloud Console](https://console.cloud.google.com/apis/credentials)
-2. Enable the Cloud Translation API
-3. Create credentials (API key)
-4. Copy the key
+## 🚀 Getting Started
 
-### 2. Configure the Extension
+### Prerequisites
+- Chrome Browser (version 120+)
+- Enable Chrome AI features:
+  1. Navigate to `chrome://flags/#optimization-guide-on-device-model`
+  2. Set to "Enabled BypassPerfRequirement"
+  3. Restart Chrome
 
-1. Open `config.js` in the extension folder
-2. Replace the placeholder values:
-   ```javascript
-   GEMINI_API_KEY: 'your_actual_gemini_key_here',
-   TRANSLATION_API_KEY: 'your_actual_translation_key_here',
-   ```
+### Installation
+1. Clone or download this repository
+2. Open Chrome and navigate to `chrome://extensions`
+3. Enable "Developer mode" (toggle in top-right)
+4. Click "Load unpacked" and select the `extension` folder
+5. The exTendifAI icon should appear in your extensions
 
-### 3. Install the Extension
+### First Use
+1. Click the exTendifAI icon in the extension toolbar
+2. The side panel will open with the chat interface
+3. Alternatively, look for the small arrow indicator (⇄) on web pages
+4. Click the arrow to open the side panel
+5. Start chatting or use the quick action buttons!
 
-1. Open Chrome and go to `chrome://extensions/`
-2. Enable "Developer mode"
-3. Click "Load unpacked"
-4. Select the `extension` folder
-5. The extension will appear in your browser
+## ⌨️ Keyboard Shortcuts
 
-## How It Works
+| Shortcut | Action |
+|----------|--------|
+| `Enter` | Send message |
+| `Shift + Enter` | New line in message |
+| `Cmd/Ctrl + Enter` | Send message |
+| `Esc` | Cancel voice input or blur input |
+| `/` | Focus chat input |
+| `S` | Skip typewriter animation |
 
-1. **Auto-capture**: Extension monitors all tabs and captures content
-2. **AI Analysis**: Gemini API analyzes content for entities, topics, and intent
-3. **Translation**: If content is in another language, it's translated to English
-4. **Context Detection**: AI finds connections between tabs (e.g., ChatGPT + D2L = studying)
-5. **Insights Display**: Floating pill shows contextual insights on every page
+## 🔧 Technical Details
 
-## API Usage
+### Built With
+- **Gemini Nano**: Google's on-device AI model for natural language processing
+- **Chrome Prompt API**: For conversational AI capabilities
+- **Chrome Summarizer API**: For intelligent page summarization
+- **Chrome Writer API**: For text improvement suggestions
+- **Chrome Rewriter API**: For alternative text phrasings
+- **Chrome Translator API**: For multilingual support
+- **Web Speech API**: For voice input functionality
 
-The extension uses two Google Cloud APIs:
+### Privacy & Performance
+- ✅ **100% Local Processing**: All AI runs on-device, no data sent to servers
+- ✅ **Offline Capable**: Works without internet connection (once AI model is downloaded)
+- ✅ **No API Costs**: Free to use, no quotas or rate limits
+- ✅ **Context Never Leaves Device**: Page content stays private
 
-- **Gemini API**: For content analysis and context detection
-- **Cloud Translation API**: For multi-language content analysis
+### File Structure
+```
+extension/
+├── manifest.json           # Extension configuration
+├── background-simple.js    # Service worker with AI handlers
+├── sidebar.html            # Side panel UI
+├── sidebar.js              # Side panel logic
+├── content.js              # Page indicator injection
+├── icons.js                # SVG icon library
+├── styles/
+│   ├── sidebar.css         # Main UI styles
+│   └── page-indicator.css  # Arrow indicator styles
+└── assets/                 # Extension icons
+```
 
-Both APIs have generous free tiers, but usage is tracked and may incur costs for heavy usage.
+## 🎨 Design Principles
 
-## Fallback Mode
+### Bottom-Dock Chat Surface
+- Fixed to bottom, full-width on desktop
+- Max container width: 1200px, centered
+- Height: 48-56px (expands to ~160px for 4 lines)
+- 1px hairline top border + subtle shadow
+- Glassmorphic background with backdrop blur
 
-If Google Cloud APIs are not configured or fail, the extension falls back to:
-- Chrome's built-in AI capabilities
-- Basic content analysis
-- Pattern-based context detection
+### Visual Design
+- **Border Radius**: 12-16px for containers, 8px gaps
+- **Font**: Inter, 14-16px base size
+- **Colors**: 
+  - Primary: #4285F4 (Google Blue)
+  - Background: Dark with transparency layers
+  - Text: White with varying opacity (95%, 60%, 40%)
+- **Contrast**: Minimum 4.5:1 ratio for WCAG AA compliance
 
-## Troubleshooting
+## 🐛 Known Issues
 
-- **API Errors**: Check your API keys in `config.js`
-- **Permission Issues**: Ensure the extension has access to all tabs
-- **Translation Issues**: Verify Cloud Translation API is enabled
-- **Analysis Issues**: Check browser console for error messages
+- Gemini Nano requires Chrome flags to be enabled
+- AI model download may take time on first use
+- Some APIs may not be available on all devices
+- File attachments UI present but upload not yet implemented
 
-## Privacy
+## 📝 Changelog
 
-- All content analysis happens locally or through Google Cloud APIs
-- No data is stored on external servers (except for API calls)
-- Content is only sent to Google for analysis, not stored
+See [CHANGELOG-v2.md](./CHANGELOG-v2.md) for detailed version history.
+
+## 🤝 Contributing
+
+This is a hackathon project for the Google Chrome Built-in AI Challenge 2025. 
+
+## 📄 License
+
+MIT License - See LICENSE file for details
+
+## 🙏 Acknowledgments
+
+- Google Chrome team for the Built-in AI APIs
+- Perplexity's Comet UI for design inspiration
+- Lucide icons for beautiful SVG icons
+- The open-source community
+
+---
+
+**Built with ❤️ for the Google Chrome Built-in AI Challenge 2025**
