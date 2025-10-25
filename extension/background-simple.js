@@ -162,7 +162,7 @@ async function generateAIResponse(message, pageContext, history = []) {
       });
     }
     
-    // build context for AI - FULL GEMINI NANO POWER!
+    // build context for AI
     let contextPrompt = '';
     if (pageContext) {
       contextPrompt = `You are a helpful AI assistant. Answer the user's question directly and completely.
@@ -215,11 +215,11 @@ Provide a direct, helpful answer using your full knowledge and capabilities.`;
   }
 }
 
-// generate fallback response when AI is not available - MINIMAL FALLBACK ONLY
+// generate fallback response when AI is not available
 function generateFallbackResponse(message, pageContext, history = []) {
   console.log('AI not available, using minimal fallback');
   
-  // Only provide a simple fallback when Gemini Nano is completely unavailable
+  // provide simple fallback when Gemini Nano is unavailable
   if (pageContext) {
     return `I can see you're on "${pageContext.title}". I'm your AI assistant, but I'm having trouble accessing my full capabilities right now. Please try again in a moment.`;
   } else {
@@ -384,7 +384,7 @@ async function handleTranslateText(request, sender, sendResponse) {
         const detectedLang = await detector.detect(text);
         detector.destroy();
         
-        const targetLang = detectedLang === 'en' ? 'es' : 'en'; // Example: translate to Spanish or English
+        const targetLang = detectedLang === 'en' ? 'es' : 'en';
         
         const translator = await self.ai.translator.create({
           sourceLanguage: detectedLang,

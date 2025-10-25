@@ -2,7 +2,7 @@ console.log('exTendifAI side panel indicator loaded');
 
 // Create and inject the minimal arrow indicator
 function createIndicator() {
-  // Check if already exists
+  // check if already exists
   if (document.getElementById('side-panel-indicator')) {
     return;
   }
@@ -25,7 +25,7 @@ function createIndicator() {
   const button = indicator.querySelector('.indicator-button');
   const closeBtn = indicator.querySelector('.indicator-close');
   
-  // Open side panel when clicked
+  // open side panel when clicked
   button.addEventListener('click', () => {
     console.log('Opening side panel...');
     chrome.runtime.sendMessage({
@@ -37,30 +37,30 @@ function createIndicator() {
     });
   });
   
-  // Close/hide indicator when X is clicked
+  // close indicator when X is clicked
   closeBtn.addEventListener('click', (e) => {
     e.stopPropagation();
     console.log('Hiding indicator');
     indicator.classList.add('hidden');
     
-    // Store preference for this tab session
+    // store preference for this tab session
     sessionStorage.setItem('sidePanelIndicatorHidden', 'true');
   });
 }
 
-// Initialize when DOM is ready
+// initialize when DOM is ready
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', createIndicator);
 } else {
   createIndicator();
 }
 
-// Check if indicator should be shown based on session storage
+// check if indicator should be shown based on session storage
 window.addEventListener('beforeunload', () => {
   sessionStorage.removeItem('sidePanelIndicatorHidden');
 });
 
-// Listen for messages from background
+// listen for messages from background
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === 'showIndicator') {
     const indicator = document.getElementById('side-panel-indicator');

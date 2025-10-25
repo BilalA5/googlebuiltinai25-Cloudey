@@ -35,10 +35,10 @@ function initializeIcons() {
   
   // FAB action icons
   const fabActionButtons = document.querySelectorAll('.fab-action');
-  fabActionButtons[0].querySelector('.icon-wrapper').innerHTML = icons.fileText; // summarize
-  fabActionButtons[1].querySelector('.icon-wrapper').innerHTML = icons.pen; // improve
-  fabActionButtons[2].querySelector('.icon-wrapper').innerHTML = icons.refresh; // rewrite
-  fabActionButtons[3].querySelector('.icon-wrapper').innerHTML = icons.globe; // translate
+  fabActionButtons[0].querySelector('.icon-wrapper').innerHTML = icons.fileText;
+  fabActionButtons[1].querySelector('.icon-wrapper').innerHTML = icons.pen;
+  fabActionButtons[2].querySelector('.icon-wrapper').innerHTML = icons.refresh;
+  fabActionButtons[3].querySelector('.icon-wrapper').innerHTML = icons.globe;
 }
 
 // Initialize Speech Recognition
@@ -84,7 +84,7 @@ if (SpeechRecognition) {
 // Auto-resize textarea (0-4 lines)
 function autoResizeTextarea() {
   chatInput.style.height = 'auto';
-  const newHeight = Math.min(chatInput.scrollHeight, 160); // max 4 lines ~160px
+  const newHeight = Math.min(chatInput.scrollHeight, 160);
   chatInput.style.height = newHeight + 'px';
 }
 
@@ -266,10 +266,10 @@ async function sendMessage() {
   // Show typing indicator
   showTypingIndicator();
   
-  // Note: File attachments are stored but not sent (as per requirements)
+  // file attachments are stored but not sent
   if (attachedFiles.length > 0) {
     console.log('Files attached (UI only):', attachedFiles.map(f => f.name));
-    // Clear attachments after "sending"
+    // clear attachments after sending
     attachedFiles = [];
     attachmentChips.innerHTML = '';
     attachmentChips.classList.add('hidden');
@@ -320,7 +320,6 @@ function addMessage(role, content) {
   messageDiv.appendChild(contentDiv);
   messagesContainer.appendChild(messageDiv);
   
-  // Auto-scroll
   setTimeout(() => {
     messagesContainer.scrollTop = messagesContainer.scrollHeight;
   }, 100);
@@ -353,7 +352,6 @@ async function typewriterEffect(text, speed = 30) {
   try {
     for (let i = 0; i < text.length; i++) {
       if (typewriterAbortController.signal.aborted) {
-        // Show full text immediately
         contentDiv.textContent = text;
         break;
       }
@@ -361,10 +359,8 @@ async function typewriterEffect(text, speed = 30) {
       currentText += text[i];
       contentDiv.textContent = currentText;
       
-      // Auto-scroll
       messagesContainer.scrollTop = messagesContainer.scrollHeight;
       
-      // Variable speed: faster for long texts
       const adjustedSpeed = text.length > 500 ? speed * 0.6 : speed;
       await sleep(adjustedSpeed);
     }
@@ -372,13 +368,11 @@ async function typewriterEffect(text, speed = 30) {
     contentDiv.textContent = text;
   }
   
-  // Remove typing cursor
   contentDiv.classList.remove('typing');
   
   isStreaming = false;
   typewriterAbortController = null;
   
-  // Hide stop button
   stopBtn.classList.add('hidden');
   sendBtn.classList.remove('hidden');
   
