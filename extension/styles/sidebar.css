@@ -14,17 +14,17 @@
   --radius-sm: 8px;
   --gap: 8px;
   --base-font: 14px;
-  --primary-color: rgba(233, 30, 99, 1);
-  --primary-light: rgba(233, 30, 99, 0.4);
+  --primary-color: rgba(238, 130, 238, 1);
+  --primary-light: rgba(238, 130, 238, 0.4);
   --background-dark: rgba(20, 10, 25, 0.95);
-  --glass-bg: rgba(156, 39, 176, 0.08);
-  --glass-border: rgba(233, 30, 99, 0.15);
+  --glass-bg: rgba(186, 104, 200, 0.12);
+  --glass-border: rgba(238, 130, 238, 0.2);
   --text-primary: rgba(255, 255, 255, 0.95);
   --text-secondary: rgba(255, 255, 255, 0.6);
   --text-muted: rgba(255, 255, 255, 0.4);
-  --accent-pink: rgba(233, 30, 99, 1);
-  --accent-purple: rgba(156, 39, 176, 1);
-  --accent-light: rgba(233, 30, 99, 0.2);
+  --accent-pink: rgba(238, 130, 238, 1);
+  --accent-purple: rgba(186, 104, 200, 1);
+  --accent-light: rgba(238, 130, 238, 0.2);
 }
 
 body {
@@ -297,13 +297,13 @@ body {
 .bottom-dock-bar {
   flex: 1;
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   gap: 10px;
   min-height: 56px;
   background: var(--glass-bg);
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-lg);
-  padding: 8px;
+  padding: 6px 10px;
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
@@ -327,14 +327,14 @@ body {
   justify-content: center;
   cursor: pointer;
   transition: all 0.2s ease;
-  box-shadow: 0 2px 8px rgba(233, 30, 99, 0.3);
+  box-shadow: 0 2px 8px rgba(238, 130, 238, 0.3);
   color: white;
 }
 
 .action-button:hover {
   background: var(--primary-light);
   transform: scale(1.05);
-  box-shadow: 0 4px 12px rgba(233, 30, 99, 0.4);
+  box-shadow: 0 4px 12px rgba(238, 130, 238, 0.4);
 }
 
 .action-button:active {
@@ -395,16 +395,18 @@ body {
 
 /* Send button - primary style */
 .send-btn {
-  background: linear-gradient(135deg, var(--primary-color), rgba(66, 133, 244, 0.8));
-  border-color: rgba(66, 133, 244, 0.5);
+  background: var(--primary-color);
+  border: none;
   color: white;
+  width: 44px;
+  height: 44px;
+  box-shadow: 0 2px 8px rgba(238, 130, 238, 0.3);
 }
 
 .send-btn:hover {
-  background: linear-gradient(135deg, rgba(66, 133, 244, 1), rgba(66, 133, 244, 0.9));
-  border-color: var(--primary-color);
-  box-shadow: 0 4px 12px rgba(66, 133, 244, 0.4);
-  transform: scale(1.08);
+  background: var(--primary-light);
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(238, 130, 238, 0.4);
 }
 
 .send-btn:disabled {
