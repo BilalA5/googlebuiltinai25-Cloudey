@@ -3,8 +3,7 @@ console.log('Cloudey side panel indicator loaded');
 // Check if extension context is valid before proceeding
 if (typeof chrome === 'undefined' || !chrome.runtime || !chrome.runtime.id) {
   console.log('Extension context not available, skipping indicator creation');
-  return;
-}
+} else {
 
 // Create and inject the minimal arrow indicator
 function createIndicator() {
@@ -104,3 +103,4 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 });
 
 console.log('Cloudey indicator initialized');
+}
