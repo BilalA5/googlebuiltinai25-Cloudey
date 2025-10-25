@@ -1,5 +1,11 @@
 console.log('Cloudey side panel indicator loaded');
 
+// Check if extension context is valid before proceeding
+if (typeof chrome === 'undefined' || !chrome.runtime || !chrome.runtime.id) {
+  console.log('Extension context not available, skipping indicator creation');
+  return;
+}
+
 // Create and inject the minimal arrow indicator
 function createIndicator() {
   // check if already exists
@@ -30,7 +36,7 @@ function createIndicator() {
     console.log('Opening side panel...');
     try {
       // Check if extension context is still valid
-      if (!chrome.runtime?.id) {
+      if (typeof chrome === 'undefined' || !chrome.runtime || !chrome.runtime.id) {
         console.log('Extension context invalidated, reloading page...');
         window.location.reload();
         return;
@@ -49,6 +55,8 @@ function createIndicator() {
       });
     } catch (error) {
       console.log('Error opening side panel:', error);
+      // If we get here, the extension context is likely invalid
+      window.location.reload();
     }
   });
   
@@ -78,7 +86,7 @@ window.addEventListener('beforeunload', () => {
 // listen for messages from background
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   try {
-    if (!chrome.runtime?.id) {
+    if (typeof chrome === 'undefined' || !chrome.runtime || !chrome.runtime.id) {
       console.log('Extension context invalidated in message listener');
       return;
     }
