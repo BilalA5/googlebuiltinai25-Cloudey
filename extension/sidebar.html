@@ -8,33 +8,109 @@
 </head>
 <body>
   <div id="side-panel-container">
-    <!-- Search Bar at Top -->
-    <div class="search-bar-wrapper">
-      <div class="search-bar">
-        <input 
-          type="text" 
-          id="chat-input" 
-          class="search-input" 
-          placeholder="Ask anything..."
-          autocomplete="off"
-        >
-        <button id="microphone-btn" class="search-icon microphone-btn" title="Voice input">
-          🎤
-        </button>
-        <button id="send-btn" class="search-icon send-btn" title="Send message">
-          ▶
-        </button>
-      </div>
-    </div>
-
+    
     <!-- Messages Container -->
     <div id="messages-container" class="messages-container">
       <div class="empty-state">
+        <div class="empty-state-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/>
+          </svg>
+        </div>
         <p>Start a conversation</p>
+        <div class="suggestion-chips">
+          <button class="chip" data-prompt="Summarize this page">Summarize this page</button>
+          <button class="chip" data-prompt="What's on this page?">What's on this page?</button>
+          <button class="chip" data-prompt="Help me understand this">Help me understand this</button>
+        </div>
       </div>
     </div>
-  </div>
+    
+    <!-- Assistant Typing Row (Hidden by default) -->
+    <div id="assistant-typing-row" class="assistant-typing-row hidden">
+      <div class="typing-avatar">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/>
+        </svg>
+      </div>
+      <div class="typing-info">
+        <span class="typing-name">Comet</span>
+        <span class="typing-status">thinking...</span>
+      </div>
+    </div>
 
-  <script src="sidebar.js"></script>
+    <!-- Bottom Dock Chat Bar -->
+    <div class="bottom-dock-wrapper">
+      <div class="bottom-dock-bar">
+        
+        <!-- Hidden file input -->
+        <input type="file" id="file-input" class="hidden-file-input" multiple accept=".pdf,.png,.jpg,.jpeg,.txt,.doc,.docx" aria-label="Attach files">
+        
+        <!-- Attach Button -->
+        <button id="attach-btn" class="dock-btn attach-btn" title="Attach files" aria-label="Attach files">
+          <span class="icon-wrapper"></span>
+        </button>
+        
+        <!-- Attachment chips container -->
+        <div id="attachment-chips" class="attachment-chips hidden"></div>
+        
+        <!-- Textarea (flex-grow) -->
+        <textarea 
+          id="chat-input" 
+          class="chat-textarea" 
+          placeholder="Ask anything… (Shift+Enter for new line)"
+          rows="1"
+          aria-label="Type your message"
+        ></textarea>
+        
+        <!-- Voice Button -->
+        <button id="microphone-btn" class="dock-btn mic-btn" title="Voice input" aria-label="Start voice input">
+          <span class="icon-wrapper"></span>
+        </button>
+        
+        <!-- Send Button -->
+        <button id="send-btn" class="dock-btn send-btn" title="Send message" aria-label="Send message">
+          <span class="icon-wrapper"></span>
+        </button>
+        
+        <!-- Stop Button (hidden by default) -->
+        <button id="stop-btn" class="dock-btn stop-btn hidden" title="Stop generating" aria-label="Stop generating">
+          <span class="icon-wrapper"></span>
+        </button>
+      </div>
+      
+      <!-- Floating Action Menu -->
+      <div class="fab-menu">
+        <button id="fab-toggle" class="fab-button" title="Quick actions" aria-label="Quick actions menu">
+          <span class="icon-wrapper"></span>
+        </button>
+        <div id="fab-actions" class="fab-actions hidden">
+          <button class="fab-action" data-action="summarize" title="Summarize page">
+            <span class="icon-wrapper"></span>
+            <span class="fab-label">Summarize</span>
+          </button>
+          <button class="fab-action" data-action="improve" title="Improve writing">
+            <span class="icon-wrapper"></span>
+            <span class="fab-label">Improve</span>
+          </button>
+          <button class="fab-action" data-action="rewrite" title="Rewrite text">
+            <span class="icon-wrapper"></span>
+            <span class="fab-label">Rewrite</span>
+          </button>
+          <button class="fab-action" data-action="translate" title="Translate">
+            <span class="icon-wrapper"></span>
+            <span class="fab-label">Translate</span>
+          </button>
+        </div>
+      </div>
+    </div>
+    
+  </div>
+  
+  <!-- ARIA Live Regions -->
+  <div aria-live="polite" aria-atomic="true" class="sr-only" id="aria-polite"></div>
+  <div aria-live="assertive" aria-atomic="true" class="sr-only" id="aria-assertive"></div>
+
+  <script type="module" src="sidebar.js"></script>
 </body>
 </html>
