@@ -1,5 +1,5 @@
 // enhanced background script with AI integration
-console.log('Enhanced background script loaded');
+console.log('Cloudey background script loaded');
 
 // store conversation history per tab
 const conversationHistory = new Map();
@@ -419,4 +419,4 @@ async function handleTranslateText(request, sender, sendResponse) {
   }
 }
 
-console.log('Enhanced background script ready');
+console.log('Cloudey background script ready');

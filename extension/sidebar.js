@@ -1,6 +1,6 @@
 import { icons, getIconHTML } from './icons.js';
 
-console.log('Side panel loaded');
+console.log('Cloudey side panel loaded');
 
 // DOM elements
 const chatInput = document.getElementById('chat-input');
@@ -558,4 +558,4 @@ window.addEventListener('load', () => {
   );
 });
 
-console.log('Side panel initialized');
+console.log('Cloudey side panel initialized');

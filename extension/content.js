@@ -1,4 +1,4 @@
-console.log('exTendifAI side panel indicator loaded');
+console.log('Cloudey side panel indicator loaded');
 
 // Create and inject the minimal arrow indicator
 function createIndicator() {
@@ -12,7 +12,7 @@ function createIndicator() {
   indicator.className = 'visible';
   
   indicator.innerHTML = `
-    <button class="indicator-button" title="Open exTendifAI side panel">
+    <button class="indicator-button" title="Open Cloudey side panel">
       ⇄
     </button>
     <button class="indicator-close" title="Close indicator">
@@ -71,4 +71,4 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
 });
 
-console.log('exTendifAI indicator initialized');
+console.log('Cloudey indicator initialized');

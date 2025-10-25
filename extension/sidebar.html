@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>exTendifAI - Side Panel</title>
+  <title>Cloudey - Side Panel</title>
   <link rel="stylesheet" href="styles/sidebar.css">
 </head>
 <body>
@@ -13,8 +13,19 @@
     <div id="messages-container" class="messages-container">
       <div class="empty-state">
         <div class="empty-state-icon">
-          <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-            <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/>
+          <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48">
+            <defs>
+              <linearGradient id="cloudey-empty-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" style="stop-color:#E1BEE7;stop-opacity:1" />
+                <stop offset="30%" style="stop-color:#CE93D8;stop-opacity:1" />
+                <stop offset="60%" style="stop-color:#BA68C8;stop-opacity:1" />
+                <stop offset="100%" style="stop-color:#9C27B0;stop-opacity:1" />
+              </linearGradient>
+            </defs>
+            <circle cx="24" cy="24" r="22" fill="rgba(255,255,255,0.1)" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
+            <path d="M 10 20 Q 15 10 24 15 Q 33 10 38 20 Q 33 30 24 25 Q 15 30 10 20 Z" 
+                  fill="url(#cloudey-empty-gradient)" 
+                  opacity="0.9"/>
           </svg>
         </div>
         <p>Start a conversation</p>
@@ -29,12 +40,22 @@
     <!-- Assistant Typing Row (Hidden by default) -->
     <div id="assistant-typing-row" class="assistant-typing-row hidden">
       <div class="typing-avatar">
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/>
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20">
+          <defs>
+            <linearGradient id="cloudey-avatar-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" style="stop-color:#E1BEE7;stop-opacity:1" />
+              <stop offset="30%" style="stop-color:#CE93D8;stop-opacity:1" />
+              <stop offset="60%" style="stop-color:#BA68C8;stop-opacity:1" />
+              <stop offset="100%" style="stop-color:#9C27B0;stop-opacity:1" />
+            </linearGradient>
+          </defs>
+          <path d="M 4 7 Q 6 3 10 5 Q 14 3 16 7 Q 14 11 10 9 Q 6 11 4 7 Z" 
+                fill="url(#cloudey-avatar-gradient)" 
+                opacity="0.9"/>
         </svg>
       </div>
       <div class="typing-info">
-        <span class="typing-name">Comet</span>
+        <span class="typing-name">Cloudey</span>
         <span class="typing-status">thinking...</span>
       </div>
     </div>
