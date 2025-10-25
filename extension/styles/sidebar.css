@@ -580,4 +580,13 @@ body {
   .message {
     max-width: 90%;
   }
+  
+  .dock-btn {
+    width: 36px;
+    height: 36px;
+  }
+  
+  .chat-textarea {
+    font-size: 16px; /* Prevent iOS zoom on focus */
+  }
 }
