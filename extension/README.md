@@ -1,4 +1,4 @@
-# exTendifAI - AI-Powered Browser Assistant
+# Cloudey - AI-Powered Browser Assistant
 
 > Your intelligent browsing companion powered by Chrome's built-in AI APIs and Gemini Nano
 
@@ -44,10 +44,10 @@
 2. Open Chrome and navigate to `chrome://extensions`
 3. Enable "Developer mode" (toggle in top-right)
 4. Click "Load unpacked" and select the `extension` folder
-5. The exTendifAI icon should appear in your extensions
+5. The Cloudey icon should appear in your extensions
 
 ### First Use
-1. Click the exTendifAI icon in the extension toolbar
+1. Click the Cloudey icon in the extension toolbar
 2. The side panel will open with the chat interface
 3. Alternatively, look for the small arrow indicator (⇄) on web pages
 4. Click the arrow to open the side panel

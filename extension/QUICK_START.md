@@ -1,4 +1,4 @@
-# 🚀 Quick Start Guide - exTendifAI
+# 🚀 Quick Start Guide - Cloudey
 
 ## ⚡ 60-Second Setup
 
@@ -19,7 +19,7 @@
 
 ### Step 3: Start Chatting!
 ```
-1. Click the exTendifAI icon in toolbar
+1. Click the Cloudey icon in toolbar
    OR
    Look for the ⇄ arrow on any webpage
 2. Type your question
