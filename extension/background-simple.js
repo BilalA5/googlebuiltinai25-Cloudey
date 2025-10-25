@@ -30,6 +30,22 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         chrome.sidePanel.open({ tabId: sender.tab.id });
         sendResponse({ success: true });
         break;
+      
+      case 'summarizePage':
+        handleSummarizePage(request, sender, sendResponse);
+        break;
+      
+      case 'improveText':
+        handleImproveText(request, sender, sendResponse);
+        break;
+      
+      case 'rewriteText':
+        handleRewriteText(request, sender, sendResponse);
+        break;
+      
+      case 'translateText':
+        handleTranslateText(request, sender, sendResponse);
+        break;
         
       default:
         sendResponse({ error: 'Unknown action' });
@@ -208,6 +224,198 @@ function generateFallbackResponse(message, pageContext, history = []) {
     return `I can see you're on "${pageContext.title}". I'm your AI assistant, but I'm having trouble accessing my full capabilities right now. Please try again in a moment.`;
   } else {
     return `I'm your AI assistant, but I'm having trouble accessing my full capabilities right now. Please try again in a moment.`;
+  }
+}
+
+// ===== API ACTION HANDLERS =====
+
+// Summarize page handler
+async function handleSummarizePage(request, sender, sendResponse) {
+  const { tabId } = request;
+  console.log('Handling summarize page request:', tabId);
+  
+  try {
+    // Get page context
+    const tab = sender.tab || (await chrome.tabs.get(tabId));
+    const pageContext = await getPageContext(tab);
+    
+    if (!pageContext) {
+      sendResponse({
+        success: false,
+        response: 'Unable to access page content.'
+      });
+      return;
+    }
+    
+    // Check if Summarizer API is available
+    if (typeof self.ai !== 'undefined' && self.ai?.summarizer) {
+      try {
+        const summarizer = await self.ai.summarizer.create({
+          type: 'key-points',
+          format: 'markdown',
+          length: 'medium'
+        });
+        
+        const summary = await summarizer.summarize(pageContext.content);
+        summarizer.destroy();
+        
+        sendResponse({
+          success: true,
+          response: `Here's a summary of "${pageContext.title}":\n\n${summary}`
+        });
+        return;
+      } catch (error) {
+        console.error('Summarizer API error:', error);
+      }
+    }
+    
+    // Fallback to Gemini Nano
+    const prompt = `Please provide a concise summary of this webpage:\n\nTitle: ${pageContext.title}\nContent: ${pageContext.content.substring(0, 3000)}`;
+    const aiResponse = await generateAIResponse(prompt, null, []);
+    
+    sendResponse(aiResponse);
+    
+  } catch (error) {
+    console.error('Summarize page error:', error);
+    sendResponse({
+      success: false,
+      response: 'Failed to summarize page. Please try again.'
+    });
+  }
+}
+
+// Improve text handler
+async function handleImproveText(request, sender, sendResponse) {
+  const { text } = request;
+  console.log('Handling improve text request');
+  
+  try {
+    // Check if Writer API is available
+    if (typeof self.ai !== 'undefined' && self.ai?.writer) {
+      try {
+        const writer = await self.ai.writer.create({
+          tone: 'formal',
+          format: 'plain-text',
+          length: 'as-is'
+        });
+        
+        const improved = await writer.write(text);
+        writer.destroy();
+        
+        sendResponse({
+          success: true,
+          response: `Here's an improved version:\n\n${improved}`
+        });
+        return;
+      } catch (error) {
+        console.error('Writer API error:', error);
+      }
+    }
+    
+    // Fallback to Gemini Nano
+    const prompt = `Please improve this text to make it clearer and more professional:\n\n"${text}"`;
+    const aiResponse = await generateAIResponse(prompt, null, []);
+    
+    sendResponse(aiResponse);
+    
+  } catch (error) {
+    console.error('Improve text error:', error);
+    sendResponse({
+      success: false,
+      response: 'Failed to improve text. Please try again.'
+    });
+  }
+}
+
+// Rewrite text handler
+async function handleRewriteText(request, sender, sendResponse) {
+  const { text } = request;
+  console.log('Handling rewrite text request');
+  
+  try {
+    // Check if Rewriter API is available
+    if (typeof self.ai !== 'undefined' && self.ai?.rewriter) {
+      try {
+        const rewriter = await self.ai.rewriter.create({
+          tone: 'as-is',
+          format: 'as-is',
+          length: 'as-is'
+        });
+        
+        const rewritten = await rewriter.rewrite(text);
+        rewriter.destroy();
+        
+        sendResponse({
+          success: true,
+          response: `Here's an alternative phrasing:\n\n${rewritten}`
+        });
+        return;
+      } catch (error) {
+        console.error('Rewriter API error:', error);
+      }
+    }
+    
+    // Fallback to Gemini Nano
+    const prompt = `Please provide an alternative way to phrase this text:\n\n"${text}"`;
+    const aiResponse = await generateAIResponse(prompt, null, []);
+    
+    sendResponse(aiResponse);
+    
+  } catch (error) {
+    console.error('Rewrite text error:', error);
+    sendResponse({
+      success: false,
+      response: 'Failed to rewrite text. Please try again.'
+    });
+  }
+}
+
+// Translate text handler
+async function handleTranslateText(request, sender, sendResponse) {
+  const { text } = request;
+  console.log('Handling translate text request');
+  
+  try {
+    // Check if Translator API is available
+    if (typeof self.ai !== 'undefined' && self.ai?.translator) {
+      try {
+        // Detect source language and translate to English (or vice versa)
+        const detector = await self.ai.translator.createDetector();
+        const detectedLang = await detector.detect(text);
+        detector.destroy();
+        
+        const targetLang = detectedLang === 'en' ? 'es' : 'en'; // Example: translate to Spanish or English
+        
+        const translator = await self.ai.translator.create({
+          sourceLanguage: detectedLang,
+          targetLanguage: targetLang
+        });
+        
+        const translated = await translator.translate(text);
+        translator.destroy();
+        
+        sendResponse({
+          success: true,
+          response: `Translated from ${detectedLang} to ${targetLang}:\n\n${translated}`
+        });
+        return;
+      } catch (error) {
+        console.error('Translator API error:', error);
+      }
+    }
+    
+    // Fallback to Gemini Nano
+    const prompt = `Please translate this text to English (or if it's already in English, translate to Spanish):\n\n"${text}"`;
+    const aiResponse = await generateAIResponse(prompt, null, []);
+    
+    sendResponse(aiResponse);
+    
+  } catch (error) {
+    console.error('Translate text error:', error);
+    sendResponse({
+      success: false,
+      response: 'Failed to translate text. Please try again.'
+    });
   }
 }
 
