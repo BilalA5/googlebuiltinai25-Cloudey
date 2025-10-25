@@ -28,19 +28,19 @@ const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25MB
 
 // Initialize icons
 function initializeIcons() {
-  document.querySelector('.attach-btn .icon-wrapper').innerHTML = icons.paperclip;
   document.querySelector('.mic-btn .icon-wrapper').innerHTML = icons.mic;
   document.querySelector('.send-btn .icon-wrapper').innerHTML = icons.send;
   document.querySelector('.stop-btn .icon-wrapper').innerHTML = icons.stop;
-  document.querySelector('.header-fab .icon-wrapper').innerHTML = icons.plus;
+  document.querySelector('.action-button .icon-wrapper').innerHTML = icons.plus;
   document.querySelector('.header-close .icon-wrapper').innerHTML = icons.x;
   
   // FAB action icons
   const fabActionButtons = document.querySelectorAll('.fab-action');
-  fabActionButtons[0].querySelector('.icon-wrapper').innerHTML = icons.fileText;
-  fabActionButtons[1].querySelector('.icon-wrapper').innerHTML = icons.pen;
-  fabActionButtons[2].querySelector('.icon-wrapper').innerHTML = icons.refresh;
-  fabActionButtons[3].querySelector('.icon-wrapper').innerHTML = icons.globe;
+  fabActionButtons[0].querySelector('.icon-wrapper').innerHTML = icons.paperclip;
+  fabActionButtons[1].querySelector('.icon-wrapper').innerHTML = icons.fileText;
+  fabActionButtons[2].querySelector('.icon-wrapper').innerHTML = icons.pen;
+  fabActionButtons[3].querySelector('.icon-wrapper').innerHTML = icons.refresh;
+  fabActionButtons[4].querySelector('.icon-wrapper').innerHTML = icons.globe;
 }
 
 // Initialize Speech Recognition
@@ -152,9 +152,7 @@ micBtn.addEventListener('click', () => {
   }
 });
 
-attachBtn.addEventListener('click', () => {
-  fileInput.click();
-});
+// File input is now handled by the action button
 
 fileInput.addEventListener('change', handleFileSelection);
 
@@ -165,7 +163,7 @@ closeBtn.addEventListener('click', () => {
   window.close();
 });
 
-// FAB menu toggle
+// Action button toggle (handles both file attachments and quick actions)
 fabToggle.addEventListener('click', () => {
   const isOpen = !fabActions.classList.contains('hidden');
   if (isOpen) {
@@ -175,6 +173,11 @@ fabToggle.addEventListener('click', () => {
     fabActions.classList.remove('hidden');
     fabToggle.classList.add('active');
   }
+});
+
+// Handle file input click when attachment action is selected
+document.querySelector('[data-action="attach"]')?.addEventListener('click', () => {
+  fileInput.click();
 });
 
 // FAB actions

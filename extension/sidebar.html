@@ -16,9 +16,6 @@
         <span class="header-title">Cloudey</span>
       </div>
       <div class="header-right">
-        <button id="fab-toggle" class="header-fab" title="Quick actions" aria-label="Quick actions menu">
-          <span class="icon-wrapper"></span>
-        </button>
         <button id="close-btn" class="header-close" title="Close panel" aria-label="Close panel">
           <span class="icon-wrapper"></span>
         </button>
@@ -83,11 +80,6 @@
         <!-- Hidden file input -->
         <input type="file" id="file-input" class="hidden-file-input" multiple accept=".pdf,.png,.jpg,.jpeg,.txt,.doc,.docx" aria-label="Attach files">
         
-        <!-- Attach Button -->
-        <button id="attach-btn" class="dock-btn attach-btn" title="Attach files" aria-label="Attach files">
-          <span class="icon-wrapper"></span>
-        </button>
-        
         <!-- Attachment chips container -->
         <div id="attachment-chips" class="attachment-chips hidden"></div>
         
@@ -116,8 +108,19 @@
         </button>
       </div>
       
-      <!-- Floating Action Menu (moved to header) -->
+      <!-- Integrated Action Button -->
+      <div class="action-button-container">
+        <button id="fab-toggle" class="action-button" title="Quick actions & attachments" aria-label="Quick actions and attachments menu">
+          <span class="icon-wrapper"></span>
+        </button>
+      </div>
+      
+      <!-- Floating Action Menu -->
       <div id="fab-actions" class="fab-actions hidden">
+        <button class="fab-action" data-action="attach" title="Attach files">
+          <span class="icon-wrapper"></span>
+          <span class="fab-label">Attach</span>
+        </button>
         <button class="fab-action" data-action="summarize" title="Summarize page">
           <span class="icon-wrapper"></span>
           <span class="fab-label">Summarize</span>
