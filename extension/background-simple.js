@@ -131,56 +131,26 @@ async function getPageContext(tab) {
 // generate AI response using Gemini Nano
 async function generateAIResponse(message, pageContext, history = []) {
   try {
-    // DEBUG: Check context and global objects
-    console.log('=== DEBUG: AI Availability Check ===');
-    console.log('typeof self:', typeof self);
-    console.log('typeof globalThis:', typeof globalThis);
-    console.log('typeof chrome:', typeof chrome);
-    console.log('typeof chrome?.ai:', typeof chrome?.ai);
-    console.log('chrome.ai object:', chrome?.ai);
-    
-    if (chrome?.ai) {
-      console.log('chrome.ai keys:', Object.keys(chrome.ai));
-      console.log('chrome.ai.prompt type:', typeof chrome.ai.prompt);
-    }
-    console.log('=== END DEBUG ===');
-    
-    // check if AI is available
-    console.log('Checking AI availability...');
-    console.log('typeof chrome:', typeof chrome);
-    console.log('typeof chrome.ai:', typeof chrome.ai);
-    console.log('chrome.ai available:', !!chrome.ai);
-    
-    if (chrome.ai) {
-      console.log('chrome.ai keys:', Object.keys(chrome.ai));
-      console.log('chrome.ai.prompt exists:', !!chrome.ai.prompt);
-    }
-    
-    // Check if chrome.ai.prompt is available (the Prompt API for Gemini Nano)
-    if (!chrome.ai || !chrome.ai.prompt) {
-      console.warn('Prompt API not available. Ensure Chrome AI flags are enabled in chrome://flags/');
-      console.log('Available chrome AI objects:', Object.keys(chrome.ai || {}));
-      return {
-        success: true,
-        response: generateFallbackResponse(message, pageContext, history)
-      };
-    }
-    
-    console.log('Prompt API is available, attempting to use Gemini Nano...');
-    
-    // build conversation context
-    let conversationContext = '';
-    if (history.length > 0) {
-      conversationContext = '\n\nPrevious conversation:\n';
-      history.slice(-4).forEach(msg => { // Last 4 messages for context
-        conversationContext += `${msg.role}: ${msg.content}\n`;
-      });
-    }
-    
-    // build context for AI
-    let contextPrompt = '';
-    if (pageContext) {
-      contextPrompt = `You are a helpful AI assistant. Answer the user's question directly and completely.
+    // Check if Prompt API is available
+    if (navigator.languageModel && navigator.languageModel.create) {
+      console.log('Prompt API is available, attempting to use Gemini Nano...');
+      
+      // Create a language model session
+      const lm = navigator.languageModel.create();
+      
+      // build conversation context
+      let conversationContext = '';
+      if (history.length > 0) {
+        conversationContext = '\n\nPrevious conversation:\n';
+        history.slice(-4).forEach(msg => { // Last 4 messages for context
+          conversationContext += `${msg.role}: ${msg.content}\n`;
+        });
+      }
+      
+      // build context for AI
+      let contextPrompt = '';
+      if (pageContext) {
+        contextPrompt = `You are Cloudey, a helpful AI assistant. Answer the user's question directly and completely.
 
 Page Context:
 Title: ${pageContext.title}
@@ -190,26 +160,33 @@ Content: ${pageContext.content.substring(0, 2000)}${conversationContext}
 User Question: ${message}
 
 Provide a direct, helpful answer using your full knowledge and capabilities.`;
-    } else {
-      contextPrompt = `You are a helpful AI assistant. Answer the user's question directly and completely.${conversationContext}
+      } else {
+        contextPrompt = `You are Cloudey, a helpful AI assistant. Answer the user's question directly and completely.${conversationContext}
 
 User Question: ${message}
 
 Provide a direct, helpful answer using your full knowledge and capabilities.`;
+      }
+      
+      // use Prompt API
+      console.log('Calling language model with prompt length:', contextPrompt.length);
+      const result = await lm.prompt(contextPrompt);
+      
+      console.log('Gemini Nano response received (length):', result ? result.length : 0);
+      console.log('First 100 chars:', result ? result.substring(0, 100) + '...' : 'No result');
+      
+      return {
+        success: true,
+        response: result,
+        usedContext: !!pageContext
+      };
+    } else {
+      console.warn('Prompt API not available. Ensure Chrome AI flags are enabled in chrome://flags/');
+      return {
+        success: true,
+        response: generateFallbackResponse(message, pageContext, history)
+      };
     }
-    
-    // use Gemini Nano with CORRECT Prompt API
-    console.log('Calling chrome.ai.prompt() with prompt length:', contextPrompt.length);
-    const result = await chrome.ai.prompt(contextPrompt);
-    
-    console.log('Gemini Nano response received (length):', result ? result.length : 0);
-    console.log('First 100 chars:', result ? result.substring(0, 100) + '...' : 'No result');
-    
-    return {
-      success: true,
-      response: result,
-      usedContext: !!pageContext
-    };
     
   } catch (error) {
     console.error('AI generation error:', error);

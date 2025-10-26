@@ -10,16 +10,16 @@ class AIBridge {
   // check if Gemini Nano is available
   async checkAvailability() {
     try {
-      // Check for chrome.ai.prompt API (correct API for Gemini Nano)
-      if (typeof chrome !== 'undefined' && chrome.ai && chrome.ai.prompt) {
+      // Check for Prompt API using navigator.languageModel
+      if (typeof navigator !== 'undefined' && navigator.languageModel && navigator.languageModel.create) {
         this.isAvailable = true;
-        console.log('Gemini Nano (Prompt API) available');
+        console.log('Prompt API (navigator.languageModel) available');
       } else {
-        console.warn('Gemini Nano not available, using fallback');
+        console.warn('Prompt API not available');
         this.isAvailable = false;
       }
     } catch (error) {
-      console.error('Gemini Nano availability check failed:', error);
+      console.error('Prompt API availability check failed:', error);
       this.isAvailable = false;
     }
   }
@@ -258,9 +258,14 @@ class AIBridge {
 
       if (processingCallback) processingCallback('reasoning');
 
-      // use chrome.ai.prompt() (correct API for Gemini Nano)
+      // use Prompt API with navigator.languageModel.create()
       const fullPrompt = `${systemPrompt}\n\n${conversationContext}`;
-      const response = await chrome.ai.prompt(fullPrompt);
+      
+      // Create a language model session
+      const lm = navigator.languageModel.create();
+      
+      // Get the response
+      const response = await lm.prompt(fullPrompt);
 
       return {
         success: true,

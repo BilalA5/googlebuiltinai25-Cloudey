@@ -332,36 +332,42 @@ async function sendMessage() {
   }
   
   try {
-    // Check if chrome.ai.prompt is available (runs in window context, not service worker)
-    console.log('Checking chrome.ai availability in sidebar...');
+    // Check if Prompt API is available using navigator.languageModel
+    console.log('Checking for Prompt API (navigator.languageModel)...');
     
-    if (chrome.ai && chrome.ai.prompt) {
-      // Use Chrome's built-in Gemini Nano via chrome.ai.prompt()
-      console.log('Using chrome.ai.prompt() - Gemini Nano');
+    if (navigator.languageModel && navigator.languageModel.create) {
+      // Use Chrome's built-in Gemini Nano via Prompt API
+      console.log('Using Prompt API with navigator.languageModel');
       
-      const prompt = `You are Cloudey, a helpful AI assistant. Answer the user's question directly and completely.
+      try {
+        // Create a language model session
+        const lm = navigator.languageModel.create();
+        
+        // Build the prompt
+        const prompt = `You are Cloudey, a helpful AI assistant. Answer the user's question directly and completely.
 
 User Question: ${message}
 
 Provide a direct, helpful answer using your full knowledge and capabilities.`;
-      
-      try {
-        const aiResponse = await chrome.ai.prompt(prompt);
-        console.log('Gemini Nano response received');
+        
+        console.log('Sending prompt to language model...');
+        const result = await lm.prompt(prompt);
+        
+        console.log('Response received from language model');
         
         hideTypingIndicator();
         promptBox?.classList.remove('loading');
-        typewriterEffect(aiResponse);
-        conversationHistory.push({ role: 'assistant', content: aiResponse });
+        typewriterEffect(result);
+        conversationHistory.push({ role: 'assistant', content: result });
         return; // Success, exit early
-      } catch (aiError) {
-        console.error('Error calling chrome.ai.prompt:', aiError);
+      } catch (lmError) {
+        console.error('Error calling language model:', lmError);
         // Fall through to API fallback
       }
     }
     
     // Fallback: Use Gemini API via background script
-    console.log('chrome.ai.prompt not available, using Gemini API via background');
+    console.log('Prompt API not available, using Gemini API via background');
     chrome.runtime.sendMessage(
       {
         action: 'chat',
