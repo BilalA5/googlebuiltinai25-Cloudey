@@ -5,6 +5,7 @@ console.log('Cloudey side panel loaded');
 // DOM elements
 const chatInput = document.getElementById('chat-input');
 const sendBtn = document.getElementById('send-btn');
+const pauseBtn = document.getElementById('pause-btn');
 const stopBtn = document.getElementById('stop-btn');
 const micBtn = document.getElementById('microphone-btn');
 const attachBtn = document.getElementById('attach-btn') || document.querySelector('.prompt-action-btn[title="Attach image"]');
@@ -143,6 +144,7 @@ document.addEventListener('keydown', (e) => {
 
 // Event listeners
 sendBtn.addEventListener('click', sendMessage);
+pauseBtn.addEventListener('click', stopGeneration);
 chatInput.addEventListener('input', () => {
   autoResizeTextarea();
   updateSendButtonState();
@@ -460,6 +462,11 @@ async function sendMessage() {
     if (response.success) {
       hideTypingIndicator();
       promptBox?.classList.remove('loading');
+      
+      // Show pause button during streaming
+      if (sendBtn) sendBtn.classList.add('hidden');
+      if (pauseBtn) pauseBtn.classList.remove('hidden');
+      
       typewriterEffect(response.response);
       conversationHistory.push({ role: 'assistant', content: response.response });
       return;
@@ -521,9 +528,10 @@ async function typewriterEffect(text, speed = 30) {
   isStreaming = true;
   typewriterAbortController = new AbortController();
   
-  // Show stop button
+  // Show pause button
   if (sendBtn) sendBtn.classList.add('hidden');
-  if (stopBtn) stopBtn.classList.remove('hidden');
+  if (pauseBtn) pauseBtn.classList.remove('hidden');
+  if (stopBtn) stopBtn.classList.add('hidden');
   
   const messageDiv = document.createElement('div');
   messageDiv.className = 'message assistant';
@@ -569,6 +577,7 @@ async function typewriterEffect(text, speed = 30) {
   typewriterAbortController = null;
   
   if (stopBtn) stopBtn.classList.add('hidden');
+  if (pauseBtn) pauseBtn.classList.add('hidden');
   if (sendBtn) sendBtn.classList.remove('hidden');
   
   announceToScreenReader('Response complete', 'polite');
@@ -587,6 +596,7 @@ function stopGeneration() {
   hideTypingIndicator();
   isStreaming = false;
   if (stopBtn) stopBtn.classList.add('hidden');
+  if (pauseBtn) pauseBtn.classList.add('hidden');
   if (sendBtn) sendBtn.classList.remove('hidden');
   announceToScreenReader('Generation stopped', 'polite');
 }

@@ -121,59 +121,113 @@ async function getPageContext(tab) {
     const results = await chrome.scripting.executeScript({
       target: { tabId: tab.id },
       func: () => {
-        // Get more specific content based on the page type
-        let content = '';
+        // UNIVERSAL CONTENT EXTRACTION - Get ALL page content
+        const extractAllContent = () => {
+          const content = {
+            title: document.title,
+            url: window.location.href,
+            domain: window.location.hostname,
+            timestamp: new Date().toISOString(),
+            // Extract all text content
+            fullText: document.body.innerText || document.body.textContent || '',
+            // Extract all headings
+            headings: Array.from(document.querySelectorAll('h1, h2, h3, h4, h5, h6')).map(h => ({
+              level: h.tagName,
+              text: h.textContent?.trim(),
+              id: h.id
+            })).filter(h => h.text),
+            // Extract all links
+            links: Array.from(document.querySelectorAll('a[href]')).map(a => ({
+              text: a.textContent?.trim(),
+              href: a.href,
+              title: a.title
+            })).filter(l => l.text && l.href),
+            // Extract all images
+            images: Array.from(document.querySelectorAll('img')).map(img => ({
+              src: img.src,
+              alt: img.alt,
+              title: img.title
+            })).filter(i => i.src),
+            // Extract all videos
+            videos: Array.from(document.querySelectorAll('video, iframe[src*="youtube"], iframe[src*="vimeo"]')).map(v => ({
+              src: v.src || v.getAttribute('src'),
+              title: v.title || v.getAttribute('title'),
+              type: v.tagName
+            })).filter(v => v.src),
+            // Extract meta information
+            meta: {
+              description: document.querySelector('meta[name="description"]')?.content || '',
+              keywords: document.querySelector('meta[name="keywords"]')?.content || '',
+              author: document.querySelector('meta[name="author"]')?.content || '',
+              ogTitle: document.querySelector('meta[property="og:title"]')?.content || '',
+              ogDescription: document.querySelector('meta[property="og:description"]')?.content || '',
+              ogImage: document.querySelector('meta[property="og:image"]')?.content || ''
+            },
+            // Extract structured data (JSON-LD)
+            structuredData: Array.from(document.querySelectorAll('script[type="application/ld+json"]')).map(s => {
+              try { return JSON.parse(s.textContent); } catch { return null; }
+            }).filter(d => d),
+            // Extract forms
+            forms: Array.from(document.querySelectorAll('form')).map(f => ({
+              action: f.action,
+              method: f.method,
+              inputs: Array.from(f.querySelectorAll('input, textarea, select')).map(i => ({
+                type: i.type || i.tagName,
+                name: i.name,
+                placeholder: i.placeholder,
+                value: i.value
+              }))
+            })),
+            // Extract tables
+            tables: Array.from(document.querySelectorAll('table')).map(t => ({
+              headers: Array.from(t.querySelectorAll('th')).map(th => th.textContent?.trim()),
+              rows: Array.from(t.querySelectorAll('tr')).map(tr => 
+                Array.from(tr.querySelectorAll('td')).map(td => td.textContent?.trim())
+              )
+            }))
+          };
+          
+          return content;
+        };
         
-        // For YouTube, try to get comprehensive video information
-        if (window.location.hostname.includes('youtube.com')) {
-          const videoTitle = document.querySelector('h1.title yt-formatted-string')?.textContent || 
-                           document.querySelector('h1.ytd-video-primary-info-renderer')?.textContent || '';
-          const channelName = document.querySelector('#owner-name a')?.textContent || 
-                            document.querySelector('#channel-name a')?.textContent || '';
-          const videoDescription = document.querySelector('#description-text')?.textContent || 
-                                document.querySelector('#description')?.textContent || '';
-          const videoViews = document.querySelector('#count .view-count')?.textContent || 
-                           document.querySelector('#count')?.textContent || '';
-          const videoLikes = document.querySelector('#top-level-buttons-computed #segmented-like-button button')?.getAttribute('aria-label') || 
-                           document.querySelector('#segmented-like-button button')?.getAttribute('aria-label') || '';
-          const videoDuration = document.querySelector('.ytp-time-duration')?.textContent || '';
-          const videoUploadDate = document.querySelector('#info-strings yt-formatted-string')?.textContent || '';
-          const videoComments = document.querySelector('#count #count .count-text')?.textContent || '';
-          
-          // Get related videos
-          const relatedVideos = Array.from(document.querySelectorAll('#related #video-title')).slice(0, 5).map(el => el.textContent).join(', ');
-          
-          // Get video transcript if available
-          const transcript = document.querySelector('#segmented-transcript')?.textContent || '';
-          
-          content = `🎥 YOUTUBE VIDEO DETAILS:
-Title: ${videoTitle}
-Channel: ${channelName}
-Views: ${videoViews}
-Likes: ${videoLikes}
-Duration: ${videoDuration}
-Uploaded: ${videoUploadDate}
-Comments: ${videoComments}
-Description: ${videoDescription.substring(0, 500)}
-${transcript ? `Transcript: ${transcript.substring(0, 300)}` : ''}
-Related Videos: ${relatedVideos}`;
-        } else {
-          // For other pages, get more comprehensive content
-          const headings = Array.from(document.querySelectorAll('h1, h2, h3')).map(h => h.textContent).join(' | ');
-          const links = Array.from(document.querySelectorAll('a[href]')).slice(0, 10).map(a => `${a.textContent} (${a.href})`).join(' | ');
-          const images = Array.from(document.querySelectorAll('img[alt]')).slice(0, 5).map(img => img.alt).join(' | ');
-          
-          content = `Page Content:
-Headings: ${headings}
-Links: ${links}
-Images: ${images}
-Text: ${document.body.textContent.substring(0, 2000)}`;
-        }
+        const pageData = extractAllContent();
         
+        // Format content for AI consumption
+        let formattedContent = `🌐 UNIVERSAL PAGE CONTENT EXTRACTION
+Title: ${pageData.title}
+URL: ${pageData.url}
+Domain: ${pageData.domain}
+Timestamp: ${pageData.timestamp}
+
+📝 MAIN CONTENT:
+${pageData.fullText.substring(0, 3000)}
+
+📋 STRUCTURE:
+${pageData.headings.map(h => `${h.level}: ${h.text}`).join('\n')}
+
+🔗 LINKS (${pageData.links.length}):
+${pageData.links.slice(0, 20).map(l => `• ${l.text} → ${l.href}`).join('\n')}
+
+🖼️ IMAGES (${pageData.images.length}):
+${pageData.images.slice(0, 10).map(i => `• ${i.alt || 'No alt text'} (${i.src})`).join('\n')}
+
+🎥 VIDEOS (${pageData.videos.length}):
+${pageData.videos.map(v => `• ${v.title || 'Untitled'} (${v.src})`).join('\n')}
+
+📊 META DATA:
+Description: ${pageData.meta.description}
+Keywords: ${pageData.meta.keywords}
+Author: ${pageData.meta.author}
+OG Title: ${pageData.meta.ogTitle}
+OG Description: ${pageData.meta.ogDescription}
+
+📋 TABLES (${pageData.tables.length}):
+${pageData.tables.slice(0, 3).map((t, i) => `Table ${i+1}:\n${t.rows.map(r => r.join(' | ')).join('\n')}`).join('\n\n')}`;
+
         return {
-          title: document.title,
-          url: window.location.href,
-          content: content.substring(0, 5000) // Limit content
+          title: pageData.title,
+          url: pageData.url,
+          content: formattedContent.substring(0, 8000) // Increased limit for comprehensive content
         };
       }
     });
@@ -377,48 +431,36 @@ async function handleGeminiChat(request, sender, sendResponse) {
     }));
 
     // Build context-aware prompt
-    let contextPrompt = `You are Cloudey, an extremely helpful and proactive AI assistant. You can see and interact with the user's current browser page. Be engaging, useful, and take initiative to help with tasks.`;
+    let contextPrompt = `You are Cloudey, a helpful AI assistant. Keep responses BRIEF and use emojis + structured lists.`;
     
     if (searchMode) {
-      contextPrompt += `\n\n🔍 SEARCH MODE ACTIVE: Research the internet for current, up-to-date information. Provide recent, factual information and mention that you're searching for current data.`;
+      contextPrompt += `\n\n🔍 SEARCH MODE: Research current info. Be concise.`;
     } else if (agentMode) {
-      contextPrompt += `\n\n🤖 AGENT MODE ACTIVE: You can take control of the user's screen and perform actions on their behalf. Be proactive and offer to help with tasks that require screen interaction.`;
+      contextPrompt += `\n\n🤖 AGENT MODE: Screen control available. Be brief.`;
     } else if (isContextMode) {
-      contextPrompt += `\n\n📄 CONTEXT MODE ACTIVE: You can see the current page content and should use it to provide relevant, contextual answers.`;
+      contextPrompt += `\n\n📄 CONTEXT MODE: You can see the page. Use it.`;
     }
     
     if (pageContext) {
       console.log('Including page context in prompt');
-      contextPrompt += `\n\n📄 CURRENT PAGE CONTEXT - YOU CAN SEE THIS PAGE:
+      contextPrompt += `\n\n📄 PAGE CONTEXT:
 Title: ${pageContext.title}
 URL: ${pageContext.url}
-Content: ${pageContext.content.substring(0, 3000)}
-
-🎯 CONTEXTUAL ASSISTANCE RULES:
-1. You can see the current page content above - use it actively
-2. For YouTube videos: Offer to summarize, find similar videos, explain concepts, or help with learning
-3. For articles: Offer to summarize, find key points, or research related topics
-4. For shopping sites: Help compare products, find deals, or make recommendations
-5. For social media: Help understand trends, find content, or engage appropriately
-6. Always be proactive - suggest useful actions based on what you see
-7. Ask follow-up questions to provide better help
-8. Offer to help with tasks related to the current page content`;
-    } else {
-      console.log('No page context to include');
+Content: ${pageContext.content.substring(0, 2000)}`;
     }
     
     if (conversationContext.length > 0) {
-      contextPrompt += `\n\n💬 CONVERSATION HISTORY:\n${conversationContext.map(c => `${c.role}: ${c.parts[0].text}`).join('\n')}`;
+      contextPrompt += `\n\n💬 HISTORY:\n${conversationContext.map(c => `${c.role}: ${c.parts[0].text}`).join('\n')}`;
     }
     
-    contextPrompt += `\n\n👤 USER REQUEST: ${message}
+    contextPrompt += `\n\n👤 USER: ${message}
 
-🚀 RESPONSE GUIDELINES:
-- Be proactive and suggest useful actions
-- Reference specific content from the page when relevant
-- Ask clarifying questions to provide better help
-- Offer multiple ways to assist with the current page
-- Be engaging and conversational, not robotic`;
+📝 RESPONSE RULES:
+- MAX 3-4 sentences
+- Use emojis 🎯 📝 🔗 💡
+- Use bullet points • or numbered lists
+- Be direct and helpful
+- Reference page content when relevant`;
 
     const requestBody = {
       contents: [
