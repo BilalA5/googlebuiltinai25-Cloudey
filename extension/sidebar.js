@@ -376,6 +376,9 @@ function activateAgentMode() {
   isAgentMode = true;
   agentToggle.classList.add('active');
   
+  // Notify background script that agent mode is active
+  chrome.runtime.sendMessage({ action: 'agentModeChanged', active: true });
+  
   // Start border animation
   chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
     chrome.tabs.sendMessage(tabs[0].id, { action: 'agentStart' });
@@ -387,6 +390,9 @@ function activateAgentMode() {
 function deactivateAgentMode() {
   isAgentMode = false;
   agentToggle.classList.remove('active');
+  
+  // Notify background script that agent mode is inactive
+  chrome.runtime.sendMessage({ action: 'agentModeChanged', active: false });
   
   // Remove border animation from ALL tabs
   chrome.tabs.query({}, (allTabs) => {

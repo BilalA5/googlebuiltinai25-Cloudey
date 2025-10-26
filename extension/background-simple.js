@@ -1,6 +1,50 @@
 // enhanced background script with AI integration
 console.log('Cloudey background script loaded');
 
+// Track current active tab for agent mode
+let currentActiveTabId = null;
+let isAgentModeActive = false;
+
+// Listen for tab activation to move agent border
+chrome.tabs.onActivated.addListener(async (activeInfo) => {
+  if (isAgentModeActive) {
+    currentActiveTabId = activeInfo.tabId;
+    
+    // Remove border from all tabs
+    const allTabs = await chrome.tabs.query({});
+    allTabs.forEach(tab => {
+      try {
+        chrome.tabs.sendMessage(tab.id, { action: 'agentEnd' });
+      } catch (error) {
+        // Ignore errors
+      }
+    });
+    
+    // Add border to new active tab
+    setTimeout(() => {
+      try {
+        chrome.tabs.sendMessage(activeInfo.tabId, { action: 'agentStart' });
+      } catch (error) {
+        console.error('Error starting agent border on new tab:', error);
+      }
+    }, 100);
+  }
+});
+
+// Track tab updates
+chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
+  if (changeInfo.status === 'complete' && isAgentModeActive) {
+    // If this is the active tab and agent mode is on, add the border
+    if (tab.active) {
+      try {
+        chrome.tabs.sendMessage(tabId, { action: 'agentStart' });
+      } catch (error) {
+        // Ignore errors
+      }
+    }
+  }
+});
+
 // store conversation history per tab
 const conversationHistory = new Map();
 
@@ -60,6 +104,12 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       
       case 'agentExecute':
         handleAgentExecute(request, sender, sendResponse);
+        break;
+      
+      case 'agentModeChanged':
+        isAgentModeActive = request.active;
+        console.log('Agent mode changed:', isAgentModeActive);
+        sendResponse({ success: true });
         break;
         
       default:
