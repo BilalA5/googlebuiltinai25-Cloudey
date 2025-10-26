@@ -224,7 +224,9 @@ body {
   display: flex;
   flex-direction: column;
   max-width: 80%;
+  min-width: 0;
   animation: slideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
 }
 
 .message.user {
@@ -258,7 +260,12 @@ body {
   line-height: var(--line-height-base);
   font-size: var(--font-size-base);
   word-wrap: break-word;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  white-space: pre-wrap;
   color: var(--color-text-primary);
+  max-width: 100%;
+  min-width: 0;
 }
 
 .message.user .message-content {
