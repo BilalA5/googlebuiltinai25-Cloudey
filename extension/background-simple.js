@@ -131,8 +131,8 @@ async function getPageContext(tab) {
         // UNIVERSAL CONTENT EXTRACTION - Get ALL page content including raw HTML
         const extractAllContent = () => {
           const content = {
-            title: document.title,
-            url: window.location.href,
+          title: document.title,
+          url: window.location.href,
             domain: window.location.hostname,
             timestamp: new Date().toISOString(),
             // Get raw HTML for deep analysis
@@ -696,7 +696,7 @@ async function handleTranslateText(request, sender, sendResponse) {
 
 // Gemini chat handler
 async function handleGeminiChat(request, sender, sendResponse) {
-  const { message, history = [], includeContext = false, searchMode = false, agentMode = false, isContextMode = false } = request;
+  const { message, history = [], includeContext = false, agentMode = false, isContextMode = false } = request;
   
   try {
     // Use the built-in API key
@@ -738,9 +738,7 @@ async function handleGeminiChat(request, sender, sendResponse) {
     // Build context-aware prompt
     let contextPrompt = `You are Cloudey, a helpful AI assistant. Keep responses BRIEF and use emojis + structured lists.`;
     
-    if (searchMode) {
-      contextPrompt += `\n\n🔍 SEARCH MODE: Research current info. Be concise.`;
-    } else if (agentMode) {
+    if (agentMode) {
       contextPrompt += `\n\n🤖 AGENT MODE: Screen control available. Be brief.`;
     } else if (isContextMode) {
       contextPrompt += `\n\n📄 CONTEXT MODE: You can see the page. Use it.`;

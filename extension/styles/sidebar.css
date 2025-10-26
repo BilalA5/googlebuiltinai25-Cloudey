@@ -963,10 +963,53 @@ body {
   padding-left: 2px;
 }
 
-/* ===== TRANSLATE TOOLTIP ===== */
+/* ===== TRANSLATE BUTTON ===== */
 .toggle-container {
   position: relative;
   display: inline-block;
+}
+
+.translate-main-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 32px;
+  padding: 4px 8px;
+  border-radius: 16px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: rgba(238, 130, 238, 1);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.translate-main-btn:hover {
+  background: rgba(238, 130, 238, 0.1);
+  border-color: rgba(238, 130, 238, 0.3);
+  color: rgba(255, 255, 255, 1);
+}
+
+.translate-main-btn .lucide-icon-small {
+  width: 16px;
+  height: 16px;
+  stroke-width: 1.5;
+  flex-shrink: 0;
+}
+
+.translate-main-btn .toggle-label {
+  opacity: 0;
+  width: 0;
+  overflow: hidden;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.translate-main-btn:hover .toggle-label {
+  opacity: 1;
+  width: auto;
+  padding-left: 2px;
 }
 
 .translate-tooltip {

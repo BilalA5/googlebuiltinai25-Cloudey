@@ -251,13 +251,11 @@ document.querySelectorAll('.chip').forEach(chip => {
 });
 
 // Toggle buttons
-const searchToggle = document.getElementById('search-toggle');
 const agentToggle = document.getElementById('agent-toggle');
 const contextToggle = document.getElementById('context-toggle');
 
 // Toggle system - only one can be active at a time
 function deactivateAllToggles() {
-  searchToggle?.classList.remove('active');
   agentToggle?.classList.remove('active');
   contextToggle?.classList.remove('active');
   includeContext = false;
@@ -272,19 +270,39 @@ function activateToggle(toggle, mode) {
   }
 }
 
-// Search toggle (Globe button)
-if (searchToggle) {
-  searchToggle.addEventListener('click', () => {
-    const isActive = searchToggle.classList.contains('active');
-    
-    if (isActive) {
-      // Deactivate search mode
-      searchToggle.classList.remove('active');
-      announceToScreenReader('Search mode disabled', 'polite');
-    } else {
-      // Activate search mode (deactivate others)
-      activateToggle(searchToggle, 'search');
-      announceToScreenReader('Search mode enabled - Cloudey will research the internet', 'polite');
+// Translate main button - Direct translation on click
+const translateMainBtn = document.getElementById('translate-main-btn');
+if (translateMainBtn) {
+  translateMainBtn.addEventListener('click', async () => {
+    console.log('🌐 Translate main button clicked');
+    try {
+      const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+      const tab = tabs[0];
+      
+      if (tab) {
+        const textToTranslate = await getSelectedText(tab.id);
+        console.log('Selected text for translation:', textToTranslate);
+        
+        if (textToTranslate && textToTranslate.trim().length > 0) {
+          addMessage('user', `Translate this: "${textToTranslate}"`);
+          showTypingIndicator();
+          
+          console.log('Sending translation request to background script...');
+          chrome.runtime.sendMessage(
+            { action: 'translate', text: textToTranslate, from: 'auto', to: 'en' },
+            (response) => {
+              console.log('Translation response received:', response);
+              handleFabResponse(response);
+            }
+          );
+        } else {
+          console.log('No text selected for translation');
+          announceToScreenReader('Please select some text first', 'assertive');
+        }
+      }
+    } catch (error) {
+      console.error('Translate main button error:', error);
+      addMessage('assistant', 'An error occurred while translating. Please try again.');
     }
   });
 }
@@ -436,12 +454,10 @@ async function sendMessage() {
   
   try {
     // Check which mode is currently active (only one can be active at a time)
-    const isSearchMode = searchToggle?.classList.contains('active') || false;
     const isAgentMode = agentToggle?.classList.contains('active') || false;
     const isContextMode = contextToggle?.classList.contains('active') || false;
     
     console.log('Sending message with mode:', {
-      isSearchMode,
       isAgentMode,
       isContextMode,
       includeContext,
@@ -454,7 +470,6 @@ async function sendMessage() {
       message: message,
       history: conversationHistory,
       includeContext: isContextMode,
-      searchMode: isSearchMode,
       agentMode: isAgentMode,
       isContextMode: isContextMode
     });
