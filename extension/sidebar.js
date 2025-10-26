@@ -28,19 +28,43 @@ const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25MB
 
 // Initialize icons
 function initializeIcons() {
-  document.querySelector('.mic-btn .icon-wrapper').innerHTML = icons.mic;
-  document.querySelector('.send-btn .icon-wrapper').innerHTML = icons.send;
-  document.querySelector('.stop-btn .icon-wrapper').innerHTML = icons.stop;
-  document.querySelector('.action-button .icon-wrapper').innerHTML = icons.plus;
-  document.querySelector('.header-close .icon-wrapper').innerHTML = icons.x;
+  const micIconEl = document.querySelector('.mic-btn .icon');
+  if (micIconEl) micIconEl.innerHTML = '🎤';
+  
+  const sendIconEl = document.querySelector('.send-btn .icon');
+  if (sendIconEl) sendIconEl.innerHTML = '→';
+  
+  const stopIconEl = document.querySelector('.stop-btn .icon');
+  if (stopIconEl) stopIconEl.innerHTML = '⏹';
+  
+  const actionBtnEl = document.querySelector('.action-btn .icon');
+  if (actionBtnEl) actionBtnEl.innerHTML = '+';
+  
+  const headerCloseEl = document.querySelector('.header-close .icon-close');
+  if (headerCloseEl) headerCloseEl.innerHTML = '×';
   
   // FAB action icons
   const fabActionButtons = document.querySelectorAll('.fab-action');
-  fabActionButtons[0].querySelector('.icon-wrapper').innerHTML = icons.paperclip;
-  fabActionButtons[1].querySelector('.icon-wrapper').innerHTML = icons.fileText;
-  fabActionButtons[2].querySelector('.icon-wrapper').innerHTML = icons.pen;
-  fabActionButtons[3].querySelector('.icon-wrapper').innerHTML = icons.refresh;
-  fabActionButtons[4].querySelector('.icon-wrapper').innerHTML = icons.globe;
+  if (fabActionButtons[0]) {
+    const icon = fabActionButtons[0].querySelector('.fab-icon');
+    if (icon) icon.innerHTML = '📎';
+  }
+  if (fabActionButtons[1]) {
+    const icon = fabActionButtons[1].querySelector('.fab-icon');
+    if (icon) icon.innerHTML = '📄';
+  }
+  if (fabActionButtons[2]) {
+    const icon = fabActionButtons[2].querySelector('.fab-icon');
+    if (icon) icon.innerHTML = '✨';
+  }
+  if (fabActionButtons[3]) {
+    const icon = fabActionButtons[3].querySelector('.fab-icon');
+    if (icon) icon.innerHTML = '✍️';
+  }
+  if (fabActionButtons[4]) {
+    const icon = fabActionButtons[4].querySelector('.fab-icon');
+    if (icon) icon.innerHTML = '🌐';
+  }
 }
 
 // Initialize Speech Recognition
