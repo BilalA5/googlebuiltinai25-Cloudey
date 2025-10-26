@@ -366,30 +366,50 @@ async function handleChromeTranslate(request, sender, sendResponse) {
     let sourceLanguage = from;
     if (from === 'auto') {
       try {
-        console.log('Detecting language for text:', text.substring(0, 100) + '...');
+        console.log('🔍 DETECTING LANGUAGE FOR TEXT:', text.substring(0, 100) + '...');
+        console.log('🔍 Full text length:', text.length);
+        
+        // Check what APIs are available
+        console.log('🔍 API Availability Check:');
+        console.log('  - LanguageDetector in self:', 'LanguageDetector' in self);
+        console.log('  - chrome.i18n available:', typeof chrome.i18n !== 'undefined');
         
         // Use Chrome's Language Detector API
         if ('LanguageDetector' in self) {
-          console.log('Using LanguageDetector API');
-          const detector = await LanguageDetector.create();
-          const detection = await detector.detectLanguage(text);
-          sourceLanguage = detection.language;
-          console.log('LanguageDetector result:', detection);
+          console.log('✅ Using LanguageDetector API');
+          try {
+            const detector = await LanguageDetector.create();
+            console.log('✅ LanguageDetector created successfully');
+            const detection = await detector.detectLanguage(text);
+            sourceLanguage = detection.language;
+            console.log('✅ LanguageDetector result:', detection);
+            console.log('✅ Detected language code:', sourceLanguage);
+          } catch (detectorError) {
+            console.error('❌ LanguageDetector failed:', detectorError);
+            throw detectorError;
+          }
         } else {
-          console.log('LanguageDetector not available, using i18n fallback');
+          console.log('⚠️ LanguageDetector not available, using i18n fallback');
           // Fallback to i18n detection
-          const detectedLanguages = await chrome.i18n.detectLanguage(text);
-          console.log('i18n detection result:', detectedLanguages);
-          if (detectedLanguages && detectedLanguages.languages && detectedLanguages.languages.length > 0) {
-            sourceLanguage = detectedLanguages.languages[0].language;
-          } else {
-            sourceLanguage = 'en'; // fallback
+          try {
+            const detectedLanguages = await chrome.i18n.detectLanguage(text);
+            console.log('✅ i18n detection result:', detectedLanguages);
+            if (detectedLanguages && detectedLanguages.languages && detectedLanguages.languages.length > 0) {
+              sourceLanguage = detectedLanguages.languages[0].language;
+              console.log('✅ i18n detected language:', sourceLanguage);
+            } else {
+              console.warn('⚠️ i18n returned no languages, using fallback');
+              sourceLanguage = 'en'; // fallback
+            }
+          } catch (i18nError) {
+            console.error('❌ i18n detection failed:', i18nError);
+            sourceLanguage = 'en';
           }
         }
         
-        console.log('Detected source language:', sourceLanguage);
+        console.log('🎯 FINAL DETECTED SOURCE LANGUAGE:', sourceLanguage);
       } catch (detectError) {
-        console.warn('Language detection failed, using fallback:', detectError);
+        console.error('❌ Language detection completely failed:', detectError);
         sourceLanguage = 'en';
       }
     }
@@ -436,22 +456,32 @@ async function handleChromeTranslate(request, sender, sendResponse) {
     
     // Translate the text (use streaming for longer texts)
     let translatedText;
+    console.log('🔄 STARTING TRANSLATION PROCESS...');
+    console.log('🔄 Text to translate:', text.substring(0, 100) + '...');
+    console.log('🔄 From:', sourceLanguage, 'To:', to);
+    
     if (text.length > 1000) {
-      console.log('Using streaming translation for long text');
+      console.log('📡 Using streaming translation for long text');
       // Use streaming for longer texts
       const stream = translator.translateStreaming(text);
       const chunks = [];
       for await (const chunk of stream) {
+        console.log('📡 Received chunk:', chunk);
         chunks.push(chunk);
       }
       translatedText = chunks.join('');
+      console.log('📡 Streaming completed, total chunks:', chunks.length);
     } else {
-      console.log('Using regular translation for short text');
+      console.log('⚡ Using regular translation for short text');
       // Use regular translate for shorter texts
       translatedText = await translator.translate(text);
+      console.log('⚡ Regular translation completed');
     }
     
-    console.log('Translation completed:', translatedText.substring(0, 100) + '...');
+    console.log('✅ TRANSLATION RESULT:');
+    console.log('  Original:', text.substring(0, 100) + '...');
+    console.log('  Translated:', translatedText.substring(0, 100) + '...');
+    console.log('  Same text?', text === translatedText);
     
     sendResponse({
       success: true,
