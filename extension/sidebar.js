@@ -45,13 +45,13 @@ if (SpeechRecognition) {
   
   recognition.onstart = () => {
     isListening = true;
-    micBtn.classList.add('listening');
+    if (micBtn) micBtn.classList.add('listening');
     announceToScreenReader('Listening for voice input', 'polite');
   };
   
   recognition.onend = () => {
     isListening = false;
-    micBtn.classList.remove('listening');
+    if (micBtn) micBtn.classList.remove('listening');
   };
   
   recognition.onresult = (event) => {
@@ -74,8 +74,10 @@ if (SpeechRecognition) {
     
     if (event.error === 'not-allowed') {
       errorMessage = 'Microphone permission denied. Please enable microphone access in Chrome settings.';
-      micBtn.disabled = true;
-      micBtn.title = 'Microphone access denied';
+      if (micBtn) {
+        micBtn.disabled = true;
+        micBtn.title = 'Microphone access denied';
+      }
     } else if (event.error === 'no-speech') {
       errorMessage = 'No speech detected. Please try again.';
     } else if (event.error === 'audio-capture') {
@@ -86,7 +88,7 @@ if (SpeechRecognition) {
     
     announceToScreenReader(errorMessage, 'assertive');
     isListening = false;
-    micBtn.classList.remove('listening');
+    if (micBtn) micBtn.classList.remove('listening');
   };
 }
 
@@ -147,64 +149,73 @@ chatInput.addEventListener('keydown', (e) => {
   }
 });
 
-micBtn.addEventListener('click', async () => {
-  if (!recognition) {
-    announceToScreenReader('Speech recognition not supported in this browser', 'assertive');
-    return;
-  }
-  
-  if (isListening) {
-    recognition.stop();
-  } else {
-    // Check if microphone permission is granted before starting
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      // Permission granted, stop the test stream and start recognition
-      stream.getTracks().forEach(track => track.stop());
-      recognition.start();
-    } catch (error) {
-      const errorName = error.name || 'Unknown error';
-      const errorMessage = error.message || '';
-      console.error('Microphone permission denied:', errorName, errorMessage);
-      
-      let userMessage = 'Microphone permission denied. Please enable microphone access in Chrome settings.';
-      if (errorName === 'NotAllowedError' || errorName === 'PermissionDeniedError') {
-        userMessage = 'Microphone access denied. Please allow microphone access in Chrome settings and reload.';
-      } else if (errorName === 'NotFoundError') {
-        userMessage = 'No microphone found. Please connect a microphone.';
-      } else if (errorName === 'NotReadableError') {
-        userMessage = 'Microphone is being used by another application. Please close other apps using the microphone.';
-      }
-      
-      announceToScreenReader(userMessage, 'assertive');
-      micBtn.disabled = true;
-      micBtn.title = 'Microphone access denied';
+if (micBtn) {
+  micBtn.addEventListener('click', async () => {
+    if (!recognition) {
+      announceToScreenReader('Speech recognition not supported in this browser', 'assertive');
+      return;
     }
-  }
-});
+    
+    if (isListening) {
+      recognition.stop();
+    } else {
+      // Check if microphone permission is granted before starting
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        // Permission granted, stop the test stream and start recognition
+        stream.getTracks().forEach(track => track.stop());
+        recognition.start();
+      } catch (error) {
+        const errorName = error.name || 'Unknown error';
+        const errorMessage = error.message || '';
+        console.error('Microphone permission denied:', errorName, errorMessage);
+        
+        let userMessage = 'Microphone permission denied. Please enable microphone access in Chrome settings.';
+        if (errorName === 'NotAllowedError' || errorName === 'PermissionDeniedError') {
+          userMessage = 'Microphone access denied. Please allow microphone access in Chrome settings and reload.';
+        } else if (errorName === 'NotFoundError') {
+          userMessage = 'No microphone found. Please connect a microphone.';
+        } else if (errorName === 'NotReadableError') {
+          userMessage = 'Microphone is being used by another application. Please close other apps using the microphone.';
+        }
+        
+        announceToScreenReader(userMessage, 'assertive');
+        micBtn.disabled = true;
+        micBtn.title = 'Microphone access denied';
+      }
+    }
+  });
+}
 
 // File input is now handled by the action button
+if (fileInput) {
+  fileInput.addEventListener('change', handleFileSelection);
+}
 
-fileInput.addEventListener('change', handleFileSelection);
-
-stopBtn.addEventListener('click', stopGeneration);
+if (stopBtn) {
+  stopBtn.addEventListener('click', stopGeneration);
+}
 
 // Close button
-closeBtn.addEventListener('click', () => {
-  window.close();
-});
+if (closeBtn) {
+  closeBtn.addEventListener('click', () => {
+    window.close();
+  });
+}
 
 // Action button toggle (handles both file attachments and quick actions)
-fabToggle.addEventListener('click', () => {
-  const isOpen = !fabActions.classList.contains('hidden');
-  if (isOpen) {
-    fabActions.classList.add('hidden');
-    fabToggle.classList.remove('active');
-  } else {
-    fabActions.classList.remove('hidden');
-    fabToggle.classList.add('active');
-  }
-});
+if (fabToggle) {
+  fabToggle.addEventListener('click', () => {
+    const isOpen = !fabActions.classList.contains('hidden');
+    if (isOpen) {
+      fabActions.classList.add('hidden');
+      fabToggle.classList.remove('active');
+    } else {
+      fabActions.classList.remove('hidden');
+      fabToggle.classList.add('active');
+    }
+  });
+}
 
 // Handle file input click when attachment action is selected
 document.querySelector('[data-action="attach"]')?.addEventListener('click', () => {
@@ -385,8 +396,8 @@ async function typewriterEffect(text, speed = 30) {
   typewriterAbortController = new AbortController();
   
   // Show stop button
-  sendBtn.classList.add('hidden');
-  stopBtn.classList.remove('hidden');
+  if (sendBtn) sendBtn.classList.add('hidden');
+  if (stopBtn) stopBtn.classList.remove('hidden');
   
   const messageDiv = document.createElement('div');
   messageDiv.className = 'message assistant';
@@ -425,8 +436,8 @@ async function typewriterEffect(text, speed = 30) {
   isStreaming = false;
   typewriterAbortController = null;
   
-  stopBtn.classList.add('hidden');
-  sendBtn.classList.remove('hidden');
+  if (stopBtn) stopBtn.classList.add('hidden');
+  if (sendBtn) sendBtn.classList.remove('hidden');
   
   announceToScreenReader('Response complete', 'polite');
 }
@@ -443,8 +454,8 @@ function stopGeneration() {
   }
   hideTypingIndicator();
   isStreaming = false;
-  stopBtn.classList.add('hidden');
-  sendBtn.classList.remove('hidden');
+  if (stopBtn) stopBtn.classList.add('hidden');
+  if (sendBtn) sendBtn.classList.remove('hidden');
   announceToScreenReader('Generation stopped', 'polite');
 }
 
