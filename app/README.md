@@ -12,7 +12,11 @@ AI-powered browser assistant using Chrome's built-in AI APIs and Gemini Nano.
 
 ## Setup
 
-1. Enable Chrome AI: Go to `chrome://flags/#optimization-guide-on-device-model` → Set to "Enabled BypassPerfRequirement" → Restart Chrome
+1. Enable Chrome AI: 
+   - Go to `chrome://flags/`
+   - Search for "optimization-guide-on-device-model"
+   - Set to "Enabled (BypassPerfRequirement)"
+   - Restart Chrome
 
 2. Install Extension: 
    - Open `chrome://extensions`

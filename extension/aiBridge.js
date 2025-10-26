@@ -10,17 +10,10 @@ class AIBridge {
   // check if Gemini Nano is available
   async checkAvailability() {
     try {
-      // Check if we're in a service worker context
-      if (typeof self !== 'undefined' && self.importScripts) {
-        // Service worker context - AI might not be available
-        console.warn('Running in service worker context, AI may not be available');
-        this.isAvailable = false;
-        return;
-      }
-      
-      if (typeof ai !== 'undefined' && ai.languageModel) {
+      // Check for chrome.ai.prompt API (correct API for Gemini Nano)
+      if (typeof chrome !== 'undefined' && chrome.ai && chrome.ai.prompt) {
         this.isAvailable = true;
-        console.log('Gemini Nano (in-browser) available');
+        console.log('Gemini Nano (Prompt API) available');
       } else {
         console.warn('Gemini Nano not available, using fallback');
         this.isAvailable = false;
@@ -50,16 +43,8 @@ class AIBridge {
     }
 
     try {
-      // Check if we're in service worker context
-      if (typeof self !== 'undefined' && self.importScripts) {
-        console.log('Running in service worker, using fallback analysis');
-        return this.fallbackAnalysis(pageData);
-      }
-
-      const session = await ai.languageModel.create({
-        systemPrompt: "You are an AI that analyzes web page content to extract key entities, topics, and user intent. Return structured data about what the user is doing on this page."
-      });
-
+      const systemPrompt = "You are an AI that analyzes web page content to extract key entities, topics, and user intent. Return structured data about what the user is doing on this page.";
+      
       const prompt = `Analyze this web page content and extract:
       1. Main topics and entities
       2. User intent (studying, shopping, researching, etc.)
@@ -71,7 +56,8 @@ class AIBridge {
       
       Return as JSON with: {topics: [], entities: [], intent: "", contentType: "", keyConcepts: []}`;
 
-      const result = await session.prompt(prompt);
+      const fullPrompt = `${systemPrompt}\n\n${prompt}`;
+      const result = await chrome.ai.prompt(fullPrompt);
       return this.parseAIResponse(result);
       
     } catch (error) {
@@ -87,16 +73,8 @@ class AIBridge {
     }
 
     try {
-      // Check if we're in service worker context
-      if (typeof self !== 'undefined' && self.importScripts) {
-        console.log('Running in service worker, using fallback context detection');
-        return this.fallbackContextDetection(tabsData);
-      }
-
-      const session = await ai.languageModel.create({
-        systemPrompt: "You analyze multiple browser tabs to find connections and determine what the user is doing across all tabs. Identify patterns like studying, shopping, research, etc."
-      });
-
+      const systemPrompt = "You analyze multiple browser tabs to find connections and determine what the user is doing across all tabs. Identify patterns like studying, shopping, research, etc.";
+      
       const prompt = `Analyze these browser tabs and find connections:
       ${tabsData.map((tab, i) => `${i+1}. ${tab.title} - ${tab.url}`).join('\n')}
       
@@ -107,7 +85,8 @@ class AIBridge {
       
       Return as JSON: {activity: "", connections: [], insights: ""}`;
 
-      const result = await session.prompt(prompt);
+      const fullPrompt = `${systemPrompt}\n\n${prompt}`;
+      const result = await chrome.ai.prompt(fullPrompt);
       return this.parseAIResponse(result);
       
     } catch (error) {
@@ -123,16 +102,8 @@ class AIBridge {
     }
 
     try {
-      // Check if we're in service worker context
-      if (typeof self !== 'undefined' && self.importScripts) {
-        console.log('Running in service worker, using fallback insight');
-        return this.fallbackInsight(analysis);
-      }
-
-      const session = await ai.languageModel.create({
-        systemPrompt: "You create helpful, concise insights for users based on their browsing activity. Be friendly and informative."
-      });
-
+      const systemPrompt = "You create helpful, concise insights for users based on their browsing activity. Be friendly and informative.";
+      
       const prompt = `Based on this analysis, create a helpful insight for the user:
       Activity: ${analysis.activity}
       Connections: ${analysis.connections?.join(', ') || 'None'}
@@ -140,7 +111,8 @@ class AIBridge {
       
       Create a short, friendly message (max 50 words) that helps the user understand what they're doing.`;
 
-      const result = await session.prompt(prompt);
+      const fullPrompt = `${systemPrompt}\n\n${prompt}`;
+      const result = await chrome.ai.prompt(fullPrompt);
       return result;
       
     } catch (error) {
@@ -262,15 +234,6 @@ class AIBridge {
       // notify UI of processing state
       if (processingCallback) processingCallback('thinking');
 
-      // check if we're in service worker context
-      if (typeof self !== 'undefined' && self.importScripts) {
-        console.log('Running in service worker, using fallback response');
-        return {
-          success: true,
-          response: `I can help you with questions about the current page: "${pageContext?.title || 'this page'}". What would you like to know?`
-        };
-      }
-
       // check if Gemini Nano is available
       if (!this.isAvailable) {
         console.log('AI not available, using fallback response');
@@ -295,13 +258,9 @@ class AIBridge {
 
       if (processingCallback) processingCallback('reasoning');
 
-      // create AI session
-      const session = await ai.languageModel.create({
-        systemPrompt: systemPrompt
-      });
-
-      // get response from AI
-      const response = await session.prompt(conversationContext);
+      // use chrome.ai.prompt() (correct API for Gemini Nano)
+      const fullPrompt = `${systemPrompt}\n\n${conversationContext}`;
+      const response = await chrome.ai.prompt(fullPrompt);
 
       return {
         success: true,

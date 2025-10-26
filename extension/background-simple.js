@@ -4,8 +4,6 @@ console.log('Cloudey background script loaded');
 // store conversation history per tab
 const conversationHistory = new Map();
 
-//TODO: Add proper dimensions of the svj for Cloudey icon
-
 // AI-powered message handler
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   console.log('Background received message:', request);
@@ -135,39 +133,20 @@ async function generateAIResponse(message, pageContext, history = []) {
   try {
     // check if AI is available
     console.log('Checking AI availability...');
-    console.log('typeof self.ai:', typeof self.ai);
-    console.log('typeof self.languageModel:', typeof self.languageModel);
-    console.log('typeof self.ai?.languageModel:', typeof self.ai?.languageModel);
+    console.log('typeof chrome.ai:', typeof chrome.ai);
+    console.log('chrome.ai available:', !!chrome.ai);
     
-    // Try different ways to access the language model
-    const lm = self.languageModel || self.ai?.languageModel;
-    
-    if (!lm) {
-      console.warn('AI Language Model not available. Ensure Chrome AI is enabled in chrome://flags/');
+    // Check if chrome.ai.prompt is available (the Prompt API for Gemini Nano)
+    if (!chrome.ai || !chrome.ai.prompt) {
+      console.warn('Prompt API not available. Ensure Chrome AI flags are enabled in chrome://flags/');
+      console.log('Available chrome AI objects:', Object.keys(chrome.ai || {}));
       return {
         success: true,
         response: generateFallbackResponse(message, pageContext, history)
       };
     }
     
-    console.log('AI Language Model is available, attempting to use Gemini Nano...');
-    
-    // Check if model capabilities are available
-    let capabilities = null;
-    try {
-      capabilities = await lm.capabilities();
-      console.log('AI capabilities:', capabilities);
-      
-      if (capabilities && capabilities.available === 'no') {
-        console.log('AI model not available on this device');
-        return {
-          success: true,
-          response: generateFallbackResponse(message, pageContext, history)
-        };
-      }
-    } catch (error) {
-      console.warn('Could not check capabilities, proceeding anyway:', error);
-    }
+    console.log('Prompt API is available, attempting to use Gemini Nano...');
     
     // build conversation context
     let conversationContext = '';
@@ -199,23 +178,12 @@ User Question: ${message}
 Provide a direct, helpful answer using your full knowledge and capabilities.`;
     }
     
-    // use Gemini Nano with correct API
-    console.log('Creating Gemini Nano session...');
-    const session = await lm.create({
-      temperature: 0.7,
-      topK: 40
-    });
-    
-    console.log('Prompting Gemini Nano with prompt length:', contextPrompt.length);
-    const result = await session.prompt(contextPrompt);
+    // use Gemini Nano with CORRECT Prompt API
+    console.log('Calling chrome.ai.prompt() with prompt length:', contextPrompt.length);
+    const result = await chrome.ai.prompt(contextPrompt);
     
     console.log('Gemini Nano response received (length):', result ? result.length : 0);
     console.log('First 100 chars:', result ? result.substring(0, 100) + '...' : 'No result');
-    
-    // Cleanup session
-    if (session && typeof session.destroy === 'function') {
-      session.destroy();
-    }
     
     return {
       success: true,
@@ -245,9 +213,7 @@ To enable Cloudey with Gemini Nano:
 1. Go to chrome://flags/
 2. Search for "optimization-guide-on-device-model"
 3. Set it to "Enabled (BypassPerfRequirement)"
-4. Search for "prompt-api-for-internals"
-5. Set it to "Enabled"
-6. Restart Chrome
+4. Restart Chrome
 
 After restarting, Cloudey will be able to use on-device AI capabilities.
 `;
@@ -279,29 +245,7 @@ async function handleSummarizePage(request, sender, sendResponse) {
       return;
     }
     
-    // Check if Summarizer API is available
-    if (typeof self.ai !== 'undefined' && self.ai?.summarizer) {
-      try {
-        const summarizer = await self.ai.summarizer.create({
-          type: 'key-points',
-          format: 'markdown',
-          length: 'medium'
-        });
-        
-        const summary = await summarizer.summarize(pageContext.content);
-        summarizer.destroy();
-        
-        sendResponse({
-          success: true,
-          response: `Here's a summary of "${pageContext.title}":\n\n${summary}`
-        });
-        return;
-      } catch (error) {
-        console.error('Summarizer API error:', error);
-      }
-    }
-    
-    // Fallback to Gemini Nano
+    // Use Gemini Nano Prompt API for summarization
     const prompt = `Please provide a concise summary of this webpage:\n\nTitle: ${pageContext.title}\nContent: ${pageContext.content.substring(0, 3000)}`;
     const aiResponse = await generateAIResponse(prompt, null, []);
     
@@ -322,29 +266,7 @@ async function handleImproveText(request, sender, sendResponse) {
   console.log('Handling improve text request');
   
   try {
-    // Check if Writer API is available
-    if (typeof self.ai !== 'undefined' && self.ai?.writer) {
-      try {
-        const writer = await self.ai.writer.create({
-          tone: 'formal',
-          format: 'plain-text',
-          length: 'as-is'
-        });
-        
-        const improved = await writer.write(text);
-        writer.destroy();
-        
-        sendResponse({
-          success: true,
-          response: `Here's an improved version:\n\n${improved}`
-        });
-        return;
-      } catch (error) {
-        console.error('Writer API error:', error);
-      }
-    }
-    
-    // Fallback to Gemini Nano
+    // Use Gemini Nano Prompt API for text improvement
     const prompt = `Please improve this text to make it clearer and more professional:\n\n"${text}"`;
     const aiResponse = await generateAIResponse(prompt, null, []);
     
@@ -365,29 +287,7 @@ async function handleRewriteText(request, sender, sendResponse) {
   console.log('Handling rewrite text request');
   
   try {
-    // Check if Rewriter API is available
-    if (typeof self.ai !== 'undefined' && self.ai?.rewriter) {
-      try {
-        const rewriter = await self.ai.rewriter.create({
-          tone: 'as-is',
-          format: 'as-is',
-          length: 'as-is'
-        });
-        
-        const rewritten = await rewriter.rewrite(text);
-        rewriter.destroy();
-        
-        sendResponse({
-          success: true,
-          response: `Here's an alternative phrasing:\n\n${rewritten}`
-        });
-        return;
-      } catch (error) {
-        console.error('Rewriter API error:', error);
-      }
-    }
-    
-    // Fallback to Gemini Nano
+    // Use Gemini Nano Prompt API for rewriting
     const prompt = `Please provide an alternative way to phrase this text:\n\n"${text}"`;
     const aiResponse = await generateAIResponse(prompt, null, []);
     
@@ -408,35 +308,7 @@ async function handleTranslateText(request, sender, sendResponse) {
   console.log('Handling translate text request');
   
   try {
-    // Check if Translator API is available
-    if (typeof self.ai !== 'undefined' && self.ai?.translator) {
-      try {
-        // Detect source language and translate to English (or vice versa)
-        const detector = await self.ai.translator.createDetector();
-        const detectedLang = await detector.detect(text);
-        detector.destroy();
-        
-        const targetLang = detectedLang === 'en' ? 'es' : 'en';
-        
-        const translator = await self.ai.translator.create({
-          sourceLanguage: detectedLang,
-          targetLanguage: targetLang
-        });
-        
-        const translated = await translator.translate(text);
-        translator.destroy();
-        
-        sendResponse({
-          success: true,
-          response: `Translated from ${detectedLang} to ${targetLang}:\n\n${translated}`
-        });
-        return;
-      } catch (error) {
-        console.error('Translator API error:', error);
-      }
-    }
-    
-    // Fallback to Gemini Nano
+    // Use Gemini Nano Prompt API for translation
     const prompt = `Please translate this text to English (or if it's already in English, translate to Spanish):\n\n"${text}"`;
     const aiResponse = await generateAIResponse(prompt, null, []);
     
