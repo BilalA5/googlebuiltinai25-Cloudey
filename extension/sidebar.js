@@ -243,6 +243,20 @@ document.querySelectorAll('.fab-action').forEach(btn => {
 // Toggle buttons
 const agentToggle = document.getElementById('agent-toggle');
 
+// Agent Mode elements
+const agentDialog = document.getElementById('agent-permission-dialog');
+const agentDialogClose = document.getElementById('agent-dialog-close');
+const agentDialogCancel = document.getElementById('agent-dialog-cancel');
+const agentDialogConfirm = document.getElementById('agent-dialog-confirm');
+const agentStepsContainer = document.getElementById('agent-steps-container');
+const agentStepsList = document.getElementById('agent-steps-list');
+const agentStepsToggle = document.getElementById('agent-steps-toggle');
+const agentActionsList = document.getElementById('agent-actions-list');
+
+// Agent Mode state
+let isAgentMode = false;
+let agentSteps = [];
+
 // Toggle system - only one can be active at a time
 function deactivateAllToggles() {
   agentToggle?.classList.remove('active');
@@ -299,15 +313,165 @@ if (agentToggle) {
     
     if (isActive) {
       // Deactivate agent mode
-      agentToggle.classList.remove('active');
-      announceToScreenReader('Agent mode disabled', 'polite');
+      deactivateAgentMode();
     } else {
-      // Activate agent mode (deactivate others)
-      activateToggle(agentToggle, 'agent');
-      announceToScreenReader('Agent mode enabled - Cloudey can take control of your screen', 'polite');
+      // Show permission dialog for agent mode
+      showAgentPermissionDialog();
     }
   });
 }
+
+// Agent permission dialog handlers
+if (agentDialogClose) {
+  agentDialogClose.addEventListener('click', () => {
+    hideAgentPermissionDialog();
+  });
+}
+
+if (agentDialogCancel) {
+  agentDialogCancel.addEventListener('click', () => {
+    hideAgentPermissionDialog();
+  });
+}
+
+if (agentDialogConfirm) {
+  agentDialogConfirm.addEventListener('click', () => {
+    activateAgentMode();
+    hideAgentPermissionDialog();
+  });
+}
+
+// Agent steps toggle
+if (agentStepsToggle) {
+  agentStepsToggle.addEventListener('click', () => {
+    const isCollapsed = agentStepsList.style.display === 'none';
+    agentStepsList.style.display = isCollapsed ? 'flex' : 'none';
+    agentStepsToggle.textContent = isCollapsed ? '−' : '+';
+  });
+}
+
+// Agent Mode Functions
+function showAgentPermissionDialog() {
+  if (agentDialog) {
+    // Generate sample actions for preview
+    const sampleActions = [
+      'Analyze page content',
+      'Scroll to relevant sections',
+      'Extract key information',
+      'Fill form fields if needed'
+    ];
+    
+    if (agentActionsList) {
+      agentActionsList.innerHTML = sampleActions.map(action => 
+        `<li>${action}</li>`
+      ).join('');
+    }
+    
+    agentDialog.classList.remove('hidden');
+  }
+}
+
+function hideAgentPermissionDialog() {
+  if (agentDialog) {
+    agentDialog.classList.add('hidden');
+  }
+}
+
+function activateAgentMode() {
+  isAgentMode = true;
+  agentToggle.classList.add('active');
+  agentStepsContainer.classList.remove('hidden');
+  
+  // Start border animation
+  chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+    chrome.tabs.sendMessage(tabs[0].id, { action: 'agentStart' });
+  });
+  
+  announceToScreenReader('Agent mode enabled - Cloudey can take control of your screen', 'polite');
+}
+
+function deactivateAgentMode() {
+  isAgentMode = false;
+  agentToggle.classList.remove('active');
+  agentStepsContainer.classList.add('hidden');
+  agentSteps = [];
+  
+  // Remove border animation
+  chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+    chrome.tabs.sendMessage(tabs[0].id, { action: 'agentEnd' });
+  });
+  
+  announceToScreenReader('Agent mode disabled', 'polite');
+}
+
+function updateAgentSteps(steps) {
+  agentSteps = steps;
+  if (agentStepsList) {
+    agentStepsList.innerHTML = steps.map(step => `
+      <div class="agent-step ${step.status}" data-step-id="${step.id}">
+        <div class="step-icon">${step.icon}</div>
+        <div class="step-content">
+          <div class="step-title">${step.title}</div>
+          <div class="step-status">${step.status === 'active' ? 'Working...' : step.status}</div>
+        </div>
+        ${step.status === 'active' ? '<div class="step-spinner"></div>' : ''}
+      </div>
+    `).join('');
+  }
+}
+
+function updateAgentStep(stepId, status, icon) {
+  const stepElement = document.querySelector(`[data-step-id="${stepId}"]`);
+  if (stepElement) {
+    stepElement.className = `agent-step ${status}`;
+    const iconElement = stepElement.querySelector('.step-icon');
+    const statusElement = stepElement.querySelector('.step-status');
+    const spinnerElement = stepElement.querySelector('.step-spinner');
+    
+    if (iconElement) iconElement.textContent = icon;
+    if (statusElement) {
+      statusElement.textContent = status === 'active' ? 'Working...' : status;
+    }
+    if (spinnerElement) {
+      spinnerElement.style.display = status === 'active' ? 'block' : 'none';
+    }
+  }
+}
+
+// Get page context for agent mode
+async function getPageContextForAgent() {
+  try {
+    const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+    const tab = tabs[0];
+    
+    if (!tab) return null;
+    
+    const results = await chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      func: () => {
+        return {
+          title: document.title,
+          url: window.location.href,
+          content: document.body.innerText.substring(0, 5000)
+        };
+      }
+    });
+    
+    return results[0].result;
+  } catch (error) {
+    console.error('Error getting page context for agent:', error);
+    return null;
+  }
+}
+
+// Listen for agent step updates
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (request.action === 'agentStepsUpdate') {
+    updateAgentSteps(request.steps);
+  } else if (request.action === 'agentStepUpdate') {
+    updateAgentStep(request.stepId, request.status, request.icon);
+  }
+});
 
 // Context is always enabled - no toggle needed
 
@@ -430,14 +594,25 @@ async function sendMessage() {
     });
     
     // Use Gemini API via background script with page context
-    const response = await chrome.runtime.sendMessage({
-      action: 'geminiChat',
-      message: message,
-      history: conversationHistory,
-      includeContext: true, // Always enabled
-      agentMode: isAgentMode,
-      isContextMode: true // Always enabled
-    });
+    let response;
+    if (isAgentMode) {
+      // Agent Mode: Execute actions
+      response = await chrome.runtime.sendMessage({
+        action: 'agentExecute',
+        message: message,
+        pageContext: await getPageContextForAgent()
+      });
+    } else {
+      // Normal chat mode
+      response = await chrome.runtime.sendMessage({
+        action: 'geminiChat',
+        message: message,
+        history: conversationHistory,
+        includeContext: true, // Always enabled
+        agentMode: false,
+        isContextMode: true // Always enabled
+      });
+    }
     
     if (response.success) {
       hideTypingIndicator();
