@@ -272,30 +272,19 @@ function activateToggle(toggle, mode) {
   }
 }
 
-// Search toggle (Globe button) - Click to show translate tooltip
+// Search toggle (Globe button)
 if (searchToggle) {
-  const toggleContainer = searchToggle.closest('.toggle-container');
-  
   searchToggle.addEventListener('click', () => {
     const isActive = searchToggle.classList.contains('active');
     
     if (isActive) {
-      // Deactivate search mode and hide tooltip
+      // Deactivate search mode
       searchToggle.classList.remove('active');
-      toggleContainer.classList.remove('show-tooltip');
       announceToScreenReader('Search mode disabled', 'polite');
     } else {
-      // Activate search mode and show translate tooltip
+      // Activate search mode (deactivate others)
       activateToggle(searchToggle, 'search');
-      toggleContainer.classList.add('show-tooltip');
       announceToScreenReader('Search mode enabled - Cloudey will research the internet', 'polite');
-    }
-  });
-  
-  // Hide tooltip when clicking outside
-  document.addEventListener('click', (e) => {
-    if (!toggleContainer.contains(e.target)) {
-      toggleContainer.classList.remove('show-tooltip');
     }
   });
 }
