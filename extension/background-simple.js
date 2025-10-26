@@ -287,20 +287,39 @@ async function handleTranslateText(request, sender, sendResponse) {
 
 // Gemini chat handler
 async function handleGeminiChat(request, sender, sendResponse) {
-  const { message, history = [] } = request;
+  const { message, history = [], includeContext = false } = request;
   
   try {
+    // Get page context if requested
+    let pageContext = null;
+    if (includeContext && sender.tab) {
+      pageContext = await getPageContext(sender.tab);
+    }
+
     // Prepare conversation context for Gemini
     const conversationContext = history.slice(-6).map(msg => ({
       role: msg.role === 'assistant' ? 'model' : 'user',
       parts: [{ text: msg.content }]
     }));
 
+    // Build context-aware prompt
+    let contextPrompt = `You are Cloudey, a helpful AI assistant. Be concise, friendly, and helpful. Answer questions directly and completely.`;
+    
+    if (pageContext) {
+      contextPrompt += `\n\nCurrent page context:\nTitle: ${pageContext.title}\nURL: ${pageContext.url}\nContent: ${pageContext.content.substring(0, 2000)}...`;
+    }
+    
+    if (conversationContext.length > 0) {
+      contextPrompt += `\n\nConversation history:\n${conversationContext.map(c => `${c.role}: ${c.parts[0].text}`).join('\n')}`;
+    }
+    
+    contextPrompt += `\n\nUser: ${message}`;
+
     const requestBody = {
       contents: [
         {
           role: 'user',
-          parts: [{ text: `You are Cloudey, a helpful AI assistant. Be concise, friendly, and helpful. Answer questions directly and completely.\n\nConversation history:\n${conversationContext.map(c => `${c.role}: ${c.parts[0].text}`).join('\n')}\n\nUser: ${message}` }]
+          parts: [{ text: contextPrompt }]
         }
       ],
       generationConfig: {

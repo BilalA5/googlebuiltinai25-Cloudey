@@ -24,6 +24,7 @@ let isStreaming = false;
 let conversationHistory = [];
 let attachedFiles = [];
 let typewriterAbortController = null;
+let includeContext = true; // Default to including context
 const MAX_FILES = 5;
 const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25MB
 
@@ -244,6 +245,23 @@ document.querySelectorAll('.chip').forEach(chip => {
   });
 });
 
+// Context toggle
+const contextToggle = document.getElementById('context-toggle');
+if (contextToggle) {
+  contextToggle.addEventListener('click', () => {
+    includeContext = !includeContext;
+    contextToggle.classList.toggle('active', includeContext);
+    
+    // Update tooltip
+    const title = includeContext ? 'Page context enabled' : 'Page context disabled';
+    contextToggle.setAttribute('title', title);
+    
+    // Show brief feedback
+    const status = includeContext ? 'Context enabled' : 'Context disabled';
+    announceToScreenReader(status, 'polite');
+  });
+}
+
 // File handling
 function handleFileSelection(e) {
   const files = Array.from(e.target.files);
@@ -334,11 +352,12 @@ async function sendMessage() {
   }
   
   try {
-    // Use Gemini API via background script
+    // Use Gemini API via background script with page context
     const response = await chrome.runtime.sendMessage({
       action: 'geminiChat',
       message: message,
-      history: conversationHistory
+      history: conversationHistory,
+      includeContext: includeContext
     });
     
     if (response.success) {

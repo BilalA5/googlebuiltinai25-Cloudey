@@ -847,6 +847,18 @@ body {
   color: currentColor;
 }
 
+/* Context toggle specific styling */
+#context-toggle.active {
+  background: rgba(100, 200, 255, 0.1);
+  border-color: rgba(100, 200, 255, 0.3);
+  color: rgba(100, 200, 255, 1);
+}
+
+#context-toggle:hover {
+  background: rgba(100, 200, 255, 0.05);
+  color: rgba(100, 200, 255, 0.8);
+}
+
 .toggle-btn[data-toggle="search"].active {
   background: rgba(30, 174, 219, 0.15);
   border-color: #1EAEDB;
