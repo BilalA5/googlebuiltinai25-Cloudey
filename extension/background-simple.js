@@ -52,33 +52,7 @@ const conversationHistory = new Map();
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-001:generateContent';
 const GEMINI_API_KEY = atob('QUl6YVN5Q0c2czRYaC1VcVI2VEUyY3E0ZFVxUEFRODk4VGhOQlNv');
 
-// Google Sheets API configuration
-const SHEETS_SCOPES = 'https://www.googleapis.com/auth/spreadsheets';
 
-// Helper function to get OAuth token for Google Sheets
-async function getSheetsAuthToken() {
-  return new Promise((resolve, reject) => {
-    console.log('🔐 Requesting OAuth token...');
-    chrome.identity.getAuthToken({ 
-      interactive: true,
-      scopes: [SHEETS_SCOPES]
-    }, (token) => {
-      if (chrome.runtime.lastError) {
-        console.error('❌ OAuth error:', chrome.runtime.lastError);
-        reject(new Error(chrome.runtime.lastError.message));
-      } else {
-        console.log('✅ OAuth token received');
-        resolve(token);
-      }
-    });
-  });
-}
-
-// Helper function to get spreadsheet ID from URL
-function extractSpreadsheetId(url) {
-  const match = url.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
-  return match ? match[1] : null;
-}
 
 // AI-powered message handler
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
@@ -1157,8 +1131,7 @@ DETECTION RULES:
 - If user says "send an email", "compose an email", "write an email", use compose_email
 - If user wants to modify/change/update an already composed email (e.g., "change the body", "make it more formal", "update the email"), use "update_email_body" action with params: {"body": "new content"}
 - For update_email_body, you must generate the FULL improved email body text based on the user's request
-- If user wants to create data/tables/charts in Google Sheets (e.g., "create a table", "plot y=x^2", "make a chart"), use "write_to_sheets" action with params: {"range": "A1", "values": [array of values], "formulas": [optional array of formulas like "=A2^2"]}
-- If user wants to visualize data or create charts, use "create_sheets_chart" action with params: {"type": "line/bar/pie/scatter", "range": "A1:B10", "title": "Chart Title"}
+- If user wants to search for locations on Google Maps (e.g., "find restaurants near me", "search for coffee shops in Manhattan"), use "search_google_maps" action with params: {"query": "restaurants near me", "action": "search"}
 
 SMART SELECTOR RULES:
 - For Google Docs: Use '.kix-lineview-text-block' or '.kix-wordhtmlgenerator-word' for text content
@@ -1238,10 +1211,8 @@ async function executeAction(action, target, params = {}) {
         return await composeEmail(params.to, params.subject, params.body);
       case 'update_email_body':
         return await updateEmailBody(params.body);
-      case 'write_to_sheets':
-        return await writeToSheets(params.range, params.values, params.formulas);
-      case 'create_sheets_chart':
-        return await createSheetChart(params.type, params.range, params.title);
+      case 'search_google_maps':
+        return await searchGoogleMaps(params.query);
       default:
         return { success: false, error: `Unknown action: ${action}` };
     }
@@ -2016,356 +1987,69 @@ async function updateEmailBody(newBody) {
   });
 }
 
-async function writeToSheets(range, values, formulas = []) {
-  console.log(`📊 Writing to Google Sheets using API: ${range}`);
+async function searchGoogleMaps(query) {
+  console.log(`🗺️ Searching Google Maps: ${query}`);
   
   try {
-    // Get the active tab to extract spreadsheet ID
+    // Check if we're on Google Maps
     const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
     if (!tabs || tabs.length === 0) {
       return { success: false, error: 'No active tab found' };
     }
     
     const activeTab = tabs[0];
-    const spreadsheetId = extractSpreadsheetId(activeTab.url);
+    const isMaps = activeTab.url.includes('google.com/maps') || activeTab.url.includes('maps.google.com');
     
-    if (!spreadsheetId) {
-      return { success: false, error: 'Could not extract spreadsheet ID from URL. Please make sure you are on a Google Sheets page.' };
+    if (!isMaps) {
+      // Open Google Maps in a new tab with the search query
+      const mapsUrl = `https://www.google.com/maps/search/${encodeURIComponent(query)}`;
+      chrome.tabs.create({ url: mapsUrl });
+      return { 
+        success: true, 
+        message: `Opened Google Maps search for: ${query}` 
+      };
     }
     
-    console.log('📊 Spreadsheet ID:', spreadsheetId);
-    
-    // Get OAuth token
-    const token = await getSheetsAuthToken();
-    console.log('✅ Got OAuth token');
-    
-    // Prepare values array - convert single value to array of arrays if needed
-    let valuesArray = values;
-    if (values && values.length > 0 && !Array.isArray(values[0])) {
-      // If it's a single row of values, wrap in array
-      valuesArray = [values];
-    }
-    
-    // Make API call to update cells
-    const apiUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${range}?valueInputOption=RAW`;
-    
-    const response = await fetch(apiUrl, {
-      method: 'PUT',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        values: valuesArray
-      })
-    });
-    
-    if (!response.ok) {
-      const errorData = await response.text();
-      console.error('Sheets API error:', errorData);
-      return { success: false, error: `Sheets API error: ${response.status} ${response.statusText}` };
-    }
-    
-    const data = await response.json();
-    console.log('✅ Successfully wrote to Sheets:', data);
-    
-    return {
-      success: true,
-      message: `Wrote ${valuesArray.length} row(s) to range ${range}`,
-      data: data
-    };
-    
-  } catch (error) {
-    console.error('Error writing to Sheets:', error);
-    return { success: false, error: error.message };
-  }
-}
-
-// OLD DOM-BASED VERSION (kept for reference)
-async function writeToSheets_OLD_DOM(range, values, formulas = []) {
-  console.log(`📊 Writing to Google Sheets (DOM method - deprecated): ${range}`);
-  return new Promise((resolve) => {
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+    // If already on Maps, perform the search
+    return new Promise((resolve) => {
       chrome.scripting.executeScript({
-        target: { tabId: tabs[0].id, allFrames: true },
-        world: 'MAIN',
-        func: async (cellRange, cellValues, cellFormulas) => {
+        target: { tabId: activeTab.id },
+        func: (searchQuery) => {
           try {
-            console.log('📊 writeToSheets script started in frame:', window.location.href);
+            // Find the search box on Google Maps
+            const searchSelectors = [
+              'input#searchboxinput',
+              'input[aria-label*="Search"]',
+              'input[placeholder*="Search"]',
+              'input[type="text"]'
+            ];
             
-            return new Promise(async (resolveScript) => {
-              try {
-              
-              // Check if we're on Google Sheets in ANY iframe
-              const url = window.location.href;
-              const isSheets = url.includes('docs.google.com/spreadsheets');
-              
-              console.log('Is Google Sheets:', isSheets, 'URL:', url);
-              
-              if (!isSheets) {
-                console.log('❌ Not a Sheets frame, skipping...');
-                // Don't resolve yet - let other frames try
-                // This will be handled by checking all results
-                setTimeout(() => {
-                  resolveScript({ success: false, error: 'Not in a Sheets iframe', skipped: true });
-                }, 100);
-                return;
-              }
-              
-              console.log('✅ Found Google Sheets iframe!');
-              
-              // Try to find the cell editor (active cell)
-              // Google Sheets uses various approaches to edit cells
-              const cellEditors = [
-                'textarea.kix-lineview',
-                '.kix-lineview-contents',
-                '[role="textbox"][aria-multiline="true"]',
-                'textarea',
-                '[contenteditable="true"]'
-              ];
-              
-              console.log('Looking for cell editors...');
-              let editor = null;
-              
-              for (const selector of cellEditors) {
-                editor = document.querySelector(selector);
-                if (editor) {
-                  console.log('✅ Found editor with selector:', selector);
-                  break;
-                }
-              }
-              
-              // Also try to find the grid
-              if (!editor) {
-                const gridCells = document.querySelectorAll('[role="gridcell"]');
-                console.log(`Found ${gridCells.length} grid cells`);
-                
-                if (gridCells.length > 0) {
-                  // Click on first cell to activate it
-                  const firstCell = gridCells[0];
-                  console.log('Clicking first cell to activate...');
-                  firstCell.click();
-                  
-                  // Wait for cell editor to appear - return a promise that resolves after setTimeout
-                  await new Promise(resolve => setTimeout(resolve, 800));
-                  
-                  // Now look for editor after the delay
-                  for (const sel of cellEditors) {
-                    editor = document.querySelector(sel);
-                    if (editor) {
-                      console.log('✅ Found editor after click with selector:', sel);
-                      break;
-                    }
-                  }
-                  
-                  if (editor && cellValues && cellValues.length > 0) {
-                    try {
-                      console.log('Attempting to write value:', cellValues[0]);
-                      editor.focus();
-                      
-                      // Clear existing content
-                      editor.value = '';
-                      editor.textContent = '';
-                      
-                      // Insert new value using execCommand (works best in Sheets)
-                      const range = document.createRange();
-                      const selection = window.getSelection();
-                      range.selectNodeContents(editor);
-                      range.collapse(true);
-                      selection.removeAllRanges();
-                      selection.addRange(range);
-                      
-                      // Use insertText to simulate typing
-                      if (document.execCommand) {
-                        const success = document.execCommand('insertText', false, cellValues[0]);
-                        console.log('execCommand insertText result:', success);
-                      } else {
-                        editor.value = cellValues[0];
-                        editor.textContent = cellValues[0];
-                      }
-                      
-                      // Trigger events
-                      editor.dispatchEvent(new Event('input', { bubbles: true }));
-                      editor.dispatchEvent(new KeyboardEvent('keyup', { key: 'Enter', code: 'Enter', bubbles: true }));
-                      
-                      // Add a small delay to ensure the value is applied
-                      await new Promise(resolve => setTimeout(resolve, 200));
-                      
-                      console.log(`✅ Wrote value: ${cellValues[0]}`);
-                      console.log('Editor value after write:', editor.value || editor.textContent);
-                      
-                      resolveScript({
-                        success: true,
-                        message: `Wrote to cell A1 in Google Sheets`
-                      });
-                    } catch (e) {
-                      console.error('Error writing to editor:', e);
-                      resolveScript({ success: false, error: e.message });
-                    }
-                  } else {
-                    console.error('Could not find cell editor or no values to write');
-                    resolveScript({ success: false, error: 'Could not find active cell editor' });
-                  }
-                } else {
-                  console.error('No grid cells found');
-                  resolveScript({ success: false, error: 'No cells found in Google Sheets' });
-                }
-              } else {
-                // Editor found immediately
-                if (cellValues && cellValues.length > 0) {
-                  try {
-                    editor.focus();
-                    editor.value = '';
-                    editor.textContent = '';
-                    
-                    const range = document.createRange();
-                    const selection = window.getSelection();
-                    range.selectNodeContents(editor);
-                    range.collapse(true);
-                    selection.removeAllRanges();
-                    selection.addRange(range);
-                    
-                    if (document.execCommand) {
-                      document.execCommand('insertText', false, cellValues[0]);
-                    } else {
-                      editor.value = cellValues[0];
-                    }
-                    
-                    editor.dispatchEvent(new Event('input', { bubbles: true }));
-                    
-                    console.log(`✅ Wrote value to editor: ${cellValues[0]}`);
-                    resolveScript({ success: true, message: `Wrote to Google Sheets` });
-                  } catch (e) {
-                    console.error('Error writing to editor:', e);
-                    resolveScript({ success: false, error: e.message });
-                  }
-                } else {
-                  resolveScript({ success: false, error: 'No values to write' });
-                }
-              }
-              
-            } catch (error) {
-              console.error('writeToSheets error:', error);
-              resolveScript({ success: false, error: error.message });
+            let searchBox = null;
+            for (const selector of searchSelectors) {
+              searchBox = document.querySelector(selector);
+              if (searchBox) break;
             }
-            });
+            
+            if (searchBox) {
+              searchBox.value = searchQuery;
+              searchBox.dispatchEvent(new Event('input', { bubbles: true }));
+              searchBox.dispatchEvent(new Event('change', { bubbles: true }));
+              
+              // Trigger search by pressing Enter
+              searchBox.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', bubbles: true }));
+              searchBox.dispatchEvent(new KeyboardEvent('keyup', { key: 'Enter', code: 'Enter', bubbles: true }));
+              
+              return { success: true, message: `Searched for: ${searchQuery}` };
+            } else {
+              return { success: false, error: 'Could not find search box on Google Maps' };
+            }
           } catch (error) {
-            console.error('writeToSheets outer error:', error);
             return { success: false, error: error.message };
           }
         },
-        args: [range || 'A1', values || [], formulas || []]
+        args: [query]
       }, (results) => {
         if (chrome.runtime.lastError) {
-          console.error('❌ Script injection error:', chrome.runtime.lastError);
-          resolve({ success: false, error: chrome.runtime.lastError.message });
-          return;
-        }
-        
-        if (!results || results.length === 0) {
-          console.error('❌ No results from script injection');
-          resolve({ success: false, error: 'No results from script injection' });
-          return;
-        }
-        
-        // Check all frame results for a success (skip frames marked as skipped)
-        let actualSuccess = false;
-        let lastRealError = null;
-        
-        console.log(`📊 Received ${results.length} results from frames`);
-        
-        for (let i = 0; i < results.length; i++) {
-          const result = results[i];
-          console.log(`Frame ${i}:`, {
-            hasResult: !!result.result,
-            result: result.result
-          });
-          
-          if (result && result.result) {
-            // Skip frames that weren't Sheets frames
-            if (result.result.skipped) {
-              console.log(`⏭️ Frame ${i}: Skipping non-Sheets frame`);
-              continue;
-            }
-            
-            if (result.result.success) {
-              console.log(`✅ Frame ${i}: Success in Google Sheets frame!`, result.result);
-              actualSuccess = true;
-              resolve(result.result);
-              return;
-            } else {
-              console.log(`❌ Frame ${i}: Failed -`, result.result.error);
-              lastRealError = result.result.error || 'Unknown error';
-            }
-          }
-        }
-        
-        // If we get here, no frame succeeded
-        console.error('❌ No frame successfully wrote to Sheets');
-        console.error('All results:', results.map(r => r?.result));
-        const errorMsg = lastRealError || results[results.length - 1]?.result?.error || 'Unknown error';
-        resolve({ success: false, error: `Failed to write to Sheets: ${errorMsg}` });
-      });
-    });
-  });
-}
-
-async function createSheetChart(type, range, title) {
-  console.log(`📈 Creating chart in Google Sheets: ${type}`);
-  return new Promise((resolve) => {
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      chrome.scripting.executeScript({
-        target: { tabId: tabs[0].id, allFrames: true },
-        world: 'MAIN',
-        func: (chartType, chartRange, chartTitle) => {
-          return new Promise((resolveScript) => {
-            try {
-              console.log('📈 createSheetChart script started');
-              
-              // Check if we're on Google Sheets
-              const url = window.location.href;
-              const isSheets = url.includes('docs.google.com/spreadsheets');
-              
-              if (!isSheets) {
-                console.error('Not on Google Sheets');
-                resolveScript({ success: false, error: 'Not on Google Sheets. Please open a Google Sheet first.' });
-                return;
-              }
-              
-              // Try to find Insert menu
-              const insertMenu = document.querySelector('[aria-label*="Insert"], [aria-label*="insert"], div[role="menuitem"][aria-label*="Insert"]');
-              
-              if (insertMenu) {
-                console.log('✅ Found Insert menu');
-                insertMenu.click();
-                
-                // Wait for menu to open
-                setTimeout(() => {
-                  const chartOption = document.querySelector('[aria-label*="Chart"], [aria-label*="chart"], div[role="menuitem"][aria-label*="Chart"]');
-                  if (chartOption) {
-                    console.log('✅ Found Chart option');
-                    chartOption.click();
-                    resolveScript({ success: true, message: 'Opened chart creation dialog' });
-                  } else {
-                    console.error('Could not find chart option');
-                    resolveScript({ success: false, error: 'Could not find chart option in menu' });
-                  }
-                }, 500);
-              } else {
-                console.error('Could not find Insert menu');
-                resolveScript({ success: false, error: 'Could not find Insert menu on this page' });
-              }
-              
-            } catch (error) {
-              console.error('createSheetChart error:', error);
-              resolveScript({ success: false, error: error.message });
-            }
-          });
-        },
-        args: [type || 'line', range || '', title || '']
-      }, (results) => {
-        if (chrome.runtime.lastError) {
-          console.error('❌ Script injection error:', chrome.runtime.lastError);
           resolve({ success: false, error: chrome.runtime.lastError.message });
         } else if (results && results[0]) {
           resolve(results[0].result);
@@ -2374,7 +2058,11 @@ async function createSheetChart(type, range, title) {
         }
       });
     });
-  });
+    
+  } catch (error) {
+    console.error('Error searching Google Maps:', error);
+    return { success: false, error: error.message };
+  }
 }
 
 console.log('Cloudey background script ready');

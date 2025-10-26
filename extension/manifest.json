@@ -11,16 +11,14 @@
     "sidePanel",
     "scripting",
     "tabs",
-    "i18n",
-    "identity"
+    "i18n"
   ],
   "optional_permissions": [
     "aiLanguageModelOriginTrial"
   ],
   "host_permissions": [
     "https://*/*",
-    "http://*/*",
-    "https://sheets.googleapis.com/*"
+    "http://*/*"
   ],
   
   
@@ -60,14 +58,7 @@
   "web_accessible_resources": [
     {
       "resources": ["config.js", "assets/*"],
-      "matches": ["<all_urls>"]
+            "matches": ["<all_urls>"]
     }
-  ],
-  
-  "oauth2": {
-    "client_id": "YOUR_CLIENT_ID.apps.googleusercontent.com",
-    "scopes": [
-      "https://www.googleapis.com/auth/spreadsheets"
-    ]
-  }
+  ]
 }

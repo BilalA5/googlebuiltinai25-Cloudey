@@ -454,11 +454,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       } else if (stepTitle.includes('write_content')) {
         action = 'writing';
         details = 'to document';
-      } else if (stepTitle.includes('write_to_sheets')) {
-        action = 'writing_sheets';
-        details = '';
-      } else if (stepTitle.includes('create_sheets_chart')) {
-        action = 'creating_chart';
+                    } else if (stepTitle.includes('search_google_maps')) {
+                action = 'searching_maps';
         details = '';
       } else if (stepTitle.includes('scroll')) {
         action = 'scrolling';
@@ -960,13 +957,9 @@ function showAgentActionIndicator(action, details = '') {
         typingStatus.textContent = 'Summarizing content...';
         typingStatus.style.color = 'rgba(255, 255, 100, 0.8)';
         break;
-      case 'writing_sheets':
-        typingStatus.textContent = 'Writing to spreadsheet...';
+      case 'searching_maps':
+        typingStatus.textContent = 'Searching Google Maps...';
         typingStatus.style.color = 'rgba(100, 200, 255, 0.8)';
-        break;
-      case 'creating_chart':
-        typingStatus.textContent = 'Creating chart...';
-        typingStatus.style.color = 'rgba(255, 180, 100, 0.8)';
         break;
       case 'completing':
         typingStatus.textContent = 'Completing task...';
