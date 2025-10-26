@@ -459,8 +459,12 @@ async function handleChromeTranslate(request, sender, sendResponse) {
     
     console.log('Translator capabilities:', translatorCapabilities);
     
-    if (translatorCapabilities !== 'available') {
+    if (translatorCapabilities === 'unavailable') {
       throw new Error(`Translation from ${sourceLanguage} to ${to} is not available (status: ${translatorCapabilities})`);
+    }
+    
+    if (translatorCapabilities === 'downloadable') {
+      console.log('📥 Translation model needs to be downloaded, proceeding with download...');
     }
     
     // Create translator with download monitoring
@@ -523,14 +527,16 @@ async function handleChromeTranslate(request, sender, sendResponse) {
     if (error.message.includes('not supported')) {
       errorMessage = 'Chrome Translator API not available. Please ensure you have Chrome 138+ with the Translator API enabled in chrome://flags/';
     } else if (error.message.includes('not available')) {
-      errorMessage = `Translation from ${sourceLanguage} to ${to} is not available. Try a different language pair.`;
+      errorMessage = `Translation from ${sourceLanguage || 'unknown'} to ${to} is not available. Try a different language pair.`;
+    } else if (error.message.includes('downloadable')) {
+      errorMessage = 'Translation model is downloading. Please wait a moment and try again.';
     }
     
     sendResponse({
       success: false,
       error: errorMessage,
       details: {
-        sourceLanguage,
+        sourceLanguage: sourceLanguage || 'unknown',
         targetLanguage: to,
         originalError: error.message
       }
