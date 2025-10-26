@@ -1128,7 +1128,7 @@ async function fillTextField(selector, text, useWriterAPI = false) {
           element.dispatchEvent(new Event('input', { bubbles: true }));
           return { success: true, message: `Filled ${sel} with content` };
         },
-        args: [selector, text, useWriterAPI]
+        args: [selector, text, Boolean(useWriterAPI)]
       }, (results) => {
         resolve(results[0].result);
       });
@@ -1207,7 +1207,7 @@ async function rewriteText(selector, useRewriterAPI = false) {
           
           return { success: true, message: `Rewrote text in ${sel}` };
         },
-        args: [selector, useRewriterAPI]
+        args: [selector, Boolean(useRewriterAPI)]
       }, (results) => {
         resolve(results[0].result);
       });
@@ -1244,7 +1244,7 @@ async function writeContent(selector, content, useWriterAPI = false) {
           
           return { success: true, message: `Wrote content to ${sel}` };
         },
-        args: [selector, content, useWriterAPI]
+        args: [selector, content, Boolean(useWriterAPI)]
       }, (results) => {
         resolve(results[0].result);
       });
@@ -1277,7 +1277,7 @@ async function summarizeContent(selector, useSummarizerAPI = false) {
           
           return { success: true, data: summary, message: `Summarized content from ${sel}` };
         },
-        args: [selector, useSummarizerAPI]
+        args: [selector, Boolean(useSummarizerAPI)]
       }, (results) => {
         resolve(results[0].result);
       });
