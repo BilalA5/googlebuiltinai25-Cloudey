@@ -739,4 +739,49 @@ window.addEventListener('load', () => {
   );
 });
 
+// Check Chrome AI flags status on load
+function checkChromeAIFlags() {
+  const flagsStatus = {
+    chromeVersion: navigator.userAgent.match(/Chrome\/(\d+)/)?.[1],
+    languageModelExists: typeof navigator.languageModel !== 'undefined',
+    languageModel: navigator.languageModel,
+    otherAIAPIs: {
+      navigatorAI: typeof navigator.ai !== 'undefined',
+      windowAI: typeof window.ai !== 'undefined',
+      selfAI: typeof self.ai !== 'undefined'
+    }
+  };
+  
+  console.log('=== CHROME AI FLAGS STATUS ===');
+  console.log('Chrome Version:', flagsStatus.chromeVersion);
+  console.log('navigator.languageModel exists:', flagsStatus.languageModelExists);
+  console.log('navigator.languageModel:', flagsStatus.languageModel);
+  console.log('Other AI APIs:', flagsStatus.otherAIAPIs);
+  
+  if (!flagsStatus.languageModelExists) {
+    console.warn('⚠️ PROMPT API NOT AVAILABLE');
+    console.warn('Chrome flags required:');
+    console.warn('  1. "Prompt API for Gemini Nano" → Enabled');
+    console.warn('  2. "optimization-guide-on-device-model" → Enabled (BypassPerfRequirement)');
+    console.warn('  3. "Prompt API for Gemini Nano Multimodal Input" → Enabled (if available)');
+    console.warn('');
+    console.warn('Steps to enable:');
+    console.warn('  1. Go to chrome://flags/');
+    console.warn('  2. Search for each flag and enable it');
+    console.warn('  3. Click "Relaunch" and wait for Chrome to restart');
+    console.warn('  4. Reload this extension');
+  } else {
+    console.log('✅ PROMPT API AVAILABLE');
+    console.log('Available methods:', Object.keys(flagsStatus.languageModel || {}));
+  }
+  console.log('=== END CHROME AI FLAGS STATUS ===');
+  
+  return flagsStatus;
+}
+
+// Run flags check when sidebar loads
+document.addEventListener('DOMContentLoaded', () => {
+  setTimeout(() => checkChromeAIFlags(), 1000); // Wait 1s for everything to load
+});
+
 console.log('Cloudey side panel initialized');
