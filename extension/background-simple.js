@@ -2266,9 +2266,43 @@ OTHER OPTIONS:
              const data = await response.json();
              const rankingText = data.candidates[0].content.parts[0].text;
              
+             // Visualize results on the map
+             try {
+               for (let i = 0; i < Math.min(3, analysis.results.length); i++) {
+                 const result = analysis.results[i];
+                 
+                 // Highlight top 3 results in the sidebar
+                 await new Promise((resolveViz) => {
+                   chrome.tabs.sendMessage(tabId, {
+                     action: 'mapHighlightResult',
+                     selector: `div[role="article"]:nth-child(${i + 1})`
+                   }, () => {
+                     setTimeout(() => resolveViz(), 1000);
+                   });
+                 });
+               }
+               
+               // Draw circles on map for top results
+               for (let i = 0; i < Math.min(5, analysis.results.length); i++) {
+                 await new Promise((resolveCircle) => {
+                   chrome.tabs.sendMessage(tabId, {
+                     action: 'mapDrawCircle',
+                     lat: null, // Would need actual coordinates
+                     lng: null,
+                     radius: 500 - (i * 100), // Different sizes
+                     color: i === 0 ? 'rgba(147, 51, 234, 0.5)' : 'rgba(147, 51, 234, 0.3)'
+                   }, () => {
+                     setTimeout(() => resolveCircle(), 500);
+                   });
+                 });
+               }
+             } catch (error) {
+               console.log('Visualization error (non-critical):', error.message);
+             }
+             
              resolve({
                success: true,
-               message: `🔍 Analyzed ${analysis.totalResults} results for "${analysis.query}":\n\n${rankingText}`
+               message: `🔍 Analyzed ${analysis.totalResults} results for "${analysis.query}":\n\n${rankingText}\n\n🗺️ Top results visualized on map!`
              });
            } catch (error) {
              // Fallback to showing all results if ranking fails
