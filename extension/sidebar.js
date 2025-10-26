@@ -252,22 +252,17 @@ document.querySelectorAll('.chip').forEach(chip => {
 
 // Toggle buttons
 const agentToggle = document.getElementById('agent-toggle');
-const contextToggle = document.getElementById('context-toggle');
 
 // Toggle system - only one can be active at a time
 function deactivateAllToggles() {
   agentToggle?.classList.remove('active');
-  contextToggle?.classList.remove('active');
-  includeContext = false;
+  // Context is always enabled - no need to toggle
 }
 
 function activateToggle(toggle, mode) {
   deactivateAllToggles();
   toggle.classList.add('active');
-  
-  if (mode === 'context') {
-    includeContext = true;
-  }
+  // Context is always enabled - no mode needed
 }
 
 // Translate main button - Direct translation on click
@@ -324,27 +319,7 @@ if (agentToggle) {
   });
 }
 
-// Context toggle
-if (contextToggle) {
-  contextToggle.addEventListener('click', () => {
-    const isActive = contextToggle.classList.contains('active');
-    
-    if (isActive) {
-      // Deactivate context mode
-      contextToggle.classList.remove('active');
-      includeContext = false;
-      announceToScreenReader('Context mode disabled', 'polite');
-    } else {
-      // Activate context mode (deactivate others)
-      activateToggle(contextToggle, 'context');
-      announceToScreenReader('Context mode enabled - Cloudey can see the current page', 'polite');
-    }
-    
-    // Update tooltip
-    const title = includeContext ? 'Page context enabled' : 'Page context disabled';
-    contextToggle.setAttribute('title', title);
-  });
-}
+// Context is always enabled - no toggle needed
 
 // File handling
 function handleFileSelection(e) {
@@ -455,12 +430,12 @@ async function sendMessage() {
   try {
     // Check which mode is currently active (only one can be active at a time)
     const isAgentMode = agentToggle?.classList.contains('active') || false;
-    const isContextMode = contextToggle?.classList.contains('active') || false;
+    const isContextMode = true; // Always enabled
     
     console.log('Sending message with mode:', {
       isAgentMode,
       isContextMode,
-      includeContext,
+      includeContext: true, // Always enabled
       message: message.substring(0, 50) + '...'
     });
     
@@ -469,9 +444,9 @@ async function sendMessage() {
       action: 'geminiChat',
       message: message,
       history: conversationHistory,
-      includeContext: isContextMode,
+      includeContext: true, // Always enabled
       agentMode: isAgentMode,
-      isContextMode: isContextMode
+      isContextMode: true // Always enabled
     });
     
     if (response.success) {

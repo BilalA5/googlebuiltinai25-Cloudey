@@ -1066,6 +1066,34 @@ body {
   stroke-width: 1.5;
 }
 
+/* ===== CONTEXT INDICATOR ===== */
+.context-indicator {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 32px;
+  padding: 4px 8px;
+  border-radius: 16px;
+  background: rgba(100, 200, 255, 0.1);
+  border: 1px solid rgba(100, 200, 255, 0.3);
+  color: rgba(100, 200, 255, 1);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: default;
+}
+
+.context-indicator .lucide-icon-small {
+  width: 16px;
+  height: 16px;
+  stroke-width: 1.5;
+  flex-shrink: 0;
+}
+
+.context-indicator .context-label {
+  opacity: 1;
+  white-space: nowrap;
+}
+
 /* Custom Divider */
 .toggle-buttons::before {
   content: '';

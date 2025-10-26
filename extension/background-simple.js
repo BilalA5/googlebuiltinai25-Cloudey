@@ -114,7 +114,7 @@ async function handleChatRequest(request, sender, sendResponse) {
   }
 }
 
-// get page context from the current tab
+// UNIVERSAL PAGE CONTEXT EXTRACTION - Works on ANY page
 async function getPageContext(tab) {
   try {
     if (!tab || !tab.id) {
@@ -122,29 +122,71 @@ async function getPageContext(tab) {
       return null;
     }
     
-    console.log('Getting page context for tab:', tab.id, tab.url);
+    console.log('🔍 UNIVERSAL CONTEXT EXTRACTION for:', tab.url);
     
     const results = await chrome.scripting.executeScript({
       target: { tabId: tab.id },
       func: () => {
-        console.log('Content extraction script running on:', window.location.href);
-        // UNIVERSAL CONTENT EXTRACTION - Get ALL page content including raw HTML
-        const extractAllContent = () => {
+        console.log('🚀 UNIVERSAL CONTENT EXTRACTION running on:', window.location.href);
+        
+        // UNIVERSAL CONTENT EXTRACTION - Works on ANY page type
+        const extractUniversalContent = () => {
+          // Detect page type based on URL patterns and content
+          const detectPageType = () => {
+            const url = window.location.href.toLowerCase();
+            const title = document.title.toLowerCase();
+            
+            if (url.includes('youtube.com') || url.includes('youtu.be')) return 'video';
+            if (url.includes('twitter.com') || url.includes('x.com')) return 'social';
+            if (url.includes('reddit.com')) return 'forum';
+            if (url.includes('github.com')) return 'code';
+            if (url.includes('stackoverflow.com') || url.includes('stackexchange.com')) return 'qa';
+            if (url.includes('news') || url.includes('article') || title.includes('news')) return 'news';
+            if (url.includes('blog') || title.includes('blog')) return 'blog';
+            if (url.includes('shop') || url.includes('store') || url.includes('buy')) return 'ecommerce';
+            if (url.includes('docs') || url.includes('documentation')) return 'documentation';
+            if (url.includes('wiki') || url.includes('wikipedia')) return 'wiki';
+            if (document.querySelector('form')) return 'form';
+            if (document.querySelector('table')) return 'data';
+            return 'general';
+          };
+          
+          const pageType = detectPageType();
+          
           const content = {
-          title: document.title,
-          url: window.location.href,
+            // Basic page info
+            title: document.title,
+            url: window.location.href,
             domain: window.location.hostname,
+            pageType: pageType,
             timestamp: new Date().toISOString(),
-            // Get raw HTML for deep analysis
-            rawHTML: document.documentElement.outerHTML.substring(0, 50000), // First 50KB of HTML
-            // Extract all text content
+            
+            // Raw HTML for deep analysis (increased size)
+            rawHTML: document.documentElement.outerHTML.substring(0, 100000), // 100KB
+            
+            // Extract all text content with better parsing
             fullText: document.body.innerText || document.body.textContent || '',
-            // Extract all headings
+            // Enhanced content extraction
             headings: Array.from(document.querySelectorAll('h1, h2, h3, h4, h5, h6')).map(h => ({
               level: h.tagName,
               text: h.textContent?.trim(),
-              id: h.id
+              id: h.id,
+              className: h.className
             })).filter(h => h.text),
+            
+            // Extract paragraphs and important text blocks
+            paragraphs: Array.from(document.querySelectorAll('p, div[class*="content"], div[class*="text"], article, section')).map(p => ({
+              text: p.textContent?.trim(),
+              className: p.className,
+              tagName: p.tagName
+            })).filter(p => p.text && p.text.length > 20),
+            
+            // Extract lists
+            lists: Array.from(document.querySelectorAll('ul, ol')).map(list => ({
+              type: list.tagName,
+              items: Array.from(list.querySelectorAll('li')).map(li => li.textContent?.trim()).filter(text => text),
+              className: list.className
+            })).filter(list => list.items.length > 0),
             // Extract all links
             links: Array.from(document.querySelectorAll('a[href]')).map(a => ({
               text: a.textContent?.trim(),
@@ -260,28 +302,35 @@ async function getPageContext(tab) {
           return content;
         };
         
-        const pageData = extractAllContent();
+        const pageData = extractUniversalContent();
         
-        // Format content for AI consumption
-        let formattedContent = `🌐 UNIVERSAL PAGE CONTENT EXTRACTION
-Title: ${pageData.title}
-URL: ${pageData.url}
-Domain: ${pageData.domain}
-Timestamp: ${pageData.timestamp}
+        // Format content for AI consumption with page type intelligence
+        let formattedContent = `🌐 UNIVERSAL PAGE ANALYSIS
+📄 PAGE TYPE: ${pageData.pageType.toUpperCase()}
+📰 TITLE: ${pageData.title}
+🔗 URL: ${pageData.url}
+🌍 DOMAIN: ${pageData.domain}
+⏰ TIMESTAMP: ${pageData.timestamp}
 
-📝 MAIN CONTENT:
-${pageData.fullText.substring(0, 3000)}
+📝 MAIN CONTENT (${pageData.fullText.length} chars):
+${pageData.fullText.substring(0, 5000)}
 
-📋 STRUCTURE:
+📋 PAGE STRUCTURE:
 ${pageData.headings.map(h => `${h.level}: ${h.text}`).join('\n')}
 
-🔗 LINKS (${pageData.links.length}):
-${pageData.links.slice(0, 20).map(l => `• ${l.text} → ${l.href}`).join('\n')}
+📄 KEY PARAGRAPHS:
+${pageData.paragraphs.slice(0, 10).map(p => `• ${p.text.substring(0, 200)}...`).join('\n')}
+
+📋 LISTS FOUND:
+${pageData.lists.slice(0, 5).map(list => `• ${list.type}: ${list.items.slice(0, 3).join(', ')}...`).join('\n')}
+
+🔗 RELEVANT LINKS (${pageData.links.length}):
+${pageData.links.slice(0, 15).map(l => `• ${l.text} → ${l.href}`).join('\n')}
 
 🖼️ IMAGES (${pageData.images.length}):
-${pageData.images.slice(0, 10).map(i => `• ${i.alt || 'No alt text'} (${i.src})`).join('\n')}
+${pageData.images.slice(0, 8).map(i => `• ${i.alt || 'No alt text'} (${i.src})`).join('\n')}
 
-🎥 VIDEOS (${pageData.videos.length}):
+🎥 MEDIA (${pageData.videos.length}):
 ${pageData.videos.map(v => `• ${v.title || 'Untitled'} (${v.src})`).join('\n')}`;
 
         // Add YouTube specific data if available
@@ -736,20 +785,24 @@ async function handleGeminiChat(request, sender, sendResponse) {
     }));
 
     // Build context-aware prompt
-    let contextPrompt = `You are Cloudey, a helpful AI assistant. Keep responses BRIEF and use emojis + structured lists.`;
+    let contextPrompt = `You are Cloudey, a helpful AI assistant. Keep responses BRIEF and use emojis + structured lists.
+
+🎯 CONTEXT AWARENESS RULES:
+- You can see the current page content and structure
+- ALWAYS reference specific page content when relevant
+- Be proactive about using page information
+- Don't ask users to explain what's on the page - you can see it
+- Use page type to provide relevant assistance
+- Reference specific headings, paragraphs, or content when helpful`;
     
     if (agentMode) {
       contextPrompt += `\n\n🤖 AGENT MODE: Screen control available. Be brief.`;
-    } else if (isContextMode) {
-      contextPrompt += `\n\n📄 CONTEXT MODE: You can see the page. Use it.`;
     }
     
     if (pageContext) {
-      console.log('Including page context in prompt');
-      contextPrompt += `\n\n📄 PAGE CONTEXT:
-Title: ${pageContext.title}
-URL: ${pageContext.url}
-Content: ${pageContext.content.substring(0, 2000)}`;
+      console.log('Including enhanced page context in prompt');
+      contextPrompt += `\n\n📄 CURRENT PAGE CONTEXT:
+${pageContext.content}`;
     }
     
     if (conversationContext.length > 0) {
