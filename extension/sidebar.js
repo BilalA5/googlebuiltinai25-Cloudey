@@ -333,9 +333,19 @@ async function sendMessage() {
   
   try {
     // Check if Prompt API is available using navigator.languageModel
+    console.log('=== PROMPT API DEBUG ===');
     console.log('Checking for Prompt API (navigator.languageModel)...');
     console.log('navigator.languageModel:', navigator.languageModel);
+    console.log('typeof navigator.languageModel:', typeof navigator.languageModel);
     console.log('Chrome version:', navigator.userAgent.match(/Chrome\/(\d+)/)?.[1]);
+    console.log('navigator:', Object.keys(navigator).filter(k => k.toLowerCase().includes('ai') || k.toLowerCase().includes('language')));
+    
+    // Check if other Chrome AI APIs are available
+    console.log('Chrome AI APIs available:');
+    console.log('- navigator.ai:', navigator.ai);
+    console.log('- window.ai:', window.ai);
+    console.log('- self.ai:', self.ai);
+    console.log('=== END PROMPT API DEBUG ===');
     
     // Check for availability if the API exists
     if (navigator.languageModel) {
