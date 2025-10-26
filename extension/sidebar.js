@@ -573,6 +573,61 @@ function removeAttachment(fileName) {
   attachedFiles = attachedFiles.filter(f => f.name !== fileName);
 }
 
+// Read file content based on file type
+async function readFileContent(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    
+    reader.onload = (e) => {
+      const content = e.target.result;
+      
+      // Handle different file types
+      const extension = file.name.split('.').pop().toLowerCase();
+      
+      switch (extension) {
+        case 'csv':
+          resolve(content); // Return raw CSV
+          break;
+        case 'json':
+          try {
+            const parsed = JSON.parse(content);
+            resolve(JSON.stringify(parsed, null, 2));
+          } catch (err) {
+            resolve(content); // Return raw if parsing fails
+          }
+          break;
+        case 'txt':
+        case 'md':
+          resolve(content);
+          break;
+        case 'png':
+        case 'jpg':
+        case 'jpeg':
+        case 'gif':
+        case 'webp':
+          // For images, return data URL for vision API or just metadata
+          resolve(`[Image file: ${file.name}, Size: ${file.size} bytes]`);
+          break;
+        default:
+          // For other files, try to read as text
+          resolve(content.substring(0, 50000)); // Limit to 50KB
+      }
+    };
+    
+    reader.onerror = () => {
+      reject(new Error(`Failed to read file: ${file.name}`));
+    };
+    
+    // Handle different file types
+    const extension = file.name.split('.').pop().toLowerCase();
+    if (['png', 'jpg', 'jpeg', 'gif', 'webp'].includes(extension)) {
+      reader.readAsDataURL(file);
+    } else {
+      reader.readAsText(file);
+    }
+  });
+}
+
 // Send message
 async function sendMessage() {
   const message = chatInput.value.trim();
@@ -620,10 +675,25 @@ async function sendMessage() {
   // Show typing indicator
   showTypingIndicator();
   
-  // file attachments are stored but not sent
+  // Process attached files
+  let fileContext = '';
   if (attachedFiles.length > 0) {
-    console.log('Files attached (UI only):', attachedFiles.map(f => f.name));
-    // clear attachments after sending
+    console.log('📎 Files attached:', attachedFiles.map(f => f.name));
+    
+    for (const file of attachedFiles) {
+      try {
+        const content = await readFileContent(file);
+        fileContext += `\n\n[File: ${file.name}]\n${content}`;
+        console.log(`✅ Processed file: ${file.name}`);
+      } catch (error) {
+        console.error(`Error reading file ${file.name}:`, error);
+      }
+    }
+    
+    // Append file context to message
+    message += fileContext;
+    
+    // Clear attachments after processing
     attachedFiles = [];
     attachmentChips.innerHTML = '';
     attachmentChips.classList.add('hidden');
