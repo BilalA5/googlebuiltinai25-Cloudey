@@ -56,7 +56,7 @@
   
   "web_accessible_resources": [
     {
-      "resources": ["config.js", "assets/*"],
+      "resources": ["config.js", "agentActions.js", "assets/*"],
       "matches": ["<all_urls>"]
     }
   ]
