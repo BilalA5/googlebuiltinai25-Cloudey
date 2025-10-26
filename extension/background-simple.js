@@ -1736,9 +1736,16 @@ Write a complete, well-formatted email body (2-4 sentences) that is warm, profes
           return new Promise((resolve) => {
             const url = window.location.href.toLowerCase();
             
-            // Detect email service
+            // Detect email service - more comprehensive detection
             const isGmail = url.includes('mail.google.com');
-            const isOutlook = url.includes('outlook.com') || url.includes('outlook.live.com');
+            const isOutlook = url.includes('outlook.com') || 
+                             url.includes('outlook.live.com') || 
+                             url.includes('outlook.office.com') ||
+                             url.includes('outlook.office365.com') ||
+                             document.querySelector('[data-appid="Office.Outlook"]') ||
+                             document.querySelector('[aria-label*="Microsoft 365"]');
+            
+            console.log('Email service detection:', { isGmail, isOutlook, url });
             
             if (!isGmail && !isOutlook) {
               resolve({ success: false, error: 'Not on Gmail or Outlook. Please open your email service first.' });
@@ -1763,8 +1770,27 @@ Write a complete, well-formatted email body (2-4 sentences) that is warm, profes
                   if (composeButton) break;
                 }
               } else if (isOutlook) {
-                // Outlook compose button
-                composeButton = document.querySelector('[aria-label*="New message"], button[title*="New message"]');
+                // Outlook compose button - try multiple selectors
+                const outlookSelectors = [
+                  'button[aria-label*="New message"]',
+                  'button[title*="New message"]',
+                  'button[title*="Nouveau message"]', // French
+                  'button[aria-label*="Nouveau message"]',
+                  'button.ms-Button--primary',
+                  'button[name="New Message"]',
+                  'button[data-automation-id="newMessageButton"]',
+                  'div[role="button"][aria-label*="New message"]',
+                  'button:has([data-icon-name="Add"])',
+                  'button:has([aria-label="New message"])'
+                ];
+                
+                for (const sel of outlookSelectors) {
+                  composeButton = document.querySelector(sel);
+                  if (composeButton) {
+                    console.log('Found Outlook compose button with selector:', sel);
+                    break;
+                  }
+                }
               }
               
               if (!composeButton) {
@@ -1785,13 +1811,31 @@ Write a complete, well-formatted email body (2-4 sentences) that is warm, profes
               }
               
               if (!composeButton) {
-                console.error('❌ Could not find compose button. Available buttons:', 
-                  Array.from(document.querySelectorAll('button, div[role="button"]')).map(el => ({
-                    text: el.textContent.substring(0, 20),
+                console.error('❌ Could not find compose button');
+                if (isOutlook) {
+                  console.error('Outlook: Searching for all buttons with "New" or "message"...');
+                  const allButtons = Array.from(document.querySelectorAll('button, div[role="button"]'));
+                  const relevantButtons = allButtons.filter(el => {
+                    const text = el.textContent.toLowerCase();
+                    const aria = el.getAttribute('aria-label')?.toLowerCase() || '';
+                    return text.includes('new') || text.includes('message') || aria.includes('new') || aria.includes('message');
+                  }).slice(0, 15);
+                  
+                  console.error('Found potential buttons:', relevantButtons.map(el => ({
+                    text: el.textContent.substring(0, 30),
                     ariaLabel: el.getAttribute('aria-label'),
-                    className: el.className
-                  })).slice(0, 10)
-                );
+                    className: el.className,
+                    id: el.id
+                  })));
+                } else {
+                  console.error('Available buttons:', 
+                    Array.from(document.querySelectorAll('button, div[role="button"]')).map(el => ({
+                      text: el.textContent.substring(0, 20),
+                      ariaLabel: el.getAttribute('aria-label'),
+                      className: el.className
+                    })).slice(0, 10)
+                  );
+                }
                 resolve({ success: false, error: 'Could not find compose button. Please click it manually first.' });
                 return;
               }
