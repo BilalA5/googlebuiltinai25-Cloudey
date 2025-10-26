@@ -247,8 +247,44 @@ document.querySelectorAll('.chip').forEach(chip => {
   });
 });
 
-// Context toggle
+// Toggle buttons
+const searchToggle = document.getElementById('search-toggle');
+const agentToggle = document.getElementById('agent-toggle');
 const contextToggle = document.getElementById('context-toggle');
+
+// Search toggle (Globe button)
+if (searchToggle) {
+  searchToggle.addEventListener('click', () => {
+    const isActive = searchToggle.classList.contains('active');
+    searchToggle.classList.toggle('active', !isActive);
+    
+    if (!isActive) {
+      // Enable search mode
+      announceToScreenReader('Search mode enabled - Cloudey will research the internet', 'polite');
+    } else {
+      // Disable search mode
+      announceToScreenReader('Search mode disabled', 'polite');
+    }
+  });
+}
+
+// Agent toggle
+if (agentToggle) {
+  agentToggle.addEventListener('click', () => {
+    const isActive = agentToggle.classList.contains('active');
+    agentToggle.classList.toggle('active', !isActive);
+    
+    if (!isActive) {
+      // Enable agent mode
+      announceToScreenReader('Agent mode enabled - Cloudey can take control of your screen', 'polite');
+    } else {
+      // Disable agent mode
+      announceToScreenReader('Agent mode disabled', 'polite');
+    }
+  });
+}
+
+// Context toggle
 if (contextToggle) {
   contextToggle.addEventListener('click', () => {
     includeContext = !includeContext;
@@ -354,12 +390,18 @@ async function sendMessage() {
   }
   
   try {
+    // Check if search mode is enabled
+    const isSearchMode = searchToggle?.classList.contains('active') || false;
+    const isAgentMode = agentToggle?.classList.contains('active') || false;
+    
     // Use Gemini API via background script with page context
     const response = await chrome.runtime.sendMessage({
       action: 'geminiChat',
       message: message,
       history: conversationHistory,
-      includeContext: includeContext
+      includeContext: includeContext,
+      searchMode: isSearchMode,
+      agentMode: isAgentMode
     });
     
     if (response.success) {

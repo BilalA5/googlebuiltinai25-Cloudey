@@ -288,7 +288,7 @@ async function handleTranslateText(request, sender, sendResponse) {
 
 // Gemini chat handler
 async function handleGeminiChat(request, sender, sendResponse) {
-  const { message, history = [], includeContext = false } = request;
+  const { message, history = [], includeContext = false, searchMode = false, agentMode = false } = request;
   
   try {
     // Use the built-in API key
@@ -308,6 +308,14 @@ async function handleGeminiChat(request, sender, sendResponse) {
 
     // Build context-aware prompt
     let contextPrompt = `You are Cloudey, a helpful AI assistant. Be concise, friendly, and helpful. Answer questions directly and completely.`;
+    
+    if (searchMode) {
+      contextPrompt += `\n\nIMPORTANT: You are in SEARCH MODE. The user wants you to research the internet for current, up-to-date information. Provide recent, factual information and mention that you're searching for current data. If you cannot access real-time information, explain this limitation.`;
+    }
+    
+    if (agentMode) {
+      contextPrompt += `\n\nIMPORTANT: You are in AGENT MODE. You can take control of the user's screen and perform actions on their behalf. Be proactive and offer to help with tasks that require screen interaction.`;
+    }
     
     if (pageContext) {
       contextPrompt += `\n\nCurrent page context:\nTitle: ${pageContext.title}\nURL: ${pageContext.url}\nContent: ${pageContext.content.substring(0, 2000)}...`;
