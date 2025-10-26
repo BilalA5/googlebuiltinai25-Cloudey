@@ -44,9 +44,9 @@
   },
   
   "icons": {
-    "16": "assets/cloudey-main-icon.svg",
-    "48": "assets/cloudey-main-icon.svg",
-    "192": "assets/cloudey-main-icon.svg"
+    "16": "assets/cloudey-main-icon-16.png",
+    "48": "assets/cloudey-main-icon-48.png",
+    "192": "assets/cloudey-main-icon-192.png"
   },
   
   "web_accessible_resources": [
