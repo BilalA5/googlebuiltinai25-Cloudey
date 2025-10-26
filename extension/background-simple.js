@@ -920,6 +920,7 @@ async function handleAgentExecute(request, sender, sendResponse) {
     const results = [];
     for (let i = 0; i < actions.length; i++) {
       const action = actions[i];
+      console.log(`🎯 Executing action ${i + 1}/${actions.length}:`, action);
       
       // Update step status to active
       chrome.runtime.sendMessage({
@@ -938,7 +939,9 @@ async function handleAgentExecute(request, sender, sendResponse) {
       }
       
       // Execute the action
+      console.log(`🚀 Calling executeAction with:`, { action: action.action, target: action.target, params: action.params });
       const result = await executeAction(action.action, action.target, action.params);
+      console.log(`✅ Action result:`, result);
       results.push(result);
       
       // Update step status
@@ -1282,16 +1285,21 @@ async function rewriteText(selector, useRewriterAPI = false) {
 }
 
 async function writeContent(selector, content, useWriterAPI = false) {
+  console.log(`📝 writeContent called with:`, { selector, content, useWriterAPI });
   return new Promise((resolve) => {
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       chrome.scripting.executeScript({
         target: { tabId: tabs[0].id },
         func: async (sel, cnt, useAPI) => {
+          console.log(`🔍 writeContent script running with:`, { sel, cnt, useAPI });
+          
           // Try multiple selectors for Google Docs
           let element = document.querySelector(sel);
+          console.log(`🎯 Initial element found:`, element);
           
           // If not found, try Google Docs specific selectors
           if (!element && sel === 'body') {
+            console.log(`🔍 Trying Google Docs selectors...`);
             const googleDocsSelectors = [
               '.kix-lineview-text-block',
               '.kix-wordhtmlgenerator-word',
@@ -1302,16 +1310,20 @@ async function writeContent(selector, content, useWriterAPI = false) {
             
             for (const docSelector of googleDocsSelectors) {
               element = document.querySelector(docSelector);
+              console.log(`🔍 Trying ${docSelector}:`, element ? 'Found' : 'Not found');
               if (element) {
-                console.log('Found Google Docs element:', docSelector);
+                console.log('✅ Found Google Docs element:', docSelector);
                 break;
               }
             }
           }
           
           if (!element) {
+            console.log(`❌ No element found for selector: ${sel}`);
             return { success: false, error: `Element not found: ${sel}` };
           }
+          
+          console.log(`✅ Element found:`, element.tagName, element.className);
           
           let finalContent = cnt;
           if (useAPI && 'ai' in self && 'writer' in self.ai) {
@@ -1323,25 +1335,31 @@ async function writeContent(selector, content, useWriterAPI = false) {
             }
           }
           
+          console.log(`📝 Writing content:`, finalContent);
+          
           // Handle different element types
           if (element.tagName === 'INPUT' || element.tagName === 'TEXTAREA') {
             element.value = finalContent;
             element.dispatchEvent(new Event('input', { bubbles: true }));
+            console.log(`✅ Set value for input/textarea`);
           } else if (element.contentEditable === 'true' || element.hasAttribute('contenteditable')) {
             // For contenteditable elements (like Google Docs)
             element.focus();
             element.innerHTML = finalContent;
             element.dispatchEvent(new Event('input', { bubbles: true }));
             element.dispatchEvent(new Event('change', { bubbles: true }));
+            console.log(`✅ Set innerHTML for contenteditable`);
           } else {
             // For regular elements
             element.textContent = finalContent;
+            console.log(`✅ Set textContent for regular element`);
           }
           
           return { success: true, message: `Wrote content to ${sel}` };
         },
         args: [selector || 'body', content || '', Boolean(useWriterAPI)]
       }, (results) => {
+        console.log(`📝 writeContent result:`, results[0]?.result);
         resolve(results[0].result);
       });
     });

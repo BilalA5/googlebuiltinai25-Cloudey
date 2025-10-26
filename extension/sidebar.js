@@ -617,6 +617,8 @@ async function sendMessage() {
       });
     }
     
+    console.log('📨 Response received:', response);
+    
     if (response.success) {
       hideTypingIndicator();
       promptBox?.classList.remove('loading');
@@ -625,6 +627,7 @@ async function sendMessage() {
       if (sendBtn) sendBtn.classList.add('hidden');
       if (pauseBtn) pauseBtn.classList.remove('hidden');
       
+      console.log('📝 Response content:', response.response);
       typewriterEffect(response.response);
       conversationHistory.push({ role: 'assistant', content: response.response });
       return;
@@ -632,8 +635,9 @@ async function sendMessage() {
       // Show the helpful error message from the background script
       hideTypingIndicator();
       promptBox?.classList.remove('loading');
-      addMessage('assistant', response.response);
-      announceToScreenReader('API key configuration required', 'assertive');
+      console.log('❌ Response error:', response.error);
+      addMessage('assistant', response.response || response.error || 'Unknown error occurred');
+      announceToScreenReader('Error occurred', 'assertive');
       return;
     }
     
