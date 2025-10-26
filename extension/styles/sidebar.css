@@ -384,6 +384,10 @@ body {
   flex-shrink: 0;
 }
 
+.chat-actions-primary {
+  position: relative;
+}
+
 /* Input Wrapper */
 .chat-input-wrapper {
   flex: 1;
@@ -442,6 +446,13 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
+  color: currentColor;
+}
+
+.btn-icon .icon svg {
+  width: 20px;
+  height: 20px;
+  stroke: currentColor;
 }
 
 /* Button Hierarchy */
@@ -568,8 +579,8 @@ body {
 /* ===== FAB ACTIONS ===== */
 .fab-actions {
   position: absolute;
-  bottom: 80px;
-  right: var(--space-lg);
+  bottom: calc(100% + var(--space-sm));
+  left: 0;
   display: flex;
   flex-direction: column;
   gap: var(--space-sm);
@@ -604,9 +615,9 @@ body {
 }
 
 .fab-action:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--color-secondary);
   border-color: var(--color-border-visible);
-  transform: translateX(-4px);
+  color: var(--color-text-primary);
 }
 
 .fab-action:focus-visible {
@@ -620,6 +631,13 @@ body {
   align-items: center;
   width: 20px;
   justify-content: center;
+  color: currentColor;
+}
+
+.fab-icon svg {
+  width: 18px;
+  height: 18px;
+  stroke: currentColor;
 }
 
 .fab-label {
