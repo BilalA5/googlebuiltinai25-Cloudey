@@ -12,8 +12,7 @@
     <!-- Header -->
     <div class="sidebar-header">
       <div class="header-left">
-        <img src="assets/cloudey-icon-16.png" alt="Cloudey" class="header-logo">
-        <span class="header-title">Cloudey</span>
+        <img src="assets/cloudey-icon-16.svg" alt="Cloudey" class="header-logo">
       </div>
       <div class="header-right">
         <button id="close-btn" class="header-close" title="Close panel" aria-label="Close panel">
@@ -76,12 +75,18 @@
     <!-- Bottom Dock Chat Bar -->
     <div class="bottom-dock-wrapper">
       <div class="bottom-dock-bar">
-        
         <!-- Hidden file input -->
         <input type="file" id="file-input" class="hidden-file-input" multiple accept=".pdf,.png,.jpg,.jpeg,.txt,.doc,.docx" aria-label="Attach files">
         
         <!-- Attachment chips container -->
         <div id="attachment-chips" class="attachment-chips hidden"></div>
+        
+        <!-- Left side actions -->
+        <div class="chat-actions-left">
+          <button id="fab-toggle" class="dock-btn action-btn" title="Quick actions" aria-label="Quick actions menu">
+            <span class="icon-wrapper">+</span>
+          </button>
+        </div>
         
         <!-- Textarea (flex-grow) -->
         <textarea 
@@ -92,49 +97,45 @@
           aria-label="Type your message"
         ></textarea>
         
-        <!-- Voice Button -->
-        <button id="microphone-btn" class="dock-btn mic-btn" title="Voice input" aria-label="Start voice input">
-          <span class="icon-wrapper"></span>
-        </button>
-        
-        <!-- Send Button -->
-        <button id="send-btn" class="dock-btn send-btn" title="Send message" aria-label="Send message">
-          <span class="icon-wrapper"></span>
-        </button>
-        
-        <!-- Stop Button (hidden by default) -->
-        <button id="stop-btn" class="dock-btn stop-btn hidden" title="Stop generating" aria-label="Stop generating">
-          <span class="icon-wrapper"></span>
-        </button>
-      </div>
-      
-      <!-- Integrated Action Button -->
-      <div class="action-button-container">
-        <button id="fab-toggle" class="action-button" title="Quick actions & attachments" aria-label="Quick actions and attachments menu">
-          <span class="icon-wrapper"></span>
-        </button>
+        <!-- Right side actions -->
+        <div class="chat-actions-right">
+          <!-- Voice Button -->
+          <button id="microphone-btn" class="dock-btn mic-btn" title="Voice input" aria-label="Start voice input">
+            <span class="icon-wrapper">🎤</span>
+          </button>
+          
+          <!-- Send Button -->
+          <button id="send-btn" class="dock-btn send-btn" title="Send message" aria-label="Send message">
+            <span class="icon-wrapper">→</span>
+          </button>
+          
+          <!-- Stop Button (hidden by default) -->
+          <button id="stop-btn" class="dock-btn stop-btn hidden" title="Stop generating" aria-label="Stop generating">
+            <span class="icon-wrapper">⏹</span>
+          </button>
+        </div>
       </div>
       
       <!-- Floating Action Menu -->
       <div id="fab-actions" class="fab-actions hidden">
         <button class="fab-action" data-action="attach" title="Attach files">
-          <span class="icon-wrapper"></span>
+          <span class="fab-icon">📎</span>
           <span class="fab-label">Attach</span>
         </button>
         <button class="fab-action" data-action="summarize" title="Summarize page">
-          <span class="icon-wrapper"></span>
+          <span class="fab-icon">📄</span>
           <span class="fab-label">Summarize</span>
         </button>
         <button class="fab-action" data-action="improve" title="Improve writing">
-          <span class="icon-wrapper"></span>
+          <span class="fab-icon">✨</span>
           <span class="fab-label">Improve</span>
         </button>
         <button class="fab-action" data-action="rewrite" title="Rewrite text">
-          <span class="icon-wrapper"></span>
+          <span class="fab-icon">✍️</span>
           <span class="fab-label">Rewrite</span>
         </button>
         <button class="fab-action" data-action="translate" title="Translate">
-          <span class="icon-wrapper"></span>
+          <span class="fab-icon">🌐</span>
           <span class="fab-label">Translate</span>
         </button>
       </div>
