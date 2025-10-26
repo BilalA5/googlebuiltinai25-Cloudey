@@ -987,7 +987,7 @@ body {
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
 }
 
-.toggle-container:hover .translate-tooltip {
+.toggle-container.show-tooltip .translate-tooltip {
   opacity: 1;
   visibility: visible;
   transform: translateX(-50%) translateY(0);

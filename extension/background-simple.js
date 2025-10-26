@@ -366,20 +366,28 @@ async function handleChromeTranslate(request, sender, sendResponse) {
     let sourceLanguage = from;
     if (from === 'auto') {
       try {
+        console.log('Detecting language for text:', text.substring(0, 100) + '...');
+        
         // Use Chrome's Language Detector API
         if ('LanguageDetector' in self) {
+          console.log('Using LanguageDetector API');
           const detector = await LanguageDetector.create();
           const detection = await detector.detectLanguage(text);
           sourceLanguage = detection.language;
+          console.log('LanguageDetector result:', detection);
         } else {
+          console.log('LanguageDetector not available, using i18n fallback');
           // Fallback to i18n detection
           const detectedLanguages = await chrome.i18n.detectLanguage(text);
+          console.log('i18n detection result:', detectedLanguages);
           if (detectedLanguages && detectedLanguages.languages && detectedLanguages.languages.length > 0) {
             sourceLanguage = detectedLanguages.languages[0].language;
           } else {
             sourceLanguage = 'en'; // fallback
           }
         }
+        
+        console.log('Detected source language:', sourceLanguage);
       } catch (detectError) {
         console.warn('Language detection failed, using fallback:', detectError);
         sourceLanguage = 'en';
