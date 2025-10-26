@@ -27,6 +27,7 @@ let conversationHistory = [];
 let attachedFiles = [];
 let typewriterAbortController = null;
 let includeContext = true; // Default to including context
+let isSending = false; // Prevent double sends
 const MAX_FILES = 5;
 const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25MB
 
@@ -588,6 +589,12 @@ async function readFileContent(file) {
 
 // Send message
 async function sendMessage() {
+  // Prevent double sends
+  if (isSending) {
+    console.log('Already sending, skipping duplicate...');
+    return;
+  }
+  
   const message = chatInput.value.trim();
   
   // Validate message length - must be at least 1 character
@@ -607,6 +614,8 @@ async function sendMessage() {
     announceToScreenReader('Please enter a message before sending', 'assertive');
     return;
   }
+  
+  isSending = true;
   
   // Clear input
   chatInput.value = '';
@@ -737,6 +746,8 @@ async function sendMessage() {
     
     addMessage('assistant', errorMessage);
     announceToScreenReader('An error occurred', 'assertive');
+  } finally {
+    isSending = false; // Reset flag
   }
 }
 

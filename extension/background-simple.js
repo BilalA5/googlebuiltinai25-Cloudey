@@ -2001,7 +2001,7 @@ async function writeToSheets(range, values, formulas = []) {
                   firstCell.click();
                   
                   // Wait for cell editor to appear
-                  setTimeout(() => {
+                  setTimeout(async () => {
                     for (const sel of cellEditors) {
                       editor = document.querySelector(sel);
                       if (editor) {
@@ -2012,6 +2012,7 @@ async function writeToSheets(range, values, formulas = []) {
                     
                     if (editor && cellValues && cellValues.length > 0) {
                       try {
+                        console.log('Attempting to write value:', cellValues[0]);
                         editor.focus();
                         
                         // Clear existing content
@@ -2028,7 +2029,8 @@ async function writeToSheets(range, values, formulas = []) {
                         
                         // Use insertText to simulate typing
                         if (document.execCommand) {
-                          document.execCommand('insertText', false, cellValues[0]);
+                          const success = document.execCommand('insertText', false, cellValues[0]);
+                          console.log('execCommand insertText result:', success);
                         } else {
                           editor.value = cellValues[0];
                           editor.textContent = cellValues[0];
@@ -2038,7 +2040,11 @@ async function writeToSheets(range, values, formulas = []) {
                         editor.dispatchEvent(new Event('input', { bubbles: true }));
                         editor.dispatchEvent(new KeyboardEvent('keyup', { key: 'Enter', code: 'Enter', bubbles: true }));
                         
+                        // Add a small delay to ensure the value is applied
+                        await new Promise(resolve => setTimeout(resolve, 200));
+                        
                         console.log(`✅ Wrote value: ${cellValues[0]}`);
+                        console.log('Editor value after write:', editor.value || editor.textContent);
                         
                         resolveScript({
                           success: true,
@@ -2049,7 +2055,7 @@ async function writeToSheets(range, values, formulas = []) {
                         resolveScript({ success: false, error: e.message });
                       }
                     } else {
-                      console.error('Could not find cell editor');
+                      console.error('Could not find cell editor or no values to write');
                       resolveScript({ success: false, error: 'Could not find active cell editor' });
                     }
                   }, 800);
