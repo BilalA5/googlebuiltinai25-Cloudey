@@ -925,14 +925,29 @@ body {
 
 /* ===== SHIMMER ANIMATION ===== */
 .prompt-box.loading .prompt-textarea {
+  position: relative;
+  background: transparent;
+}
+
+.prompt-box.loading .prompt-textarea::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   background: linear-gradient(
     90deg,
-    rgba(180, 160, 190, 0.1) 0%,
-    rgba(220, 200, 230, 0.3) 50%,
-    rgba(180, 160, 190, 0.1) 100%
+    transparent 0%,
+    rgba(255, 255, 255, 0.15) 25%,
+    rgba(255, 255, 255, 0.25) 50%,
+    rgba(255, 255, 255, 0.15) 75%,
+    transparent 100%
   );
   background-size: 200% 100%;
   animation: shimmer 2s linear infinite;
+  pointer-events: none;
+  border-radius: 0;
 }
 
 @keyframes shimmer {

@@ -7,7 +7,7 @@ const chatInput = document.getElementById('chat-input');
 const sendBtn = document.getElementById('send-btn');
 const stopBtn = document.getElementById('stop-btn');
 const micBtn = document.getElementById('microphone-btn');
-const attachBtn = document.getElementById('attach-btn');
+const attachBtn = document.getElementById('attach-btn') || document.querySelector('.prompt-action-btn[title="Attach image"]');
 const fileInput = document.getElementById('file-input');
 const messagesContainer = document.getElementById('messages-container');
 const attachmentChips = document.getElementById('attachment-chips');
@@ -28,32 +28,8 @@ const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25MB
 
 // Initialize icons
 function initializeIcons() {
-  // Use modern SVG icons
-  const micBtnIcon = micBtn?.querySelector('.icon');
-  if (micBtnIcon) micBtnIcon.innerHTML = getIconHTML('mic');
-  
-  const sendBtnIcon = sendBtn?.querySelector('.icon');
-  if (sendBtnIcon) sendBtnIcon.innerHTML = getIconHTML('send');
-  
-  const stopBtnIcon = stopBtn?.querySelector('.icon');
-  if (stopBtnIcon) stopBtnIcon.innerHTML = getIconHTML('stop');
-  
-  const fabToggleIcon = fabToggle?.querySelector('.icon');
-  if (fabToggleIcon) fabToggleIcon.innerHTML = getIconHTML('plus');
-  
-  const headerCloseEl = document.querySelector('.header-close .icon-close');
-  if (headerCloseEl) headerCloseEl.innerHTML = getIconHTML('x');
-  
-  // FAB action icons
-  const fabActionButtons = document.querySelectorAll('.fab-action');
-  const fabIcons = ['paperclip', 'fileText', 'sparkles', 'pen', 'globe'];
-  
-  fabActionButtons.forEach((btn, index) => {
-    if (btn && fabIcons[index]) {
-      const icon = btn.querySelector('.fab-icon');
-      if (icon) icon.innerHTML = getIconHTML(fabIcons[index]);
-    }
-  });
+  // Note: Icons are now embedded directly in HTML as SVG, so no JS initialization needed
+  console.log('Icons embedded in HTML structure');
 }
 
 // Initialize Speech Recognition
