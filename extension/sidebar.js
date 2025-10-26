@@ -886,6 +886,43 @@ function hidePageActions() {
 // Initialize sidebar when DOM loads
 document.addEventListener('DOMContentLoaded', () => {
   detectPageTypeAndShowActions(); // Detect page type and show actions
+  
+  // Initialize translate button
+  const translateBtn = document.getElementById('translate-btn');
+  if (translateBtn) {
+    translateBtn.addEventListener('click', async () => {
+      console.log('🌐 Translate button clicked');
+      try {
+        const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+        const tab = tabs[0];
+        
+        if (tab) {
+          const textToTranslate = await getSelectedText(tab.id);
+          console.log('Selected text for translation:', textToTranslate);
+          
+          if (textToTranslate && textToTranslate.trim().length > 0) {
+            addMessage('user', `Translate this: "${textToTranslate}"`);
+            showTypingIndicator();
+            
+            console.log('Sending translation request to background script...');
+            chrome.runtime.sendMessage(
+              { action: 'translate', text: textToTranslate, from: 'auto', to: 'en' },
+              (response) => {
+                console.log('Translation response received:', response);
+                handleFabResponse(response);
+              }
+            );
+          } else {
+            console.log('No text selected for translation');
+            announceToScreenReader('Please select some text first', 'assertive');
+          }
+        }
+      } catch (error) {
+        console.error('Translate button error:', error);
+        addMessage('assistant', 'An error occurred while translating. Please try again.');
+      }
+    });
+  }
 });
 
 console.log('Cloudey side panel initialized');
