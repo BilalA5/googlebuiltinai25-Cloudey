@@ -2131,6 +2131,17 @@ async function analyzeMapsResults(tabId, query) {
                 
                 if (!title || title.length < 3) return; // Skip empty results
                 
+                // Extract full description/reviews
+                const descriptionEl = result.querySelector('div.MyEned, div.fontBodyMedium, div.rVqRsc');
+                const fullDescription = descriptionEl?.textContent?.trim() || '';
+                
+                // Check for keywords in description (free, open, etc.)
+                const keywords = {
+                  isFree: /\b(?:free|no charge|complimentary|gratis)\b/i.test(fullDescription),
+                  hasHours: /\b(?:open|closed|hours|am|pm)\b/i.test(fullDescription),
+                  hasParking: /\b(?:parking|park|lot|spot|space)\b/i.test(fullDescription),
+                };
+                
                 // Extract address/description
                 const addressEl = result.querySelector('[data-value="address"]') || 
                                  result.querySelector('div.fontBodyMedium') ||
@@ -2159,6 +2170,9 @@ async function analyzeMapsResults(tabId, query) {
                              result.querySelector('.fontBodyMedium').querySelector('span:not([aria-label])');
                 const type = typeEl?.textContent?.trim() || '';
                 
+                // Extract review count if available
+                const reviewCount = result.textContent.match(/(\d+(?:,\d+)?)\s*(?:review|rating)/i)?.[1] || '';
+                
                 // Check if we've already added this result
                 if (!results.some(r => r.title === title && r.address === address)) {
                   results.push({
@@ -2168,7 +2182,11 @@ async function analyzeMapsResults(tabId, query) {
                     rating: rating,
                     distance: distance,
                     price: price,
-                    type: type
+                    type: type,
+                    description: fullDescription.substring(0, 200), // First 200 chars
+                    keywords: keywords,
+                    reviewCount: reviewCount,
+                    rawText: result.textContent.substring(0, 500) // Full text for AI analysis
                   });
                 }
               });
@@ -2218,34 +2236,67 @@ async function analyzeMapsResults(tabId, query) {
         
                  if (analysis.success && analysis.results && analysis.results.length > 0) {
            // Use Gemini to analyze and rank the results
-           const rankingPrompt = `Analyze these Google Maps search results and select the BEST match based on the user's criteria.
-           
-Search Query: "${analysis.query}"
-User is looking for: ${analysis.query}
+           const rankingPrompt = `You are analyzing Google Maps search results and need to THINK through the criteria before selecting the BEST match.
 
-Search Results:
+USER'S REQUEST: "${analysis.query}"
+
+CRITICAL ANALYSIS TASK:
+1. Parse the user's request to identify ALL criteria:
+   - What type of place? (e.g., parking, restaurant, clinic)
+   - What filters? (free, nearest, closest to X, cheapest, best rated, open now)
+   - What location/reference point? (e.g., "closest to Stampede", "near me")
+
+2. For each result, analyze:
+   - Does it match the type? (e.g., if user wants parking, is this a parking lot?)
+   - Does it meet the filters? (e.g., if "free" is required, check keywords.isFree in data)
+   - How close is it? (parse distance field)
+   - What's the quality? (rating, review count)
+   - Any special notes? (description field)
+
+3. Apply your reasoning logic:
+   - "Free" requirement: ONLY consider results where keywords.isFree = true
+   - "Nearest" requirement: Prioritize shortest distance
+   - "Closest to X": Check if address/description mentions the reference location
+   - "Best rated": Prioritize highest rating with most reviews
+
+4. Rank results by relevance to ALL criteria, not just one factor
+
+DETAILED RESULTS DATA:
 ${analysis.results.map((r, i) => `
 ${i + 1}. ${r.title}
    Address: ${r.address || 'N/A'}
    Distance: ${r.distance || 'N/A'}
    Rating: ${r.rating || 'N/A'}
+   Reviews: ${r.reviewCount || 'N/A'}
    Price: ${r.price || 'N/A'}
    Type: ${r.type || 'N/A'}
+   Description: ${r.description || 'N/A'}
+   Keywords detected: FREE=${r.keywords?.isFree || false}, OPEN_HOURS=${r.keywords?.hasHours || false}, PARKING_MENTION=${r.keywords?.hasParking || false}
 `).join('\n')}
 
-Your task:
-1. Analyze each result against the user's criteria in the search query
-2. Consider factors like: distance, price (free/cheap), rating, relevance to search terms
-3. Select the TOP 3 BEST matches
-4. Rank them with brief explanations why each is recommended
+THINKING PROCESS:
+${analysis.query.toLowerCase().includes('free') ? '- REQUIRING "FREE" items only' : ''}
+${analysis.query.toLowerCase().includes('nearest') || analysis.query.toLowerCase().includes('closest') ? '- PRIORITIZING shortest distance' : ''}
+${analysis.query.toLowerCase().includes('best') || analysis.query.toLowerCase().includes('highest') ? '- PRIORITIZING highest ratings' : ''}
+
+Your output MUST include:
+1. Your reasoning (what criteria you applied)
+2. Which results were eliminated and why
+3. Top 3 recommendations with EXPLICIT explanation of why they match
 
 Respond in this EXACT format:
+REASONING:
+[Explain your thinking process, what filters you applied, what you looked for]
+
 BEST MATCH:
-[Rank #1] [Title] - [Why it's the best]
-  
+[Rank #1] [Title] - [EXPLAIN why this is best with specific evidence from the data]
+
 OTHER OPTIONS:
-[Rank #2] [Title] - [Why it's recommended]
-[Rank #3] [Title] - [Why it's recommended]`;
+[Rank #2] [Title] - [Explain why recommended]
+[Rank #3] [Title] - [Explain why recommended]
+
+ELIMINATED:
+[List any results that didn't meet criteria and why]`;
 
            try {
              const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-001:generateContent', {
