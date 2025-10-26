@@ -641,6 +641,268 @@ body {
   color: var(--color-destructive);
 }
 
+/* ===== MODERN PROMPT BOX ===== */
+.prompt-box {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: #1F2023;
+  border: 1px solid #444444;
+  border-radius: 24px;
+  padding: 8px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.24);
+  transition: all 0.3s ease;
+}
+
+.prompt-box:focus-within {
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+/* Attachment Preview */
+.attachment-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 0 0 4px 0;
+}
+
+.attachment-preview.hidden {
+  display: none;
+}
+
+.attachment-preview-item {
+  position: relative;
+  width: 64px;
+  height: 64px;
+  border-radius: 12px;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.attachment-preview-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.attachment-remove {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.7);
+  border: none;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+}
+
+.attachment-remove svg {
+  width: 12px;
+  height: 12px;
+}
+
+/* Textarea Wrapper */
+.prompt-textarea-wrapper {
+  min-height: 44px;
+}
+
+.prompt-textarea {
+  width: 100%;
+  min-height: 44px;
+  max-height: 240px;
+  padding: 12px;
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.95);
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 1.5;
+  resize: none;
+  outline: none;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #444444 transparent;
+}
+
+.prompt-textarea::-webkit-scrollbar {
+  width: 6px;
+}
+
+.prompt-textarea::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.prompt-textarea::-webkit-scrollbar-thumb {
+  background-color: #444444;
+  border-radius: 3px;
+}
+
+.prompt-textarea::-webkit-scrollbar-thumb:hover {
+  background-color: #555555;
+}
+
+.prompt-textarea::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+/* Actions Row */
+.prompt-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 4px;
+}
+
+.prompt-actions-left {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Action Buttons */
+.prompt-action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: transparent;
+  border: none;
+  color: rgba(156, 163, 175, 1);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  padding: 0;
+  position: relative;
+}
+
+.prompt-action-btn:hover {
+  background: rgba(107, 114, 128, 0.3);
+  color: rgba(209, 213, 219, 1);
+}
+
+.prompt-action-btn .lucide-icon {
+  width: 20px;
+  height: 20px;
+  stroke-width: 1.5;
+}
+
+/* Toggle Buttons Container */
+.toggle-buttons {
+  display: flex;
+  align-items: center;
+  gap: 0;
+}
+
+.toggle-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 32px;
+  padding: 4px 8px;
+  border-radius: 16px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: rgba(156, 163, 175, 1);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.toggle-btn:hover {
+  color: rgba(209, 213, 219, 1);
+}
+
+.toggle-btn.active {
+  border: 1px solid;
+  color: currentColor;
+}
+
+.toggle-btn[data-toggle="search"].active {
+  background: rgba(30, 174, 219, 0.15);
+  border-color: #1EAEDB;
+  color: #1EAEDB;
+}
+
+.toggle-btn[data-toggle="think"].active {
+  background: rgba(139, 92, 246, 0.15);
+  border-color: #8B5CF6;
+  color: #8B5CF6;
+}
+
+.toggle-btn[data-toggle="canvas"].active {
+  background: rgba(249, 115, 22, 0.15);
+  border-color: #F97316;
+  color: #F97316;
+}
+
+.toggle-btn .lucide-icon-small {
+  width: 16px;
+  height: 16px;
+  stroke-width: 1.5;
+  flex-shrink: 0;
+}
+
+.toggle-label {
+  opacity: 0;
+  width: 0;
+  overflow: hidden;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.toggle-btn.active .toggle-label {
+  opacity: 1;
+  width: auto;
+  padding-left: 2px;
+}
+
+/* Custom Divider */
+.toggle-buttons::before {
+  content: '';
+  width: 1.5px;
+  height: 24px;
+  margin: 0 4px;
+  background: linear-gradient(to bottom, transparent, rgba(155, 135, 245, 0.7), transparent);
+  clip-path: polygon(0% 0%, 100% 0%, 100% 40%, 140% 50%, 100% 60%, 100% 100%, 0% 100%, 0% 60%, -40% 50%, 0% 40%);
+}
+
+/* Send Button */
+.prompt-send-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: white;
+  border: none;
+  color: #1F2023;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.prompt-send-btn:hover {
+  background: rgba(255, 255, 255, 0.9);
+  transform: scale(1.05);
+}
+
+.prompt-send-btn .lucide-icon {
+  width: 16px;
+  height: 16px;
+  stroke-width: 2;
+}
+
 /* ===== FAB ACTIONS ===== */
 .fab-actions {
   position: absolute;

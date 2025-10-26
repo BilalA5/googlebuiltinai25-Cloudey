@@ -45,75 +45,77 @@
     <!-- Interaction Region: Chat Input -->
     <footer class="bottom-dock-wrapper" role="contentinfo">
       <div class="bottom-dock-bar">
-        <!-- Hidden file input -->
-        <input type="file" id="file-input" class="hidden-file-input" multiple accept=".pdf,.png,.jpg,.jpeg,.txt,.doc,.docx" aria-label="Attach files">
-        
-        <!-- Attachment chips container -->
-        <div id="attachment-chips" class="attachment-chips hidden"></div>
-        
-        <!-- Chat input container -->
-        <div class="chat-input-container">
-          <!-- Left action buttons -->
-          <div class="chat-left-actions">
-            <button id="fab-toggle" class="btn-icon btn-utility" title="Actions" aria-label="Actions menu">
-              <span class="icon">+</span>
-            </button>
-          </div>
+        <!-- Modern AI Prompt Box -->
+        <div class="prompt-box" id="prompt-box">
+          <!-- Attachment Preview Area -->
+          <div class="attachment-preview hidden" id="attachment-preview"></div>
           
-          <!-- Main input area -->
-          <div class="chat-input-inner">
+          <!-- Textarea Container -->
+          <div class="prompt-textarea-wrapper">
             <textarea 
               id="chat-input" 
-              class="chat-textarea" 
+              class="prompt-textarea" 
               placeholder="Type your message here..."
               rows="1"
               aria-label="Message input"
-              aria-describedby="input-hint"
             ></textarea>
-            
-            <!-- Right action buttons -->
-            <div class="chat-right-actions">
-              <!-- Voice Input -->
-              <button id="microphone-btn" class="chat-action-btn" title="Voice input" aria-label="Start voice input">
-                <span class="icon">🎤</span>
+          </div>
+          
+          <!-- Action Buttons Row -->
+          <div class="prompt-actions">
+            <!-- Left Actions: Paperclip + Toggles -->
+            <div class="prompt-actions-left">
+              <!-- Paperclip Button -->
+              <button class="prompt-action-btn" id="attach-btn" title="Attach image">
+                <svg class="lucide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"></path>
+                </svg>
+                <input type="file" id="file-input" class="hidden-file-input" accept="image/*">
               </button>
               
-              <!-- Send Action (Primary) -->
-              <button id="send-btn" class="chat-action-btn chat-send-btn" title="Send message" aria-label="Send message">
-                <span class="icon">→</span>
-              </button>
-              
-              <!-- Stop Action (Hidden by default) -->
-              <button id="stop-btn" class="chat-action-btn chat-stop-btn hidden" title="Stop generating" aria-label="Stop generating">
-                <span class="icon">⏹</span>
-              </button>
+              <!-- Toggle Buttons -->
+              <div class="toggle-buttons">
+                <!-- Search Toggle -->
+                <button class="toggle-btn" id="search-toggle" data-toggle="search">
+                  <svg class="lucide-icon-small" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="2" x2="22" y1="12" y2="12"></line>
+                    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+                  </svg>
+                  <span class="toggle-label">Search</span>
+                </button>
+                
+                <!-- Think Toggle -->
+                <button class="toggle-btn" id="think-toggle" data-toggle="think">
+                  <svg class="lucide-icon-small" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path d="M12 22v-4"></path>
+                    <path d="M15 11a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"></path>
+                    <path d="M12 2C7.582 2 4 5.582 4 10c0 2.212 1.538 4.12 3.75 4.835"></path>
+                    <path d="M18 14c2.208 0 4-1.342 4-3 0-4.418-3.582-8-8-8"></path>
+                    <path d="M18 18c-1.582 0-3-.896-3-2"></path>
+                  </svg>
+                  <span class="toggle-label">Think</span>
+                </button>
+                
+                <!-- Canvas Toggle -->
+                <button class="toggle-btn" id="canvas-toggle" data-toggle="canvas">
+                  <svg class="lucide-icon-small" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1H3"></path>
+                  </svg>
+                  <span class="toggle-label">Canvas</span>
+                </button>
+              </div>
             </div>
+            
+            <!-- Right Action: Send/Mic Button -->
+            <button class="prompt-send-btn" id="send-btn" title="Send message">
+              <svg class="lucide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path d="m22 2-7 20-4-9-9-4Z"></path>
+                <path d="M22 2 11 13"></path>
+              </svg>
+            </button>
           </div>
         </div>
-      </div>
-      
-      <!-- Floating Action Menu -->
-      <div id="fab-actions" class="fab-actions hidden">
-        <button class="fab-action" data-action="attach" title="Attach files">
-          <span class="fab-icon">📎</span>
-          <span class="fab-label">Attach</span>
-        </button>
-        <button class="fab-action" data-action="summarize" title="Summarize page">
-          <span class="fab-icon">📄</span>
-          <span class="fab-label">Summarize</span>
-        </button>
-        <button class="fab-action" data-action="improve" title="Improve writing">
-          <span class="fab-icon">✨</span>
-          <span class="fab-label">Improve</span>
-        </button>
-        <button class="fab-action" data-action="rewrite" title="Rewrite text">
-          <span class="fab-icon">✍️</span>
-          <span class="fab-label">Rewrite</span>
-        </button>
-        <button class="fab-action" data-action="translate" title="Translate">
-          <span class="fab-icon">🌐</span>
-          <span class="fab-label">Translate</span>
-        </button>
       </div>
     </footer>
     
