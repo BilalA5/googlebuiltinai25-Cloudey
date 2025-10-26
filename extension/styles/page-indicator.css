@@ -126,6 +126,8 @@
   background: linear-gradient(90deg, rgba(180, 160, 190, 0.8), rgba(238, 130, 238, 0.8)) border-box;
   border-radius: 0;
   animation: agentBorderFlow 3s linear infinite;
+  box-sizing: border-box;
+  background-clip: border-box;
 }
 
 @keyframes agentBorderFlow {
