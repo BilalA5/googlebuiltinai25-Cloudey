@@ -217,6 +217,29 @@ body {
   line-height: 1.6;
 }
 
+.empty-state-setup {
+  background: rgba(150, 130, 160, 0.1);
+  border: 1px solid rgba(150, 130, 160, 0.2);
+  border-radius: 12px;
+  padding: 16px;
+  margin: 20px 0;
+  text-align: left;
+}
+
+.setup-text {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 14px;
+  font-weight: 500;
+  margin: 0 0 8px 0;
+}
+
+.setup-steps {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 13px;
+  margin: 4px 0;
+  padding-left: 8px;
+}
+
 .suggestion-chips {
   display: flex;
   flex-wrap: wrap;

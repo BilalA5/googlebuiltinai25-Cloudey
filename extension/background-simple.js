@@ -11,6 +11,7 @@ const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/
 async function getApiKey() {
   return new Promise((resolve) => {
     chrome.storage.local.get(['geminiApiKey'], (result) => {
+      console.log('Retrieved API key from storage:', result.geminiApiKey ? 'Present' : 'Not found');
       resolve(result.geminiApiKey || null);
     });
   });
@@ -311,7 +312,7 @@ async function handleGeminiChat(request, sender, sendResponse) {
     if (!apiKey) {
       sendResponse({
         success: false,
-        response: 'API key not configured. Please set your Gemini API key in settings.'
+        response: '🔑 API key not configured!\n\nTo use Cloudey with Gemini AI:\n1. Click the ⚙️ settings button in the header\n2. Enter your Gemini API key from Google AI Studio\n3. Click "Test Connection" to verify\n4. Click "Save API Key"\n\nGet your free API key at: https://aistudio.google.com/app/apikey'
       });
       return;
     }

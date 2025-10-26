@@ -406,7 +406,12 @@ async function sendMessage() {
       conversationHistory.push({ role: 'assistant', content: response.response });
       return;
     } else {
-      throw new Error(response.response);
+      // Show the helpful error message from the background script
+      hideTypingIndicator();
+      promptBox?.classList.remove('loading');
+      addMessage('assistant', response.response);
+      announceToScreenReader('API key configuration required', 'assertive');
+      return;
     }
     
   } catch (error) {
