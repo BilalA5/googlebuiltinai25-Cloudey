@@ -332,161 +332,47 @@ async function sendMessage() {
   }
   
   try {
-    // Check if Prompt API is available using navigator.languageModel
-    console.log('=== PROMPT API DEBUG ===');
-    console.log('Checking for Prompt API (navigator.languageModel)...');
-    console.log('navigator.languageModel:', navigator.languageModel);
-    console.log('typeof navigator.languageModel:', typeof navigator.languageModel);
-    console.log('Chrome version:', navigator.userAgent.match(/Chrome\/(\d+)/)?.[1]);
-    console.log('navigator:', Object.keys(navigator).filter(k => k.toLowerCase().includes('ai') || k.toLowerCase().includes('language')));
+    // Use Gemini Cloud API since Prompt API doesn't work in extensions
+    const API_KEY = 'AIzaSyAToduibeG4QNzdMtNnxAJfd4_hr_f8gJQ';
+    const API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
     
-    // Check if other Chrome AI APIs are available
-    console.log('Chrome AI APIs available:');
-    console.log('- navigator.ai:', navigator.ai);
-    console.log('- window.ai:', window.ai);
-    console.log('- self.ai:', self.ai);
-    console.log('=== END PROMPT API DEBUG ===');
+    console.log('Using Gemini Cloud API...');
     
-    // Check for availability if the API exists
-    if (navigator.languageModel) {
-      console.log('Prompt API found, checking availability...');
-      
-      try {
-        // Check availability status
-        const availability = navigator.languageModel.availability();
-        console.log('Model availability:', availability);
-        
-        if (availability === 'available') {
-          // Model is ready, create session and use it
-          console.log('Using Prompt API with available model');
-          
-          // Create a language model session
-          const lm = navigator.languageModel.create();
-          
-          // Build the prompt
-          const prompt = `You are Cloudey, a helpful AI assistant. Answer the user's question directly and completely.
-
-User Question: ${message}
-
-Provide a direct, helpful answer using your full knowledge and capabilities.`;
-          
-          console.log('Sending prompt to language model...');
-          const result = await lm.prompt(prompt);
-          
-          console.log('Response received from language model');
-          
-          hideTypingIndicator();
-          promptBox?.classList.remove('loading');
-          typewriterEffect(result);
-          conversationHistory.push({ role: 'assistant', content: result });
-          return; // Success, exit early
-        } else if (availability === 'downloadable') {
-          // Model needs to be downloaded
-          console.log('Model is downloadable, starting download...');
-          
-          // Start download with user gesture
-          const downloadResult = await navigator.languageModel.download();
-          console.log('Download started:', downloadResult);
-          
-          // Monitor download progress
-          const progressCallback = (progress) => {
-            console.log('Download progress:', progress);
-            const progressPercent = Math.round(progress * 100);
-            
-            // Update UI with progress
-            hideTypingIndicator();
-            const progressMsg = `Downloading Gemini Nano model... ${progressPercent}%`;
-            const existingProgress = messagesContainer.querySelector('.download-progress');
-            if (existingProgress) {
-              existingProgress.textContent = progressMsg;
-            } else {
-              const progressDiv = document.createElement('div');
-              progressDiv.className = 'message assistant download-progress';
-              progressDiv.textContent = progressMsg;
-              messagesContainer.appendChild(progressDiv);
-            }
-          };
-          
-          navigator.languageModel.monitorDownload(progressCallback);
-          
-          // Wait for download to complete
-          await downloadResult;
-          
-          // Retry with the now-available model
-          console.log('Model downloaded, retrying...');
-          const lm = navigator.languageModel.create();
-          const prompt = `You are Cloudey, a helpful AI assistant. Answer the user's question directly and completely.
-
-User Question: ${message}
-
-Provide a direct, helpful answer using your full knowledge and capabilities.`;
-          
-          const result = await lm.prompt(prompt);
-          
-          hideTypingIndicator();
-          promptBox?.classList.remove('loading');
-          
-          // Remove progress message
-          const progressMsg = messagesContainer.querySelector('.download-progress');
-          if (progressMsg) progressMsg.remove();
-          
-          typewriterEffect(result);
-          conversationHistory.push({ role: 'assistant', content: result });
-          return;
-        } else if (availability === 'downloading') {
-          // Model is currently downloading
-          hideTypingIndicator();
-          promptBox?.classList.remove('loading');
-          addMessage('assistant', 'Gemini Nano model is currently downloading. Please wait a moment and try again.');
-          return;
-        } else {
-          // unavailable
-          console.error('Model unavailable:', availability);
-        }
-      } catch (lmError) {
-        console.error('Error with language model:', lmError);
-      }
+    const response = await fetch(`${API_URL}?key=${API_KEY}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        contents: [{
+          parts: [{
+            text: `You are Cloudey, a helpful AI assistant. Answer this question directly and completely: ${message}`
+          }]
+        }]
+      })
+    });
+    
+    if (!response.ok) {
+      throw new Error(`API returned ${response.status}`);
     }
     
-    // Gemini Nano not available - show detailed setup instructions in chat
-    console.log('Prompt API not available - showing setup instructions in chat');
+    const data = await response.json();
+    const aiResponse = data.candidates[0].content.parts[0].text;
+    
+    console.log('Gemini API response received');
+    
     hideTypingIndicator();
     promptBox?.classList.remove('loading');
-    
-    const chromeVersion = navigator.userAgent.match(/Chrome\/(\d+)/)?.[1];
-    
-    const setupMessage = `Hello! I'm Cloudey, your AI assistant. To use Gemini Nano on-device AI:
-
-**Your Chrome version: ${chromeVersion}**
-
-Please try these steps:
-
-1. Go to chrome://flags/
-2. Search for and enable these flags:
-   - "Prompt API for Gemini Nano" → Set to "Enabled"
-   - "optimization-guide-on-device-model" → Set to "Enabled (BypassPerfRequirement)"
-   - "Prompt API for Gemini Nano Multimodal Input" → Set to "Enabled" (if available)
-3. Click "Relaunch" and wait for Chrome to fully restart
-4. Reload this extension
-5. Try again!
-
-**Note**: Requires Chrome 138+ with these flags enabled. The first time you use it, the model will download automatically (~40MB).
-
-If this still doesn't work, the Prompt API may not be available for extensions in your Chrome build.`;
-    
-    addMessage('assistant', setupMessage);
-    announceToScreenReader('Setup instructions displayed', 'polite');
+    typewriterEffect(aiResponse);
+    conversationHistory.push({ role: 'assistant', content: aiResponse });
     return;
     
   } catch (error) {
     console.error('Error sending message:', error);
     hideTypingIndicator();
-    
-    // Remove loading state from prompt box
-    const promptBox = document.getElementById('prompt-box');
     promptBox?.classList.remove('loading');
     
-    addMessage('assistant', 'An error occurred. Please try again.');
+    addMessage('assistant', `Error: ${error.message}. Please check your internet connection.`);
     announceToScreenReader('An error occurred', 'assertive');
   }
 }
