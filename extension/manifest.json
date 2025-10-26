@@ -31,7 +31,8 @@
       "matches": ["https://*/*", "http://*/*"],
       "js": ["content.js"],
       "css": ["styles/page-indicator.css"],
-      "run_at": "document_end"
+      "run_at": "document_end",
+      "all_frames": true
     }
   ],
   

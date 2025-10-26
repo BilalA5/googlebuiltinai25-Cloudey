@@ -1347,6 +1347,7 @@ async function writeContent(selector, content, useWriterAPI = false) {
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       chrome.scripting.executeScript({
         target: { tabId: tabs[0].id },
+        world: 'MAIN',
         func: async (sel, cnt, useAPI) => {
           console.log(`🔍 writeContent script running with:`, { sel, cnt, useAPI });
           
