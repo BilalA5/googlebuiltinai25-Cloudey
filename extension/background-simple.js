@@ -4,6 +4,8 @@ console.log('Cloudey background script loaded');
 // store conversation history per tab
 const conversationHistory = new Map();
 
+//TODO: Add proper dimensions of the svj for Cloudey icon
+
 // AI-powered message handler
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   console.log('Background received message:', request);
@@ -105,6 +107,11 @@ async function handleChatRequest(request, sender, sendResponse) {
 // get page context from the current tab
 async function getPageContext(tab) {
   try {
+    if (!tab || !tab.id) {
+      console.log('No valid tab provided for page context');
+      return null;
+    }
+    
     const results = await chrome.scripting.executeScript({
       target: { tabId: tab.id },
       func: () => {
