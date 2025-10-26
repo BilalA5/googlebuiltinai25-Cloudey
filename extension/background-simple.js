@@ -1367,6 +1367,7 @@ async function writeContent(selector, content, useWriterAPI = false) {
           for (let i = 0; i < iframes.length; i++) {
             try {
               const iframe = iframes[i];
+              console.log(`🔍 Attempting iframe ${i}:`, iframe.src || iframe.id || 'no src');
               const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
               
               if (iframeDoc) {
