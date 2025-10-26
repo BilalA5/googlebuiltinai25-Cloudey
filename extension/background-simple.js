@@ -1948,73 +1948,142 @@ async function writeToSheets(range, values, formulas = []) {
         func: (cellRange, cellValues, cellFormulas) => {
           return new Promise((resolveScript) => {
             try {
-              console.log('📊 writeToSheets script started');
+              console.log('📊 writeToSheets script started in frame:', window.location.href);
               
-              // Check if we're on Google Sheets
+              // Check if we're on Google Sheets in ANY iframe
               const url = window.location.href;
               const isSheets = url.includes('docs.google.com/spreadsheets');
               
+              console.log('Is Google Sheets:', isSheets, 'URL:', url);
+              
               if (!isSheets) {
-                console.error('Not on Google Sheets');
-                resolveScript({ success: false, error: 'Not on Google Sheets. Please open a Google Sheet first.' });
+                console.log('Not a Sheets frame, skipping...');
+                // Don't resolve with error yet - try other frames
+                resolveScript({ success: false, error: 'Not in a Sheets iframe' });
                 return;
               }
               
-              // Try to find active cell or specific range
-              let cells = [];
-              let startCell = cellRange || 'A1';
-              
-              if (cellRange && cellRange.includes(':')) {
-                const [start, end] = cellRange.split(':');
-                console.log(`Writing to range ${start} to ${end}`);
-              } else {
-                console.log(`Writing from cell ${startCell}`);
-              }
-              
-              // Try to find editable cells
-              const sheetSelectors = [
-                '[role="gridcell"]',
-                '[role="cell"]',
-                '.cell'
+              // Try to find the cell editor (active cell)
+              // Google Sheets uses various approaches to edit cells
+              const cellEditors = [
+                'textarea.kix-lineview',
+                '.kix-lineview-contents',
+                '[role="textbox"][aria-multiline="true"]',
+                'textarea',
+                '[contenteditable="true"]'
               ];
               
-              let successCount = 0;
-              const maxCells = cellValues && cellValues.length > 0 ? cellValues.length : 0;
+              console.log('Looking for cell editors...');
+              let editor = null;
               
-              if (maxCells === 0) {
-                resolveScript({ success: false, error: 'No values to write' });
-                return;
+              for (const selector of cellEditors) {
+                editor = document.querySelector(selector);
+                if (editor) {
+                  console.log('✅ Found editor with selector:', selector);
+                  break;
+                }
               }
               
-              // Simple approach: try to write to first cell to test
-              const firstCell = document.querySelector('[role="gridcell"]');
-              
-              if (firstCell) {
-                console.log('✅ Found cell, attempting to write');
-                firstCell.click();
+              // Also try to find the grid
+              if (!editor) {
+                const gridCells = document.querySelectorAll('[role="gridcell"]');
+                console.log(`Found ${gridCells.length} grid cells`);
                 
-                // Wait a bit for cell to be focused
-                setTimeout(() => {
+                if (gridCells.length > 0) {
+                  // Click on first cell to activate it
+                  const firstCell = gridCells[0];
+                  console.log('Clicking first cell to activate...');
+                  firstCell.click();
+                  
+                  // Wait for cell editor to appear
+                  setTimeout(() => {
+                    for (const sel of cellEditors) {
+                      editor = document.querySelector(sel);
+                      if (editor) {
+                        console.log('✅ Found editor after click with selector:', sel);
+                        break;
+                      }
+                    }
+                    
+                    if (editor && cellValues && cellValues.length > 0) {
+                      try {
+                        editor.focus();
+                        
+                        // Clear existing content
+                        editor.value = '';
+                        editor.textContent = '';
+                        
+                        // Insert new value using execCommand (works best in Sheets)
+                        const range = document.createRange();
+                        const selection = window.getSelection();
+                        range.selectNodeContents(editor);
+                        range.collapse(true);
+                        selection.removeAllRanges();
+                        selection.addRange(range);
+                        
+                        // Use insertText to simulate typing
+                        if (document.execCommand) {
+                          document.execCommand('insertText', false, cellValues[0]);
+                        } else {
+                          editor.value = cellValues[0];
+                          editor.textContent = cellValues[0];
+                        }
+                        
+                        // Trigger events
+                        editor.dispatchEvent(new Event('input', { bubbles: true }));
+                        editor.dispatchEvent(new KeyboardEvent('keyup', { key: 'Enter', code: 'Enter', bubbles: true }));
+                        
+                        console.log(`✅ Wrote value: ${cellValues[0]}`);
+                        
+                        resolveScript({
+                          success: true,
+                          message: `Wrote to cell A1 in Google Sheets`
+                        });
+                      } catch (e) {
+                        console.error('Error writing to editor:', e);
+                        resolveScript({ success: false, error: e.message });
+                      }
+                    } else {
+                      console.error('Could not find cell editor');
+                      resolveScript({ success: false, error: 'Could not find active cell editor' });
+                    }
+                  }, 800);
+                } else {
+                  console.error('No grid cells found');
+                  resolveScript({ success: false, error: 'No cells found in Google Sheets' });
+                }
+              } else {
+                // Editor found immediately
+                if (cellValues && cellValues.length > 0) {
                   try {
-                    // Simulate typing
-                    firstCell.textContent = cellValues[0];
-                    firstCell.dispatchEvent(new Event('input', { bubbles: true }));
-                    firstCell.dispatchEvent(new KeyboardEvent('keyup', { bubbles: true }));
+                    editor.focus();
+                    editor.value = '';
+                    editor.textContent = '';
                     
-                    console.log(`✅ Wrote first value: ${cellValues[0]}`);
-                    successCount = 1;
+                    const range = document.createRange();
+                    const selection = window.getSelection();
+                    range.selectNodeContents(editor);
+                    range.collapse(true);
+                    selection.removeAllRanges();
+                    selection.addRange(range);
                     
-                    resolveScript({
-                      success: true,
-                      message: `Wrote ${successCount} cell to Google Sheets (test mode)`
-                    });
+                    if (document.execCommand) {
+                      document.execCommand('insertText', false, cellValues[0]);
+                    } else {
+                      editor.value = cellValues[0];
+                    }
+                    
+                    editor.dispatchEvent(new Event('input', { bubbles: true }));
+                    
+                    console.log(`✅ Wrote value to editor: ${cellValues[0]}`);
+                    resolveScript({ success: true, message: `Wrote to Google Sheets` });
                   } catch (e) {
-                    console.error('Error writing to cell:', e);
+                    console.error('Error writing to editor:', e);
                     resolveScript({ success: false, error: e.message });
                   }
-                }, 500);
-              } else {
-                resolveScript({ success: false, error: 'Could not find editable cells on this page' });
+                } else {
+                  resolveScript({ success: false, error: 'No values to write' });
+                }
               }
               
             } catch (error) {
@@ -2028,11 +2097,28 @@ async function writeToSheets(range, values, formulas = []) {
         if (chrome.runtime.lastError) {
           console.error('❌ Script injection error:', chrome.runtime.lastError);
           resolve({ success: false, error: chrome.runtime.lastError.message });
-        } else if (results && results[0]) {
-          resolve(results[0].result);
-        } else {
-          resolve({ success: false, error: 'Unknown error' });
+          return;
         }
+        
+        if (!results || results.length === 0) {
+          console.error('❌ No results from script injection');
+          resolve({ success: false, error: 'No results from script injection' });
+          return;
+        }
+        
+        // Check all frame results for a success
+        for (const result of results) {
+          if (result && result.result && result.result.success) {
+            console.log(`✅ Success in one of the frames`);
+            resolve(result.result);
+            return;
+          }
+        }
+        
+        // If we get here, no frame succeeded
+        console.error('❌ No frame successfully wrote to Sheets');
+        const lastError = results[results.length - 1]?.result?.error || 'Unknown error';
+        resolve({ success: false, error: `Failed in all frames: ${lastError}` });
       });
     });
   });
