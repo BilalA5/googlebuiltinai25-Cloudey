@@ -136,28 +136,37 @@ async function generateAIResponse(message, pageContext, history = []) {
     // check if AI is available
     console.log('Checking AI availability...');
     console.log('typeof self.ai:', typeof self.ai);
-    console.log('self.ai?.languageModel:', typeof self.ai?.languageModel);
+    console.log('typeof self.languageModel:', typeof self.languageModel);
+    console.log('typeof self.ai?.languageModel:', typeof self.ai?.languageModel);
     
-    if (typeof self.ai === 'undefined' || !self.ai?.languageModel) {
-      console.log('AI not available, using minimal fallback');
+    // Try different ways to access the language model
+    const lm = self.languageModel || self.ai?.languageModel;
+    
+    if (!lm) {
+      console.warn('AI Language Model not available. Ensure Chrome AI is enabled in chrome://flags/');
       return {
         success: true,
         response: generateFallbackResponse(message, pageContext, history)
       };
     }
     
-    console.log('AI is available, attempting to use Gemini Nano...');
+    console.log('AI Language Model is available, attempting to use Gemini Nano...');
     
     // Check if model capabilities are available
-    const capabilities = await self.ai.languageModel.capabilities();
-    console.log('AI capabilities:', capabilities);
-    
-    if (capabilities.available === 'no') {
-      console.log('AI model not available on this device');
-      return {
-        success: true,
-        response: generateFallbackResponse(message, pageContext, history)
-      };
+    let capabilities = null;
+    try {
+      capabilities = await lm.capabilities();
+      console.log('AI capabilities:', capabilities);
+      
+      if (capabilities && capabilities.available === 'no') {
+        console.log('AI model not available on this device');
+        return {
+          success: true,
+          response: generateFallbackResponse(message, pageContext, history)
+        };
+      }
+    } catch (error) {
+      console.warn('Could not check capabilities, proceeding anyway:', error);
     }
     
     // build conversation context
@@ -192,18 +201,21 @@ Provide a direct, helpful answer using your full knowledge and capabilities.`;
     
     // use Gemini Nano with correct API
     console.log('Creating Gemini Nano session...');
-    const session = await self.ai.languageModel.create({
+    const session = await lm.create({
       temperature: 0.7,
       topK: 40
     });
     
-    console.log('Prompting Gemini Nano...');
+    console.log('Prompting Gemini Nano with prompt length:', contextPrompt.length);
     const result = await session.prompt(contextPrompt);
     
-    console.log('Gemini Nano response received:', result.substring(0, 100) + '...');
+    console.log('Gemini Nano response received (length):', result ? result.length : 0);
+    console.log('First 100 chars:', result ? result.substring(0, 100) + '...' : 'No result');
     
     // Cleanup session
-    session.destroy();
+    if (session && typeof session.destroy === 'function') {
+      session.destroy();
+    }
     
     return {
       success: true,
@@ -226,11 +238,24 @@ Provide a direct, helpful answer using your full knowledge and capabilities.`;
 function generateFallbackResponse(message, pageContext, history = []) {
   console.log('AI not available, using minimal fallback');
   
-  // provide simple fallback when Gemini Nano is unavailable
+  // provide helpful fallback when Gemini Nano is unavailable
+  const instructions = `
+To enable Cloudey with Gemini Nano:
+
+1. Go to chrome://flags/
+2. Search for "optimization-guide-on-device-model"
+3. Set it to "Enabled (BypassPerfRequirement)"
+4. Search for "prompt-api-for-internals"
+5. Set it to "Enabled"
+6. Restart Chrome
+
+After restarting, Cloudey will be able to use on-device AI capabilities.
+`;
+  
   if (pageContext) {
-    return `I can see you're on "${pageContext.title}". I'm your AI assistant, but I'm having trouble accessing my full capabilities right now. Please try again in a moment.`;
+    return `I can see you're on "${pageContext.title}". ${instructions}`;
   } else {
-    return `I'm your AI assistant, but I'm having trouble accessing my full capabilities right now. Please try again in a moment.`;
+    return `Hello! I'm Cloudey, your AI assistant. ${instructions}`;
   }
 }
 
