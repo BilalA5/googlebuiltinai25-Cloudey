@@ -9,20 +9,19 @@
 <body>
   <div id="side-panel-container">
     
-    <!-- Header -->
-    <div class="sidebar-header">
-      <div class="header-left">
+    <!-- Header Region: Persistent Navigation -->
+    <header class="sidebar-header" role="banner">
+      <div class="header-brand">
         <img src="assets/cloudey-icon-16.svg" alt="Cloudey" class="header-logo">
+        <h1 class="header-title">Cloudey</h1>
       </div>
-      <div class="header-right">
-        <button id="close-btn" class="header-close" title="Close panel" aria-label="Close panel">
-          <span class="icon-wrapper"></span>
-        </button>
-      </div>
-    </div>
+      <button id="close-btn" class="header-close" title="Close panel" aria-label="Close panel">
+        <span class="icon-close">×</span>
+      </button>
+    </header>
     
-    <!-- Messages Container -->
-    <div id="messages-container" class="messages-container">
+    <!-- Content Region: Message History -->
+    <main id="messages-container" class="messages-container" role="main">
       <div class="empty-state">
         <div class="empty-state-icon">
           <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48">
@@ -40,14 +39,15 @@
                   opacity="0.9"/>
           </svg>
         </div>
-        <p>Start a conversation</p>
+        <h2 class="empty-state-title">Start a conversation</h2>
+        <p class="empty-state-description">Ask Cloudey anything, or try one of these suggestions:</p>
         <div class="suggestion-chips">
-          <button class="chip" data-prompt="Summarize this page">Summarize this page</button>
-          <button class="chip" data-prompt="What's on this page?">What's on this page?</button>
-          <button class="chip" data-prompt="Help me understand this">Help me understand this</button>
+          <button class="chip" data-prompt="Summarize this page">📄 Summarize page</button>
+          <button class="chip" data-prompt="What's on this page?">💬 Explain content</button>
+          <button class="chip" data-prompt="Help me understand this">🔍 Explain details</button>
         </div>
       </div>
-    </div>
+    </main>
     
     <!-- Assistant Typing Row (Hidden by default) -->
     <div id="assistant-typing-row" class="assistant-typing-row hidden">
@@ -72,8 +72,8 @@
       </div>
     </div>
 
-    <!-- Bottom Dock Chat Bar -->
-    <div class="bottom-dock-wrapper">
+    <!-- Interaction Region: Chat Input -->
+    <footer class="bottom-dock-wrapper" role="contentinfo">
       <div class="bottom-dock-bar">
         <!-- Hidden file input -->
         <input type="file" id="file-input" class="hidden-file-input" multiple accept=".pdf,.png,.jpg,.jpeg,.txt,.doc,.docx" aria-label="Attach files">
@@ -81,37 +81,41 @@
         <!-- Attachment chips container -->
         <div id="attachment-chips" class="attachment-chips hidden"></div>
         
-        <!-- Left side actions -->
-        <div class="chat-actions-left">
-          <button id="fab-toggle" class="dock-btn action-btn" title="Quick actions" aria-label="Quick actions menu">
-            <span class="icon-wrapper">+</span>
+        <!-- Primary Action Group: Left Utilities -->
+        <div class="chat-actions-primary">
+          <button id="fab-toggle" class="btn-icon btn-utility" title="Actions" aria-label="Actions menu">
+            <span class="icon">+</span>
           </button>
         </div>
         
-        <!-- Textarea (flex-grow) -->
-        <textarea 
-          id="chat-input" 
-          class="chat-textarea" 
-          placeholder="Ask anything… (Shift+Enter for new line)"
-          rows="1"
-          aria-label="Type your message"
-        ></textarea>
+        <!-- Primary Input Area -->
+        <div class="chat-input-wrapper">
+          <textarea 
+            id="chat-input" 
+            class="chat-textarea" 
+            placeholder="Type your message… (Shift+Enter for new line)"
+            rows="1"
+            aria-label="Message input"
+            aria-describedby="input-hint"
+          ></textarea>
+          <span id="input-hint" class="sr-only">Press Enter to send, Shift+Enter for new line</span>
+        </div>
         
-        <!-- Right side actions -->
-        <div class="chat-actions-right">
-          <!-- Voice Button -->
-          <button id="microphone-btn" class="dock-btn mic-btn" title="Voice input" aria-label="Start voice input">
-            <span class="icon-wrapper">🎤</span>
+        <!-- Primary Action Group: Right Actions -->
+        <div class="chat-actions-secondary">
+          <!-- Voice Input -->
+          <button id="microphone-btn" class="btn-icon btn-utility" title="Voice input" aria-label="Start voice input">
+            <span class="icon">🎤</span>
           </button>
           
-          <!-- Send Button -->
-          <button id="send-btn" class="dock-btn send-btn" title="Send message" aria-label="Send message">
-            <span class="icon-wrapper">→</span>
+          <!-- Send Action (Primary) -->
+          <button id="send-btn" class="btn-icon btn-primary" title="Send message" aria-label="Send message">
+            <span class="icon">→</span>
           </button>
           
-          <!-- Stop Button (hidden by default) -->
-          <button id="stop-btn" class="dock-btn stop-btn hidden" title="Stop generating" aria-label="Stop generating">
-            <span class="icon-wrapper">⏹</span>
+          <!-- Stop Action (Hidden by default) -->
+          <button id="stop-btn" class="btn-icon btn-stop hidden" title="Stop generating" aria-label="Stop generating">
+            <span class="icon">⏹</span>
           </button>
         </div>
       </div>
