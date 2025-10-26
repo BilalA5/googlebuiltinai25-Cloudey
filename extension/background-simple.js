@@ -58,10 +58,16 @@ const SHEETS_SCOPES = 'https://www.googleapis.com/auth/spreadsheets';
 // Helper function to get OAuth token for Google Sheets
 async function getSheetsAuthToken() {
   return new Promise((resolve, reject) => {
-    chrome.identity.getAuthToken({ interactive: true }, (token) => {
+    console.log('🔐 Requesting OAuth token...');
+    chrome.identity.getAuthToken({ 
+      interactive: true,
+      scopes: [SHEETS_SCOPES]
+    }, (token) => {
       if (chrome.runtime.lastError) {
+        console.error('❌ OAuth error:', chrome.runtime.lastError);
         reject(new Error(chrome.runtime.lastError.message));
       } else {
+        console.log('✅ OAuth token received');
         resolve(token);
       }
     });
