@@ -1074,7 +1074,7 @@ async function scrollToElement(selector) {
           }
           return { success: false, error: `Element not found: ${sel}` };
         },
-        args: [selector]
+        args: [selector || 'body']
       }, (results) => {
         resolve(results[0].result);
       });
@@ -1095,7 +1095,7 @@ async function clickElement(selector) {
           }
           return { success: false, error: `Element not found: ${sel}` };
         },
-        args: [selector]
+        args: [selector || 'body']
       }, (results) => {
         resolve(results[0].result);
       });
@@ -1128,7 +1128,7 @@ async function fillTextField(selector, text, useWriterAPI = false) {
           element.dispatchEvent(new Event('input', { bubbles: true }));
           return { success: true, message: `Filled ${sel} with content` };
         },
-        args: [selector, text, Boolean(useWriterAPI)]
+        args: [selector || 'input', text || '', Boolean(useWriterAPI)]
       }, (results) => {
         resolve(results[0].result);
       });
@@ -1150,7 +1150,7 @@ async function selectOption(selector, value) {
           }
           return { success: false, error: `Element not found: ${sel}` };
         },
-        args: [selector, value]
+        args: [selector || 'select', value || '']
       }, (results) => {
         resolve(results[0].result);
       });
@@ -1168,7 +1168,7 @@ async function extractText(selector) {
           const text = element?.textContent || '';
           return { success: true, data: text, message: `Extracted text from ${sel}` };
         },
-        args: [selector]
+        args: [selector || 'body']
       }, (results) => {
         resolve(results[0].result);
       });
@@ -1207,7 +1207,7 @@ async function rewriteText(selector, useRewriterAPI = false) {
           
           return { success: true, message: `Rewrote text in ${sel}` };
         },
-        args: [selector, Boolean(useRewriterAPI)]
+        args: [selector || 'body', Boolean(useRewriterAPI)]
       }, (results) => {
         resolve(results[0].result);
       });
@@ -1244,7 +1244,7 @@ async function writeContent(selector, content, useWriterAPI = false) {
           
           return { success: true, message: `Wrote content to ${sel}` };
         },
-        args: [selector, content, Boolean(useWriterAPI)]
+        args: [selector || 'body', content || '', Boolean(useWriterAPI)]
       }, (results) => {
         resolve(results[0].result);
       });
@@ -1277,7 +1277,7 @@ async function summarizeContent(selector, useSummarizerAPI = false) {
           
           return { success: true, data: summary, message: `Summarized content from ${sel}` };
         },
-        args: [selector, Boolean(useSummarizerAPI)]
+        args: [selector || 'body', Boolean(useSummarizerAPI)]
       }, (results) => {
         resolve(results[0].result);
       });
