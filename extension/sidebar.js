@@ -332,56 +332,57 @@ async function sendMessage() {
   }
   
   try {
-    // DEBUG: Check what's available
-    console.log('=== CHROME DEBUG ===');
-    console.log('typeof chrome:', typeof chrome);
-    console.log('chrome object:', chrome);
-    console.log('chrome keys:', chrome ? Object.keys(chrome) : 'chrome not defined');
-    console.log('navigator.userAgent:', navigator.userAgent);
-    if (chrome.runtime) {
-      console.log('chrome.runtime available:', !!chrome.runtime);
-      console.log('chrome.runtime.id:', chrome.runtime.id);
-    }
-    console.log('typeof globalThis:', typeof globalThis);
-    console.log('=== END CHROME DEBUG ===');
-    
     // Check if chrome.ai.prompt is available (runs in window context, not service worker)
     console.log('Checking chrome.ai availability in sidebar...');
-    console.log('chrome.ai available:', !!chrome.ai);
-    console.log('chrome.ai.prompt available:', !!chrome.ai?.prompt);
     
-    if (!chrome.ai || !chrome.ai.prompt) {
-      console.error('Prompt API not available in sidebar');
-      hideTypingIndicator();
-      promptBox?.classList.remove('loading');
-      addMessage('assistant', 'Chrome AI Prompt API is not available. Your Chrome version may be too old, or the required flags are not properly enabled. Please ensure you have Chrome 127+ with the Prompt API flags enabled.');
-      announceToScreenReader('AI not available', 'assertive');
-      return;
-    }
-    
-    // Call chrome.ai.prompt() DIRECTLY from sidebar (window context)
-    console.log('Calling chrome.ai.prompt() directly from sidebar...');
-    const prompt = `You are a helpful AI assistant. Answer the user's question directly and completely.
+    if (chrome.ai && chrome.ai.prompt) {
+      // Use Chrome's built-in Gemini Nano via chrome.ai.prompt()
+      console.log('Using chrome.ai.prompt() - Gemini Nano');
+      
+      const prompt = `You are Cloudey, a helpful AI assistant. Answer the user's question directly and completely.
 
 User Question: ${message}
 
 Provide a direct, helpful answer using your full knowledge and capabilities.`;
-    
-    try {
-      const aiResponse = await chrome.ai.prompt(prompt);
-      console.log('AI response received:', aiResponse);
       
-      hideTypingIndicator();
-      promptBox?.classList.remove('loading');
-      typewriterEffect(aiResponse);
-      conversationHistory.push({ role: 'assistant', content: aiResponse });
-    } catch (aiError) {
-      console.error('Error calling chrome.ai.prompt:', aiError);
-      hideTypingIndicator();
-      promptBox?.classList.remove('loading');
-      addMessage('assistant', `AI Error: ${aiError.message}`);
-      announceToScreenReader('AI error occurred', 'assertive');
+      try {
+        const aiResponse = await chrome.ai.prompt(prompt);
+        console.log('Gemini Nano response received');
+        
+        hideTypingIndicator();
+        promptBox?.classList.remove('loading');
+        typewriterEffect(aiResponse);
+        conversationHistory.push({ role: 'assistant', content: aiResponse });
+        return; // Success, exit early
+      } catch (aiError) {
+        console.error('Error calling chrome.ai.prompt:', aiError);
+        // Fall through to API fallback
+      }
     }
+    
+    // Fallback: Use Gemini API via background script
+    console.log('chrome.ai.prompt not available, using Gemini API via background');
+    chrome.runtime.sendMessage(
+      {
+        action: 'chat',
+        message: message,
+        includeContext: false
+      },
+      (response) => {
+        hideTypingIndicator();
+        promptBox?.classList.remove('loading');
+        
+        if (response && response.success) {
+          const aiResponse = response.response;
+          typewriterEffect(aiResponse);
+          conversationHistory.push({ role: 'assistant', content: aiResponse });
+        } else {
+          addMessage('assistant', response?.response || 'Sorry, I encountered an error. Please check your API key configuration.');
+          announceToScreenReader('Error processing message', 'assertive');
+        }
+      }
+    );
+    
   } catch (error) {
     console.error('Error sending message:', error);
     hideTypingIndicator();
