@@ -332,7 +332,39 @@ async function sendMessage() {
   }
   
   try {
-    // Client-side local pattern matching (no API, purely local)
+    // Try Chrome AI Origin Trial API first
+    console.log('Checking for Chrome AI API...');
+    console.log('chrome.aiOriginTrial:', chrome.aiOriginTrial);
+    
+    if (chrome.aiOriginTrial && chrome.aiOriginTrial.languageModel) {
+      console.log('Chrome AI API available, checking capabilities...');
+      
+      try {
+        const capabilities = await chrome.aiOriginTrial.languageModel.capabilities();
+        console.log('Model capabilities:', capabilities);
+        
+        if (capabilities.available === 'readily' || capabilities.available === 'downloadable') {
+          console.log('Model is available, creating session...');
+          
+          const lm = await chrome.aiOriginTrial.languageModel.create();
+          const prompt = `You are Cloudey, a helpful AI assistant. Answer this question directly and completely: ${message}`;
+          
+          const result = await lm.prompt(prompt);
+          
+          console.log('AI response received from Gemini Nano');
+          hideTypingIndicator();
+          promptBox?.classList.remove('loading');
+          typewriterEffect(result);
+          conversationHistory.push({ role: 'assistant', content: result });
+          return;
+        }
+      } catch (apiError) {
+        console.error('Error with Chrome AI API:', apiError);
+        // Fall through to pattern matching
+      }
+    }
+    
+    // Fallback to client-side local pattern matching
     console.log('Using client-side local responses...');
     
     const lowerMessage = message.toLowerCase();
@@ -358,7 +390,7 @@ async function sendMessage() {
       aiResponse = 'I\'m Cloudey, your AI-powered browser assistant. I use client-side processing to help you with tasks and answer questions.';
     } else {
       // Default fallback response
-      aiResponse = `I understand you said: "${message}". To enable full AI capabilities with Gemini Nano, please:\n\n1. Go to chrome://flags/\n2. Enable "Prompt API for Gemini Nano"\n3. Enable "optimization-guide-on-device-model" (BypassPerfRequirement)\n4. Restart Chrome and reload this extension`;
+      aiResponse = `I understand you said: "${message}". To enable full AI capabilities with Gemini Nano, please:\n\n1. Go to chrome://flags/\n2. Enable "Prompt API for Gemini Nano"\n3. Enable "optimization-guide-on-device-model" (BypassPerfRequirement)\n4. Add a valid origin trial token to manifest.json\n5. Restart Chrome and reload this extension`;
     }
     
     console.log('Generated local response');

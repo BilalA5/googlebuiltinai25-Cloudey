@@ -10,11 +10,16 @@
     "storage",
     "sidePanel",
     "scripting",
-    "tabs"
+    "tabs",
+    "aiLanguageModelOriginTrial"
   ],
   "host_permissions": [
     "https://*/*",
     "http://*/*"
+  ],
+  
+  "trial_tokens": [
+    ""
   ],
   
   "background": {
