@@ -873,6 +873,28 @@ ${pageContext.content}`;
   }
 }
 
+// Helper function to generate action titles
+function getActionTitle(action, target) {
+  switch (action) {
+    case 'write_content':
+      return 'write_content: Writing content to document';
+    case 'fill_text':
+      return 'fill_text: Filling form field';
+    case 'scroll':
+      return 'scroll: Scrolling to target element';
+    case 'click':
+      return 'click: Clicking on element';
+    case 'extract_data':
+      return 'extract_data: Extracting data from page';
+    case 'rewrite_text':
+      return 'rewrite_text: Rewriting content';
+    case 'summarize_content':
+      return 'summarize_content: Summarizing content';
+    default:
+      return `${action}: ${target || 'page'}`;
+  }
+}
+
 // Agent Mode Execution Handler
 async function handleAgentExecute(request, sender, sendResponse) {
   const { message, pageContext } = request;
@@ -905,16 +927,25 @@ async function handleAgentExecute(request, sender, sendResponse) {
       return true;
     }
     
-    // Send action plan to sidebar for display
-    chrome.runtime.sendMessage({
-      action: 'agentStepsUpdate',
-      steps: actions.map((action, index) => ({
-        id: index,
-        title: `${action.action}: ${action.target || 'page'}`,
-        status: 'pending',
-        icon: '⚙️'
-      }))
-    });
+           // Send action plan to sidebar for display
+           chrome.runtime.sendMessage({
+             action: 'agentStepsUpdate',
+             steps: actions.map((action, index) => ({
+               id: index,
+               title: `${action.action}: ${action.target || 'page'}`,
+               status: 'pending',
+               icon: '⚙️'
+             }))
+           });
+
+           // Show planning indicator
+           chrome.runtime.sendMessage({
+             action: 'agentStepUpdate',
+             stepId: -1,
+             status: 'active',
+             title: 'planning_actions',
+             icon: '🧠'
+           });
     
     // Execute actions one by one
     const results = [];
@@ -922,13 +953,15 @@ async function handleAgentExecute(request, sender, sendResponse) {
       const action = actions[i];
       console.log(`🎯 Executing action ${i + 1}/${actions.length}:`, action);
       
-      // Update step status to active
-      chrome.runtime.sendMessage({
-        action: 'agentStepUpdate',
-        stepId: i,
-        status: 'active',
-        icon: '⚙️'
-      });
+             // Update step status to active with descriptive title
+             const actionTitle = getActionTitle(action.action, action.target);
+             chrome.runtime.sendMessage({
+               action: 'agentStepUpdate',
+               stepId: i,
+               status: 'active',
+               title: actionTitle,
+               icon: '⚙️'
+             });
       
       // Highlight element if it's a DOM action
       if (action.target && action.target !== 'page') {

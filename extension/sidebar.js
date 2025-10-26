@@ -470,6 +470,47 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     updateAgentSteps(request.steps);
   } else if (request.action === 'agentStepUpdate') {
     updateAgentStep(request.stepId, request.status, request.icon);
+    
+    // Show action indicator based on step status and title
+    if (request.status === 'active') {
+      const stepTitle = request.title || '';
+      let action = 'working';
+      let details = '';
+      
+      if (stepTitle.includes('planning_actions')) {
+        action = 'planning';
+        details = 'next steps';
+      } else if (stepTitle.includes('write_content')) {
+        action = 'writing';
+        details = 'to document';
+      } else if (stepTitle.includes('scroll')) {
+        action = 'scrolling';
+        details = 'to target element';
+      } else if (stepTitle.includes('click')) {
+        action = 'clicking';
+        details = 'on element';
+      } else if (stepTitle.includes('extract_data')) {
+        action = 'extracting';
+        details = 'from page';
+      } else if (stepTitle.includes('rewrite_text')) {
+        action = 'rewriting';
+        details = 'content';
+      } else if (stepTitle.includes('summarize_content')) {
+        action = 'summarizing';
+        details = 'content';
+      } else if (stepTitle.includes('fill_text')) {
+        action = 'writing';
+        details = 'in form field';
+      }
+      
+      showAgentActionIndicator(action, details);
+    } else if (request.status === 'completed') {
+      // Show completion indicator briefly
+      showAgentActionIndicator('completing', 'task finished');
+      setTimeout(() => {
+        hideTypingIndicator();
+      }, 1000);
+    }
   }
 });
 
@@ -599,6 +640,9 @@ async function sendMessage() {
     // Use Gemini API via background script with page context
     let response;
     if (isAgentMode) {
+      // Show initial agent action
+      showAgentActionIndicator('analyzing', 'page content');
+      
       // Agent Mode: Execute actions
       response = await chrome.runtime.sendMessage({
         action: 'agentExecute',
@@ -803,6 +847,75 @@ function showTypingIndicator() {
   
   messagesContainer.scrollTop = messagesContainer.scrollHeight;
   announceToScreenReader('Assistant is thinking', 'polite');
+}
+
+// Agent action indicator with shimmer effects
+function showAgentActionIndicator(action, details = '') {
+  const typingStatus = document.querySelector('.typing-status');
+  const typingName = document.querySelector('.typing-name');
+  
+  if (typingStatus && typingName) {
+    // Update the indicator content
+    typingName.textContent = 'Cloudey Agent';
+    
+    // Set action-specific text and colors
+    switch (action) {
+      case 'analyzing':
+        typingStatus.textContent = 'Analyzing page content...';
+        typingStatus.style.color = 'rgba(100, 200, 255, 0.8)';
+        break;
+      case 'planning':
+        typingStatus.textContent = 'Planning actions...';
+        typingStatus.style.color = 'rgba(255, 200, 100, 0.8)';
+        break;
+      case 'writing':
+        typingStatus.textContent = 'Writing content...';
+        typingStatus.style.color = 'rgba(100, 255, 100, 0.8)';
+        break;
+      case 'scrolling':
+        typingStatus.textContent = 'Scrolling to target...';
+        typingStatus.style.color = 'rgba(255, 100, 255, 0.8)';
+        break;
+      case 'clicking':
+        typingStatus.textContent = 'Clicking element...';
+        typingStatus.style.color = 'rgba(255, 150, 100, 0.8)';
+        break;
+      case 'extracting':
+        typingStatus.textContent = 'Extracting data...';
+        typingStatus.style.color = 'rgba(150, 100, 255, 0.8)';
+        break;
+      case 'rewriting':
+        typingStatus.textContent = 'Rewriting content...';
+        typingStatus.style.color = 'rgba(100, 255, 200, 0.8)';
+        break;
+      case 'summarizing':
+        typingStatus.textContent = 'Summarizing content...';
+        typingStatus.style.color = 'rgba(255, 255, 100, 0.8)';
+        break;
+      case 'completing':
+        typingStatus.textContent = 'Completing task...';
+        typingStatus.style.color = 'rgba(200, 200, 200, 0.8)';
+        break;
+      default:
+        typingStatus.textContent = 'Working...';
+        typingStatus.style.color = 'rgba(180, 160, 190, 0.8)';
+    }
+    
+    // Add details if provided
+    if (details) {
+      typingStatus.textContent += ` (${details})`;
+    }
+    
+    // Show the indicator
+    assistantTypingRow.classList.remove('hidden');
+    
+    // Position at top of messages
+    if (messagesContainer) {
+      messagesContainer.appendChild(assistantTypingRow);
+    }
+    
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+  }
 }
 
 function hideTypingIndicator() {

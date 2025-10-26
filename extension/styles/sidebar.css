@@ -346,6 +346,22 @@ body {
   background-clip: text;
 }
 
+/* Enhanced shimmer for agent actions */
+.typing-status[style*="color"] {
+  animation: shimmer-text 1.5s linear infinite;
+  background: linear-gradient(
+    90deg,
+    currentColor 0%,
+    rgba(255, 255, 255, 0.9) 50%,
+    currentColor 100%
+  );
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
 @keyframes shimmer-text {
   0% {
     background-position-x: -200%;
