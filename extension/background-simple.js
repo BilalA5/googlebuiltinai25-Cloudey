@@ -2104,8 +2104,8 @@ async function searchGoogleMaps(query) {
   }
 }
 
-async function analyzeMapsResults(tabId, query) {
-  console.log(`🔍 Analyzing Google Maps results for: ${query}`);
+async function analyzeMapsResults(tabId, query, retryCount = 0, maxRetries = 3) {
+  console.log(`🔍 Analyzing Google Maps results for: ${query} (attempt ${retryCount + 1}/${maxRetries + 1})`);
   
   return new Promise((resolve) => {
     chrome.scripting.executeScript({
@@ -2240,11 +2240,20 @@ async function analyzeMapsResults(tabId, query) {
       args: [query]
     }, async (results) => {
       if (chrome.runtime.lastError) {
+        // Retry if we haven't exceeded max retries
+        if (retryCount < maxRetries) {
+          console.log(`⚠️ Error in analysis (attempt ${retryCount + 1}), retrying...`);
+          await new Promise(r => setTimeout(r, 2000));
+          const retryResult = await analyzeMapsResults(tabId, query, retryCount + 1, maxRetries);
+          resolve(retryResult);
+          return;
+        }
         resolve({ success: false, error: chrome.runtime.lastError.message });
       } else if (results && results[0]) {
         const analysis = results[0].result;
         
-                 if (analysis.success && analysis.results && analysis.results.length > 0) {
+                 // Check if we have results - if not, retry recursively
+        if (analysis.success && analysis.results && analysis.results.length > 0) {
            // Use Gemini to analyze and rank the results
            const rankingPrompt = `You are analyzing Google Maps search results and need to THINK through the criteria before selecting the BEST match.
 
@@ -2448,11 +2457,27 @@ IMPORTANT: You MUST list the actual distance numbers from the data for your reco
                message: `Found ${analysis.totalResults} results (Top 5 shown):\n\n${formattedResults}`
              });
            }
+        } else if (retryCount < maxRetries) {
+          // No results found - recursively retry
+          console.log(`⚠️ No results found (attempt ${retryCount + 1}/${maxRetries + 1}), retrying...`);
+          await new Promise(r => setTimeout(r, 2000));
+          
+          // Try scrolling more and extracting results
+          const retryResult = await analyzeMapsResults(tabId, query, retryCount + 1, maxRetries);
+          resolve(retryResult);
         } else {
-          resolve({ success: true, message: 'Search completed but no detailed results found' });
+          resolve({ success: true, message: 'Search completed but no detailed results found after multiple attempts' });
         }
       } else {
-        resolve({ success: false, error: 'Unknown error' });
+        // Handle unknown errors with retry
+        if (retryCount < maxRetries) {
+          console.log(`⚠️ Unknown error (attempt ${retryCount + 1}/${maxRetries + 1}), retrying...`);
+          await new Promise(r => setTimeout(r, 2000));
+          const retryResult = await analyzeMapsResults(tabId, query, retryCount + 1, maxRetries);
+          resolve(retryResult);
+        } else {
+          resolve({ success: false, error: 'Unknown error after multiple retry attempts' });
+        }
       }
     });
   });
