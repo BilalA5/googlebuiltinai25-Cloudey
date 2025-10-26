@@ -18,15 +18,6 @@ const closeBtn = document.getElementById('close-btn');
 const ariaPolite = document.getElementById('aria-polite');
 const ariaAssertive = document.getElementById('aria-assertive');
 
-// Settings elements
-const settingsBtn = document.getElementById('settings-btn');
-const settingsModal = document.getElementById('settings-modal');
-const settingsClose = document.getElementById('settings-close');
-const apiKeyInput = document.getElementById('api-key-input');
-const toggleApiKey = document.getElementById('toggle-api-key');
-const saveApiKey = document.getElementById('save-api-key');
-const testApiKey = document.getElementById('test-api-key');
-const apiStatus = document.getElementById('api-status');
 
 // State
 let isListening = false;
@@ -216,34 +207,6 @@ if (closeBtn) {
   });
 }
 
-// Settings event listeners
-if (settingsBtn) {
-  settingsBtn.addEventListener('click', openSettings);
-}
-
-if (settingsClose) {
-  settingsClose.addEventListener('click', closeSettings);
-}
-
-if (settingsModal) {
-  settingsModal.addEventListener('click', (e) => {
-    if (e.target === settingsModal || e.target.classList.contains('settings-overlay')) {
-      closeSettings();
-    }
-  });
-}
-
-if (toggleApiKey) {
-  toggleApiKey.addEventListener('click', toggleApiKeyVisibility);
-}
-
-if (saveApiKey) {
-  saveApiKey.addEventListener('click', saveApiKeyHandler);
-}
-
-if (testApiKey) {
-  testApiKey.addEventListener('click', testApiKeyHandler);
-}
 
 // Action button toggle (handles both file attachments and quick actions)
 if (fabToggle) {
@@ -735,128 +698,10 @@ function checkChromeAIFlags() {
   return flagsStatus;
 }
 
-// Settings functions
-function openSettings() {
-  if (settingsModal) {
-    settingsModal.classList.remove('hidden');
-    loadApiKeyStatus();
-    announceToScreenReader('Settings opened', 'polite');
-  }
-}
-
-function closeSettings() {
-  if (settingsModal) {
-    settingsModal.classList.add('hidden');
-    announceToScreenReader('Settings closed', 'polite');
-  }
-}
-
-function toggleApiKeyVisibility() {
-  if (apiKeyInput) {
-    const isPassword = apiKeyInput.type === 'password';
-    apiKeyInput.type = isPassword ? 'text' : 'password';
-    
-    // Update icon
-    const icon = toggleApiKey.querySelector('svg');
-    if (icon) {
-      if (isPassword) {
-        // Show eye-off icon
-        icon.innerHTML = '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line>';
-      } else {
-        // Show eye icon
-        icon.innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle>';
-      }
-    }
-  }
-}
-
-async function loadApiKeyStatus() {
-  try {
-    const response = await chrome.runtime.sendMessage({ action: 'getApiKeyStatus' });
-    updateApiStatus(response.hasApiKey, response.message);
-  } catch (error) {
-    updateApiStatus(false, 'Failed to check API key status');
-  }
-}
-
-function updateApiStatus(hasApiKey, message) {
-  if (apiStatus) {
-    const indicator = apiStatus.querySelector('.status-indicator');
-    const text = apiStatus.querySelector('.status-text');
-    
-    if (indicator && text) {
-      indicator.className = 'status-indicator';
-      if (hasApiKey) {
-        indicator.classList.add('status-success');
-      } else {
-        indicator.classList.add('status-error');
-      }
-      text.textContent = message;
-    }
-  }
-}
-
-async function saveApiKeyHandler() {
-  if (!apiKeyInput) return;
-  
-  const apiKey = apiKeyInput.value.trim();
-  if (!apiKey) {
-    updateApiStatus(false, 'Please enter an API key');
-    return;
-  }
-  
-  try {
-    const response = await chrome.runtime.sendMessage({ 
-      action: 'setApiKey', 
-      apiKey: apiKey 
-    });
-    
-    if (response.success) {
-      updateApiStatus(true, 'API key saved successfully');
-      announceToScreenReader('API key saved', 'polite');
-    } else {
-      updateApiStatus(false, response.message || 'Failed to save API key');
-    }
-  } catch (error) {
-    updateApiStatus(false, 'Failed to save API key');
-  }
-}
-
-async function testApiKeyHandler() {
-  if (!apiKeyInput) return;
-  
-  const apiKey = apiKeyInput.value.trim();
-  if (!apiKey) {
-    updateApiStatus(false, 'Please enter an API key first');
-    return;
-  }
-  
-  // Save the key first
-  await saveApiKeyHandler();
-  
-  // Test with a simple message
-  try {
-    const response = await chrome.runtime.sendMessage({
-      action: 'geminiChat',
-      message: 'Hello, this is a test message.',
-      history: []
-    });
-    
-    if (response.success) {
-      updateApiStatus(true, 'API key is working correctly');
-      announceToScreenReader('API key test successful', 'polite');
-    } else {
-      updateApiStatus(false, 'API key test failed: ' + response.response);
-    }
-  } catch (error) {
-    updateApiStatus(false, 'API key test failed: ' + error.message);
-  }
-}
 
 // Run flags check when sidebar loads
 document.addEventListener('DOMContentLoaded', () => {
   setTimeout(() => checkChromeAIFlags(), 1000); // Wait 1s for everything to load
-  loadApiKeyStatus();
 });
 
 console.log('Cloudey side panel initialized');

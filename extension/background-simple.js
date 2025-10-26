@@ -6,16 +6,7 @@ const conversationHistory = new Map();
 
 // Google AI Studio configuration
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-001:generateContent';
-
-// Get API key from storage
-async function getApiKey() {
-  return new Promise((resolve) => {
-    chrome.storage.local.get(['geminiApiKey'], (result) => {
-      console.log('Retrieved API key from storage:', result.geminiApiKey ? 'Present' : 'Not found');
-      resolve(result.geminiApiKey || null);
-    });
-  });
-}
+const GEMINI_API_KEY = 'AIzaSyCG6s4Xh-UqR6TE2cq4dUqPAQ898ThNBSo';
 
 // AI-powered message handler
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
@@ -63,13 +54,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         handleGeminiChat(request, sender, sendResponse);
         break;
       
-      case 'setApiKey':
-        handleSetApiKey(request, sender, sendResponse);
-        break;
-      
-      case 'getApiKeyStatus':
-        handleGetApiKeyStatus(request, sender, sendResponse);
-        break;
         
       default:
         sendResponse({ error: 'Unknown action' });
@@ -307,15 +291,8 @@ async function handleGeminiChat(request, sender, sendResponse) {
   const { message, history = [], includeContext = false } = request;
   
   try {
-    // Get API key from storage
-    const apiKey = await getApiKey();
-    if (!apiKey) {
-      sendResponse({
-        success: false,
-        response: '🔑 API key not configured!\n\nTo use Cloudey with Gemini AI:\n1. Click the ⚙️ settings button in the header\n2. Enter your Gemini API key from Google AI Studio\n3. Click "Test Connection" to verify\n4. Click "Save API Key"\n\nGet your free API key at: https://aistudio.google.com/app/apikey'
-      });
-      return;
-    }
+    // Use the built-in API key
+    const apiKey = GEMINI_API_KEY;
 
     // Get page context if requested
     let pageContext = null;
@@ -390,39 +367,5 @@ async function handleGeminiChat(request, sender, sendResponse) {
   }
 }
 
-// API key management
-async function handleSetApiKey(request, sender, sendResponse) {
-  const { apiKey } = request;
-  
-  try {
-    await chrome.storage.local.set({ geminiApiKey: apiKey });
-    sendResponse({
-      success: true,
-      message: 'API key saved successfully'
-    });
-  } catch (error) {
-    sendResponse({
-      success: false,
-      message: 'Failed to save API key'
-    });
-  }
-}
-
-async function handleGetApiKeyStatus(request, sender, sendResponse) {
-  try {
-    const apiKey = await getApiKey();
-    sendResponse({
-      success: true,
-      hasApiKey: !!apiKey,
-      message: apiKey ? 'API key is configured' : 'API key not configured'
-    });
-  } catch (error) {
-    sendResponse({
-      success: false,
-      hasApiKey: false,
-      message: 'Failed to check API key status'
-    });
-  }
-}
 
 console.log('Cloudey background script ready');
