@@ -2296,13 +2296,17 @@ DEFINITIVE ANSWER:
 
 WHY THIS IS THE BEST CHOICE:
 [Detailed justification with evidence from the data:
-- Does it meet ALL criteria? (prove it)
-- What makes it better than the others? (specific comparison)
+- DISTANCE: [Exact distance from reference point] - [Why this distance matters]
+- Does it meet ALL criteria? (prove it with specific data)
+- What makes it better than the others? (specific comparison with distances)
 - Any potential downsides? (be honest)
 - Why should the user choose this and not the alternatives?]
 
 ALTERNATIVES CONSIDERED:
-[Briefly list 2-3 other options and why they were eliminated]`;
+[For EACH alternative (at least 3): 
+1. [Name] - Distance: [X]km - Eliminated because: [specific reason with distance comparison]]
+
+IMPORTANT: You MUST list the actual distance numbers from the data for your recommendation and ALL alternatives. Be explicit about distance comparisons.`;
 
            try {
              const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-001:generateContent', {
