@@ -210,8 +210,8 @@ async function getPageContext(tab) {
           
           const content = {
             // Basic page info
-            title: document.title,
-            url: window.location.href,
+          title: document.title,
+          url: window.location.href,
             domain: window.location.hostname,
             pageType: pageType,
             timestamp: new Date().toISOString(),
@@ -909,15 +909,15 @@ ${pageContext.content}`;
     
     if (data.candidates && data.candidates[0] && data.candidates[0].content) {
       const aiResponse = data.candidates[0].content.parts[0].text;
-      sendResponse({
-        success: true,
+        sendResponse({
+          success: true,
         response: aiResponse
-      });
+        });
     } else {
       throw new Error('Invalid response format from Gemini API');
     }
     
-  } catch (error) {
+      } catch (error) {
     sendResponse({
       success: false,
       response: `Error: ${error.message}. Please check your internet connection.`
@@ -1048,18 +1048,28 @@ async function handleAgentExecute(request, sender, sendResponse) {
     const successCount = results.filter(r => r.success).length;
     const failureCount = results.filter(r => !r.success).length;
     
-    let responseMessage = `Agent completed ${actions.length} actions`;
-    if (successCount > 0) {
-      responseMessage += ` (${successCount} successful)`;
-    }
-    if (failureCount > 0) {
-      responseMessage += ` (${failureCount} failed)`;
-    }
+    // Check if there's a Maps search result with detailed analysis
+    const mapsResult = results.find(r => r.success && r.message && (r.message.includes('Analyzed') || r.message.includes('results for')));
     
-    // Add details about what was accomplished
-    const writeResults = results.filter(r => r.success && (r.message?.includes('Wrote content') || r.message?.includes('Filled')));
-    if (writeResults.length > 0) {
-      responseMessage += `\n\n✅ Successfully wrote content to the document!`;
+    let responseMessage;
+    if (mapsResult) {
+      // Use the detailed Maps analysis as the response
+      responseMessage = mapsResult.message;
+    } else {
+      // Use generic completion message for other actions
+      responseMessage = `Agent completed ${actions.length} actions`;
+      if (successCount > 0) {
+        responseMessage += ` (${successCount} successful)`;
+      }
+      if (failureCount > 0) {
+        responseMessage += ` (${failureCount} failed)`;
+      }
+      
+      // Add details about what was accomplished
+      const writeResults = results.filter(r => r.success && (r.message?.includes('Wrote content') || r.message?.includes('Filled')));
+      if (writeResults.length > 0) {
+        responseMessage += `\n\n✅ Successfully wrote content to the document!`;
+      }
     }
     
     sendResponse({
