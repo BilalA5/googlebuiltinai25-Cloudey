@@ -1946,66 +1946,87 @@ async function writeToSheets(range, values, formulas = []) {
         target: { tabId: tabs[0].id, allFrames: true },
         world: 'MAIN',
         func: (cellRange, cellValues, cellFormulas) => {
-          try {
-            // Find the active cell or specific range
-            let cells = [];
-            
-            // If range is specified (e.g., "A1:B10"), parse it
-            if (cellRange && cellRange.includes(':')) {
-              const [start, end] = cellRange.split(':');
-              console.log(`Writing to range ${start} to ${end}`);
-            } else {
-              // Default: start from A1
-              const startCell = cellRange || 'A1';
-              console.log(`Writing from cell ${startCell}`);
-            }
-            
-            // Try to find cells and fill them
-            const sheetSelectors = [
-              '[role="gridcell"]',
-              '[role="cell"]',
-              '.cell'
-            ];
-            
-            let successCount = 0;
-            const maxCells = cellValues ? cellValues.length : 100;
-            
-            // Try to fill cells one by one
-            for (let i = 0; i < maxCells; i++) {
-              const cell = document.querySelector(`${sheetSelectors[0]}:nth-child(${i + 1})`);
+          return new Promise((resolveScript) => {
+            try {
+              console.log('📊 writeToSheets script started');
               
-              if (cell && cellValues && cellValues[i] !== undefined) {
-                try {
-                  const value = cellFormulas && cellFormulas[i] ? cellFormulas[i] : cellValues[i];
-                  
-                  // Click cell to focus
-                  cell.click();
-                  
-                  // Wait a bit for cell to be selected
-                  setTimeout(() => {
-                    // Type the value
-                    cell.textContent = value;
-                    cell.dispatchEvent(new Event('input', { bubbles: true }));
-                    console.log(`Wrote to cell ${i + 1}: ${value}`);
-                    successCount++;
-                  }, 10 * i); // Stagger the writes
-                } catch (e) {
-                  console.log(`Failed to write to cell ${i + 1}:`, e);
-                }
+              // Check if we're on Google Sheets
+              const url = window.location.href;
+              const isSheets = url.includes('docs.google.com/spreadsheets');
+              
+              if (!isSheets) {
+                console.error('Not on Google Sheets');
+                resolveScript({ success: false, error: 'Not on Google Sheets. Please open a Google Sheet first.' });
+                return;
               }
+              
+              // Try to find active cell or specific range
+              let cells = [];
+              let startCell = cellRange || 'A1';
+              
+              if (cellRange && cellRange.includes(':')) {
+                const [start, end] = cellRange.split(':');
+                console.log(`Writing to range ${start} to ${end}`);
+              } else {
+                console.log(`Writing from cell ${startCell}`);
+              }
+              
+              // Try to find editable cells
+              const sheetSelectors = [
+                '[role="gridcell"]',
+                '[role="cell"]',
+                '.cell'
+              ];
+              
+              let successCount = 0;
+              const maxCells = cellValues && cellValues.length > 0 ? cellValues.length : 0;
+              
+              if (maxCells === 0) {
+                resolveScript({ success: false, error: 'No values to write' });
+                return;
+              }
+              
+              // Simple approach: try to write to first cell to test
+              const firstCell = document.querySelector('[role="gridcell"]');
+              
+              if (firstCell) {
+                console.log('✅ Found cell, attempting to write');
+                firstCell.click();
+                
+                // Wait a bit for cell to be focused
+                setTimeout(() => {
+                  try {
+                    // Simulate typing
+                    firstCell.textContent = cellValues[0];
+                    firstCell.dispatchEvent(new Event('input', { bubbles: true }));
+                    firstCell.dispatchEvent(new KeyboardEvent('keyup', { bubbles: true }));
+                    
+                    console.log(`✅ Wrote first value: ${cellValues[0]}`);
+                    successCount = 1;
+                    
+                    resolveScript({
+                      success: true,
+                      message: `Wrote ${successCount} cell to Google Sheets (test mode)`
+                    });
+                  } catch (e) {
+                    console.error('Error writing to cell:', e);
+                    resolveScript({ success: false, error: e.message });
+                  }
+                }, 500);
+              } else {
+                resolveScript({ success: false, error: 'Could not find editable cells on this page' });
+              }
+              
+            } catch (error) {
+              console.error('writeToSheets error:', error);
+              resolveScript({ success: false, error: error.message });
             }
-            
-            return {
-              success: successCount > 0,
-              message: `Wrote ${successCount} cells to Google Sheets`
-            };
-          } catch (error) {
-            return { success: false, error: error.message };
-          }
+          });
         },
         args: [range || 'A1', values || [], formulas || []]
       }, (results) => {
         if (chrome.runtime.lastError) {
+          console.error('❌ Script injection error:', chrome.runtime.lastError);
           resolve({ success: false, error: chrome.runtime.lastError.message });
         } else if (results && results[0]) {
           resolve(results[0].result);
@@ -2022,36 +2043,57 @@ async function createSheetChart(type, range, title) {
   return new Promise((resolve) => {
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       chrome.scripting.executeScript({
-        target: { tabId: tabs[0].id },
+        target: { tabId: tabs[0].id, allFrames: true },
+        world: 'MAIN',
         func: (chartType, chartRange, chartTitle) => {
-          try {
-            // Find the Insert menu and chart option
-            const insertMenu = document.querySelector('[aria-label*="Insert"], [aria-label*="insert"]');
-            
-            if (insertMenu) {
-              insertMenu.click();
+          return new Promise((resolveScript) => {
+            try {
+              console.log('📈 createSheetChart script started');
               
-              setTimeout(() => {
-                const chartOption = document.querySelector('[aria-label*="Chart"], [aria-label*="chart"]');
-                if (chartOption) {
-                  chartOption.click();
-                  return { success: true, message: 'Opened chart creation dialog' };
-                } else {
-                  return { success: false, error: 'Could not find chart option' };
-                }
-              }, 500);
-            } else {
-              return { success: false, error: 'Could not find Insert menu' };
+              // Check if we're on Google Sheets
+              const url = window.location.href;
+              const isSheets = url.includes('docs.google.com/spreadsheets');
+              
+              if (!isSheets) {
+                console.error('Not on Google Sheets');
+                resolveScript({ success: false, error: 'Not on Google Sheets. Please open a Google Sheet first.' });
+                return;
+              }
+              
+              // Try to find Insert menu
+              const insertMenu = document.querySelector('[aria-label*="Insert"], [aria-label*="insert"], div[role="menuitem"][aria-label*="Insert"]');
+              
+              if (insertMenu) {
+                console.log('✅ Found Insert menu');
+                insertMenu.click();
+                
+                // Wait for menu to open
+                setTimeout(() => {
+                  const chartOption = document.querySelector('[aria-label*="Chart"], [aria-label*="chart"], div[role="menuitem"][aria-label*="Chart"]');
+                  if (chartOption) {
+                    console.log('✅ Found Chart option');
+                    chartOption.click();
+                    resolveScript({ success: true, message: 'Opened chart creation dialog' });
+                  } else {
+                    console.error('Could not find chart option');
+                    resolveScript({ success: false, error: 'Could not find chart option in menu' });
+                  }
+                }, 500);
+              } else {
+                console.error('Could not find Insert menu');
+                resolveScript({ success: false, error: 'Could not find Insert menu on this page' });
+              }
+              
+            } catch (error) {
+              console.error('createSheetChart error:', error);
+              resolveScript({ success: false, error: error.message });
             }
-            
-            return { success: false, error: 'Chart creation not yet implemented' };
-          } catch (error) {
-            return { success: false, error: error.message };
-          }
+          });
         },
         args: [type || 'line', range || '', title || '']
       }, (results) => {
         if (chrome.runtime.lastError) {
+          console.error('❌ Script injection error:', chrome.runtime.lastError);
           resolve({ success: false, error: chrome.runtime.lastError.message });
         } else if (results && results[0]) {
           resolve(results[0].result);
