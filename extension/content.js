@@ -18,7 +18,7 @@ function createIndicator() {
   
   indicator.innerHTML = `
     <button class="indicator-button" title="Open Cloudey side panel">
-      <img src="${chrome.runtime.getURL('assets/cloudey-icon.svg')}" alt="Cloudey" class="cloudey-logo">
+      <img src="${chrome.runtime.getURL('assets/cloudey-icon-48.png')}" alt="Cloudey" class="cloudey-logo">
     </button>
     <button class="indicator-close" title="Close indicator">
       ✕
@@ -60,13 +60,18 @@ function createIndicator() {
   });
   
   // close indicator when X is clicked
-  closeBtn.addEventListener('click', (e) => {
+  closeBtn.addEventListener('click', async (e) => {
     e.stopPropagation();
     console.log('Hiding indicator');
     indicator.classList.add('hidden');
     
     // store preference for this tab session
-    sessionStorage.setItem('sidePanelIndicatorHidden', 'true');
+    try {
+      // Use chrome.storage instead of sessionStorage for better cross-origin compatibility
+      await chrome.storage.session.set({ 'sidePanelIndicatorHidden': 'true' });
+    } catch (error) {
+      console.log('Failed to save indicator preference:', error);
+    }
   });
 }
 
@@ -78,8 +83,12 @@ if (document.readyState === 'loading') {
 }
 
 // check if indicator should be shown based on session storage
-window.addEventListener('beforeunload', () => {
-  sessionStorage.removeItem('sidePanelIndicatorHidden');
+window.addEventListener('beforeunload', async () => {
+  try {
+    await chrome.storage.session.remove('sidePanelIndicatorHidden');
+  } catch (error) {
+    console.log('Failed to remove indicator preference:', error);
+  }
 });
 
 // listen for messages from background
