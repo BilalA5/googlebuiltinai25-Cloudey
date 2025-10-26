@@ -337,15 +337,15 @@ async function handleTranslateText(request, sender, sendResponse) {
 
 // Gemini chat handler
 async function handleGeminiChat(request, sender, sendResponse) {
-  const { message, history = [], includeContext = false, searchMode = false, agentMode = false } = request;
+  const { message, history = [], includeContext = false, searchMode = false, agentMode = false, isContextMode = false } = request;
   
   try {
     // Use the built-in API key
     const apiKey = GEMINI_API_KEY;
 
-    // Get page context if requested
+    // Get page context if context mode is active
     let pageContext = null;
-    if (includeContext) {
+    if (isContextMode) {
       // Try to get the current active tab if sender.tab is not available
       let targetTab = sender.tab;
       if (!targetTab) {
@@ -381,10 +381,10 @@ async function handleGeminiChat(request, sender, sendResponse) {
     
     if (searchMode) {
       contextPrompt += `\n\n🔍 SEARCH MODE ACTIVE: Research the internet for current, up-to-date information. Provide recent, factual information and mention that you're searching for current data.`;
-    }
-    
-    if (agentMode) {
+    } else if (agentMode) {
       contextPrompt += `\n\n🤖 AGENT MODE ACTIVE: You can take control of the user's screen and perform actions on their behalf. Be proactive and offer to help with tasks that require screen interaction.`;
+    } else if (isContextMode) {
+      contextPrompt += `\n\n📄 CONTEXT MODE ACTIVE: You can see the current page content and should use it to provide relevant, contextual answers.`;
     }
     
     if (pageContext) {

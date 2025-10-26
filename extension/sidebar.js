@@ -253,18 +253,36 @@ const searchToggle = document.getElementById('search-toggle');
 const agentToggle = document.getElementById('agent-toggle');
 const contextToggle = document.getElementById('context-toggle');
 
+// Toggle system - only one can be active at a time
+function deactivateAllToggles() {
+  searchToggle?.classList.remove('active');
+  agentToggle?.classList.remove('active');
+  contextToggle?.classList.remove('active');
+  includeContext = false;
+}
+
+function activateToggle(toggle, mode) {
+  deactivateAllToggles();
+  toggle.classList.add('active');
+  
+  if (mode === 'context') {
+    includeContext = true;
+  }
+}
+
 // Search toggle (Globe button)
 if (searchToggle) {
   searchToggle.addEventListener('click', () => {
     const isActive = searchToggle.classList.contains('active');
-    searchToggle.classList.toggle('active', !isActive);
     
-    if (!isActive) {
-      // Enable search mode
-      announceToScreenReader('Search mode enabled - Cloudey will research the internet', 'polite');
-    } else {
-      // Disable search mode
+    if (isActive) {
+      // Deactivate search mode
+      searchToggle.classList.remove('active');
       announceToScreenReader('Search mode disabled', 'polite');
+    } else {
+      // Activate search mode (deactivate others)
+      activateToggle(searchToggle, 'search');
+      announceToScreenReader('Search mode enabled - Cloudey will research the internet', 'polite');
     }
   });
 }
@@ -273,14 +291,15 @@ if (searchToggle) {
 if (agentToggle) {
   agentToggle.addEventListener('click', () => {
     const isActive = agentToggle.classList.contains('active');
-    agentToggle.classList.toggle('active', !isActive);
     
-    if (!isActive) {
-      // Enable agent mode
-      announceToScreenReader('Agent mode enabled - Cloudey can take control of your screen', 'polite');
-    } else {
-      // Disable agent mode
+    if (isActive) {
+      // Deactivate agent mode
+      agentToggle.classList.remove('active');
       announceToScreenReader('Agent mode disabled', 'polite');
+    } else {
+      // Activate agent mode (deactivate others)
+      activateToggle(agentToggle, 'agent');
+      announceToScreenReader('Agent mode enabled - Cloudey can take control of your screen', 'polite');
     }
   });
 }
@@ -288,16 +307,22 @@ if (agentToggle) {
 // Context toggle
 if (contextToggle) {
   contextToggle.addEventListener('click', () => {
-    includeContext = !includeContext;
-    contextToggle.classList.toggle('active', includeContext);
+    const isActive = contextToggle.classList.contains('active');
+    
+    if (isActive) {
+      // Deactivate context mode
+      contextToggle.classList.remove('active');
+      includeContext = false;
+      announceToScreenReader('Context mode disabled', 'polite');
+    } else {
+      // Activate context mode (deactivate others)
+      activateToggle(contextToggle, 'context');
+      announceToScreenReader('Context mode enabled - Cloudey can see the current page', 'polite');
+    }
     
     // Update tooltip
     const title = includeContext ? 'Page context enabled' : 'Page context disabled';
     contextToggle.setAttribute('title', title);
-    
-    // Show brief feedback
-    const status = includeContext ? 'Context enabled' : 'Context disabled';
-    announceToScreenReader(status, 'polite');
   });
 }
 
@@ -408,14 +433,16 @@ async function sendMessage() {
   }
   
   try {
-    // Check if search mode is enabled
+    // Check which mode is currently active (only one can be active at a time)
     const isSearchMode = searchToggle?.classList.contains('active') || false;
     const isAgentMode = agentToggle?.classList.contains('active') || false;
+    const isContextMode = contextToggle?.classList.contains('active') || false;
     
-    console.log('Sending message with context:', {
-      includeContext,
+    console.log('Sending message with mode:', {
       isSearchMode,
       isAgentMode,
+      isContextMode,
+      includeContext,
       message: message.substring(0, 50) + '...'
     });
     
@@ -424,9 +451,10 @@ async function sendMessage() {
       action: 'geminiChat',
       message: message,
       history: conversationHistory,
-      includeContext: includeContext,
+      includeContext: isContextMode,
       searchMode: isSearchMode,
-      agentMode: isAgentMode
+      agentMode: isAgentMode,
+      isContextMode: isContextMode
     });
     
     if (response.success) {
