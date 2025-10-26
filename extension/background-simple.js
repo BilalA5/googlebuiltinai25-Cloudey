@@ -2210,7 +2210,7 @@ async function analyzeMapsResults(tabId, query) {
         });
       },
       args: [query]
-    }, (results) => {
+    }, async (results) => {
       if (chrome.runtime.lastError) {
         resolve({ success: false, error: chrome.runtime.lastError.message });
       } else if (results && results[0]) {
