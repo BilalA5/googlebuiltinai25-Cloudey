@@ -252,14 +252,11 @@ const agentDialog = document.getElementById('agent-permission-dialog');
 const agentDialogClose = document.getElementById('agent-dialog-close');
 const agentDialogCancel = document.getElementById('agent-dialog-cancel');
 const agentDialogConfirm = document.getElementById('agent-dialog-confirm');
-const agentStepsContainer = document.getElementById('agent-steps-container');
-const agentStepsList = document.getElementById('agent-steps-list');
-const agentStepsToggle = document.getElementById('agent-steps-toggle');
+
 const agentActionsList = document.getElementById('agent-actions-list');
 
 // Agent Mode state
 let isAgentMode = false;
-let agentSteps = [];
 
 // Toggle system - only one can be active at a time
 function deactivateAllToggles() {
@@ -345,14 +342,7 @@ if (agentDialogConfirm) {
   });
 }
 
-// Agent steps toggle
-if (agentStepsToggle) {
-  agentStepsToggle.addEventListener('click', () => {
-    const isCollapsed = agentStepsList.style.display === 'none';
-    agentStepsList.style.display = isCollapsed ? 'flex' : 'none';
-    agentStepsToggle.textContent = isCollapsed ? '−' : '+';
-  });
-}
+
 
 // Agent Mode Functions
 function showAgentPermissionDialog() {
@@ -384,7 +374,6 @@ function hideAgentPermissionDialog() {
 function activateAgentMode() {
   isAgentMode = true;
   agentToggle.classList.add('active');
-  agentStepsContainer.classList.remove('hidden');
   
   // Start border animation
   chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
@@ -397,8 +386,6 @@ function activateAgentMode() {
 function deactivateAgentMode() {
   isAgentMode = false;
   agentToggle.classList.remove('active');
-  agentStepsContainer.classList.add('hidden');
-  agentSteps = [];
   
   // Remove border animation
   chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
@@ -408,39 +395,7 @@ function deactivateAgentMode() {
   announceToScreenReader('Agent mode disabled', 'polite');
 }
 
-function updateAgentSteps(steps) {
-  agentSteps = steps;
-  if (agentStepsList) {
-    agentStepsList.innerHTML = steps.map(step => `
-      <div class="agent-step ${step.status}" data-step-id="${step.id}">
-        <div class="step-icon">${step.icon}</div>
-        <div class="step-content">
-          <div class="step-title">${step.title}</div>
-          <div class="step-status">${step.status === 'active' ? 'Working...' : step.status}</div>
-        </div>
-        ${step.status === 'active' ? '<div class="step-spinner"></div>' : ''}
-      </div>
-    `).join('');
-  }
-}
-
-function updateAgentStep(stepId, status, icon) {
-  const stepElement = document.querySelector(`[data-step-id="${stepId}"]`);
-  if (stepElement) {
-    stepElement.className = `agent-step ${status}`;
-    const iconElement = stepElement.querySelector('.step-icon');
-    const statusElement = stepElement.querySelector('.step-status');
-    const spinnerElement = stepElement.querySelector('.step-spinner');
-    
-    if (iconElement) iconElement.textContent = icon;
-    if (statusElement) {
-      statusElement.textContent = status === 'active' ? 'Working...' : status;
-    }
-    if (spinnerElement) {
-      spinnerElement.style.display = status === 'active' ? 'block' : 'none';
-    }
-  }
-}
+// Note: Agent steps are now shown in the typing indicator shimmer
 
 // Get page context for agent mode
 async function getPageContextForAgent() {
@@ -470,10 +425,7 @@ async function getPageContextForAgent() {
 
 // Listen for agent step updates
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  if (request.action === 'agentStepsUpdate') {
-    updateAgentSteps(request.steps);
-  } else if (request.action === 'agentStepUpdate') {
-    updateAgentStep(request.stepId, request.status, request.icon);
+  if (request.action === 'agentStepUpdate') {
     
     // Show action indicator based on step status and title
     if (request.status === 'active') {
@@ -487,6 +439,12 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       } else if (stepTitle.includes('write_content')) {
         action = 'writing';
         details = 'to document';
+      } else if (stepTitle.includes('write_to_sheets')) {
+        action = 'writing_sheets';
+        details = '';
+      } else if (stepTitle.includes('create_sheets_chart')) {
+        action = 'creating_chart';
+        details = '';
       } else if (stepTitle.includes('scroll')) {
         action = 'scrolling';
         details = 'to target element';
@@ -976,6 +934,14 @@ function showAgentActionIndicator(action, details = '') {
       case 'summarizing':
         typingStatus.textContent = 'Summarizing content...';
         typingStatus.style.color = 'rgba(255, 255, 100, 0.8)';
+        break;
+      case 'writing_sheets':
+        typingStatus.textContent = 'Writing to spreadsheet...';
+        typingStatus.style.color = 'rgba(100, 200, 255, 0.8)';
+        break;
+      case 'creating_chart':
+        typingStatus.textContent = 'Creating chart...';
+        typingStatus.style.color = 'rgba(255, 180, 100, 0.8)';
         break;
       case 'completing':
         typingStatus.textContent = 'Completing task...';
