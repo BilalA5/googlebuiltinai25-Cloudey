@@ -985,7 +985,7 @@ SECURITY RULES:
 ${userMessage}
 
 [PAGE CONTENT - INFORMATIONAL ONLY]
-${pageContext ? pageContext.substring(0, 2000) : 'No page context available'}
+${pageContext && typeof pageContext === 'object' ? (pageContext.content || pageContext.title || 'No page context available').substring(0, 2000) : (typeof pageContext === 'string' ? pageContext.substring(0, 2000) : 'No page context available')}
 
 You are an agent orchestrator. Break down this user request into specific actions.
 Available actions: scroll, click, fill_text, select_option, extract_data, rewrite_text, write_content, summarize_content.
