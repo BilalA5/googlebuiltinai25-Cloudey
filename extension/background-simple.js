@@ -1032,19 +1032,25 @@ async function handleAgentExecute(request, sender, sendResponse) {
 // Agent Actions Functions (moved from agentActions.js for service worker compatibility)
 async function checkAgentAPIs() {
   try {
+    // Note: Chrome AI APIs (Writer, Rewriter, etc.) are checked at runtime in the content script context
+    // They won't be available in the service worker, but will be available when injected
+    console.log('🔍 Checking for Chrome AI APIs in service worker context...');
+    console.log('📌 Note: APIs will be checked in the content script context when actually used');
+    
+    // Always return true for now - the actual check happens in the content script
     return {
-      writer: 'ai' in self && 'writer' in self.ai,
-      rewriter: 'ai' in self && 'rewriter' in self.ai,
-      summarizer: 'ai' in self && 'summarizer' in self.ai,
-      proofreader: 'ai' in self && 'proofreader' in self.ai
+      writer: true,  // Will be checked in content script
+      rewriter: true,  // Will be checked in content script
+      summarizer: true,  // Will be checked in content script
+      proofreader: true  // Will be checked in content script
     };
   } catch (error) {
     console.error('Error checking AI APIs:', error);
     return {
-      writer: false,
-      rewriter: false,
-      summarizer: false,
-      proofreader: false
+      writer: true,
+      rewriter: true,
+      summarizer: true,
+      proofreader: true
     };
   }
 }
@@ -1345,10 +1351,19 @@ async function writeContent(selector, content, useWriterAPI = false) {
           console.log(`🔍 writeContent script running with:`, { sel, cnt, useAPI });
           
           let finalContent = cnt;
-          if (useAPI && 'ai' in self && 'writer' in self.ai) {
+          
+          // Try to use Chrome AI Writer API if available
+          if (useAPI) {
+            console.log(`🔍 Checking for Chrome AI Writer API...`);
             try {
-              const writer = await self.ai.writer.create({ tone: 'formal', length: 'medium' });
-              finalContent = await writer.write(cnt);
+              if ('ai' in self && 'writer' in self.ai) {
+                console.log(`✅ Chrome AI Writer API is available`);
+                const writer = await self.ai.writer.create({ tone: 'formal', length: 'medium' });
+                finalContent = await writer.write(cnt);
+                console.log(`✅ Writer API processed content:`, finalContent.substring(0, 100) + '...');
+              } else {
+                console.log(`⚠️ Chrome AI Writer API not available, using content as-is`);
+              }
             } catch (error) {
               console.warn('Writer API failed, using fallback:', error);
             }
