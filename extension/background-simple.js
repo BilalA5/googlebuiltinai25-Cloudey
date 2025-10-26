@@ -880,13 +880,19 @@ async function handleAgentExecute(request, sender, sendResponse) {
   try {
     console.log('🤖 Agent Mode execution started');
     
-    // Validate sender
-    if (!sender || !sender.tab) {
-      throw new Error('Agent mode requires an active tab');
+    // Get the active tab since sender.tab is not available from sidebar
+    const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (!tabs || tabs.length === 0) {
+      throw new Error('No active tab found');
     }
+    const activeTab = tabs[0];
+    
+    // Get page context for agent planning
+    const agentPageContext = await getPageContext(activeTab);
+    console.log('Agent page context:', agentPageContext ? 'Success' : 'Failed');
     
     // Plan the actions
-    const actions = await planAgentActions(message, pageContext);
+    const actions = await planAgentActions(message, agentPageContext);
     console.log('📋 Planned actions:', actions);
     
     // If no actions planned, provide a helpful message
@@ -924,8 +930,8 @@ async function handleAgentExecute(request, sender, sendResponse) {
       });
       
       // Highlight element if it's a DOM action
-      if (action.target && action.target !== 'page' && sender && sender.tab && sender.tab.id) {
-        chrome.tabs.sendMessage(sender.tab.id, {
+      if (action.target && action.target !== 'page') {
+        chrome.tabs.sendMessage(activeTab.id, {
           action: 'agentHighlight',
           selector: action.target
         }).catch(err => console.warn('Could not highlight element:', err));
