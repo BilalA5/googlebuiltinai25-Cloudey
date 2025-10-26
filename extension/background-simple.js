@@ -378,12 +378,35 @@ async function handleChromeTranslate(request, sender, sendResponse) {
         if ('LanguageDetector' in self) {
           console.log('✅ Using LanguageDetector API');
           try {
-            const detector = await LanguageDetector.create();
+            // Check availability first
+            const availability = await LanguageDetector.availability({
+              expectedInputLanguages: ['en-US', 'fr-FR', 'es-ES', 'de-DE', 'it-IT', 'pt-PT', 'ru-RU', 'zh-CN', 'ja-JP', 'ko-KR', 'ar-SA']
+            });
+            console.log('✅ LanguageDetector availability:', availability);
+            
+            if (availability === 'unavailable') {
+              throw new Error('LanguageDetector not available');
+            }
+            
+            const detector = await LanguageDetector.create({
+              expectedInputLanguages: ['en-US', 'fr-FR', 'es-ES', 'de-DE', 'it-IT', 'pt-PT', 'ru-RU', 'zh-CN', 'ja-JP', 'ko-KR', 'ar-SA'],
+              monitor: (monitor) => {
+                monitor.addEventListener('downloadprogress', (e) => {
+                  console.log(`📥 LanguageDetector download progress: ${e.loaded * 100}%`);
+                });
+              }
+            });
             console.log('✅ LanguageDetector created successfully');
-            const detection = await detector.detectLanguage(text);
-            sourceLanguage = detection.language;
-            console.log('✅ LanguageDetector result:', detection);
-            console.log('✅ Detected language code:', sourceLanguage);
+            
+            const results = await detector.detect(text);
+            console.log('✅ LanguageDetector results:', results);
+            
+            if (results && results.length > 0) {
+              sourceLanguage = results[0].detectedLanguage;
+              console.log('✅ Detected language code:', sourceLanguage);
+            } else {
+              throw new Error('No language detected');
+            }
           } catch (detectorError) {
             console.error('❌ LanguageDetector failed:', detectorError);
             throw detectorError;
