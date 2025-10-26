@@ -1128,6 +1128,9 @@ async function executeAction(action, target, params = {}) {
     const apis = await checkAgentAPIs();
     
     switch (action) {
+      case 'analyze':
+        // For analyze action, just return success
+        return { success: true, message: 'Analyzed page content' };
       case 'scroll':
         return await scrollToElement(target);
       case 'click':
@@ -1349,7 +1352,10 @@ async function writeContent(selector, content, useWriterAPI = false) {
         target: { tabId: tabs[0].id },
         world: 'MAIN',
         func: async (sel, cnt, useAPI) => {
+          console.log(`🚀 INJECTED SCRIPT STARTED`);
           console.log(`🔍 writeContent script running with:`, { sel, cnt, useAPI });
+          console.log(`📍 Current URL:`, window.location.href);
+          console.log(`📍 Document ready state:`, document.readyState);
           
           let finalContent = cnt;
           
@@ -1604,8 +1610,16 @@ async function writeContent(selector, content, useWriterAPI = false) {
         },
         args: [selector || 'body', content || '', Boolean(useWriterAPI)]
       }, (results) => {
-        console.log(`📝 writeContent result:`, results[0]?.result);
-        resolve(results[0].result);
+        if (chrome.runtime.lastError) {
+          console.error('❌ Script injection error:', chrome.runtime.lastError);
+          resolve({ success: false, error: chrome.runtime.lastError.message });
+        } else if (results && results[0]) {
+          console.log(`📝 writeContent result:`, results[0].result);
+          resolve(results[0].result);
+        } else {
+          console.error('❌ No results from script injection');
+          resolve({ success: false, error: 'No results from script injection' });
+        }
       });
     });
   });
