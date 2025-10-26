@@ -57,7 +57,11 @@ class AIBridge {
       Return as JSON with: {topics: [], entities: [], intent: "", contentType: "", keyConcepts: []}`;
 
       const fullPrompt = `${systemPrompt}\n\n${prompt}`;
-      const result = await chrome.ai.prompt(fullPrompt);
+      
+      // Create a language model session and get result
+      const lm = navigator.languageModel.create();
+      const result = await lm.prompt(fullPrompt);
+      
       return this.parseAIResponse(result);
       
     } catch (error) {
@@ -86,7 +90,11 @@ class AIBridge {
       Return as JSON: {activity: "", connections: [], insights: ""}`;
 
       const fullPrompt = `${systemPrompt}\n\n${prompt}`;
-      const result = await chrome.ai.prompt(fullPrompt);
+      
+      // Create a language model session and get result
+      const lm = navigator.languageModel.create();
+      const result = await lm.prompt(fullPrompt);
+      
       return this.parseAIResponse(result);
       
     } catch (error) {
@@ -112,7 +120,11 @@ class AIBridge {
       Create a short, friendly message (max 50 words) that helps the user understand what they're doing.`;
 
       const fullPrompt = `${systemPrompt}\n\n${prompt}`;
-      const result = await chrome.ai.prompt(fullPrompt);
+      
+      // Create a language model session and get result
+      const lm = navigator.languageModel.create();
+      const result = await lm.prompt(fullPrompt);
+      
       return result;
       
     } catch (error) {
