@@ -2217,21 +2217,75 @@ async function analyzeMapsResults(tabId, query) {
         const analysis = results[0].result;
         
                  if (analysis.success && analysis.results && analysis.results.length > 0) {
-           // Format results for display with all details
-           const formattedResults = analysis.results.map(r => {
-             let result = `• ${r.title}`;
-             if (r.address) result += `\n  📍 ${r.address}`;
-             if (r.distance) result += `\n  📏 ${r.distance}`;
-             if (r.rating) result += `\n  ⭐ ${r.rating}`;
-             if (r.price) result += `\n  💰 ${r.price}`;
-             if (r.type && !result.includes(r.type)) result += `\n  🏷️ ${r.type}`;
-             return result;
-           }).join('\n\n');
+           // Use Gemini to analyze and rank the results
+           const rankingPrompt = `Analyze these Google Maps search results and select the BEST match based on the user's criteria.
            
-           resolve({
-             success: true,
-             message: `Found ${analysis.totalResults} results for "${analysis.query}":\n\n${formattedResults}`
-           });
+Search Query: "${analysis.query}"
+User is looking for: ${analysis.query}
+
+Search Results:
+${analysis.results.map((r, i) => `
+${i + 1}. ${r.title}
+   Address: ${r.address || 'N/A'}
+   Distance: ${r.distance || 'N/A'}
+   Rating: ${r.rating || 'N/A'}
+   Price: ${r.price || 'N/A'}
+   Type: ${r.type || 'N/A'}
+`).join('\n')}
+
+Your task:
+1. Analyze each result against the user's criteria in the search query
+2. Consider factors like: distance, price (free/cheap), rating, relevance to search terms
+3. Select the TOP 3 BEST matches
+4. Rank them with brief explanations why each is recommended
+
+Respond in this EXACT format:
+BEST MATCH:
+[Rank #1] [Title] - [Why it's the best]
+  
+OTHER OPTIONS:
+[Rank #2] [Title] - [Why it's recommended]
+[Rank #3] [Title] - [Why it's recommended]`;
+
+           try {
+             const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-001:generateContent', {
+               method: 'POST',
+               headers: {
+                 'Content-Type': 'application/json',
+                 'X-Goog-Api-Key': GEMINI_API_KEY
+               },
+               body: JSON.stringify({
+                 contents: [{
+                   parts: [{
+                     text: rankingPrompt
+                   }]
+                 }]
+               })
+             });
+
+             const data = await response.json();
+             const rankingText = data.candidates[0].content.parts[0].text;
+             
+             resolve({
+               success: true,
+               message: `🔍 Analyzed ${analysis.totalResults} results for "${analysis.query}":\n\n${rankingText}`
+             });
+           } catch (error) {
+             // Fallback to showing all results if ranking fails
+             const formattedResults = analysis.results.slice(0, 5).map(r => {
+               let result = `• ${r.title}`;
+               if (r.address) result += `\n  📍 ${r.address}`;
+               if (r.distance) result += `\n  📏 ${r.distance}`;
+               if (r.rating) result += `\n  ⭐ ${r.rating}`;
+               if (r.price) result += `\n  💰 ${r.price}`;
+               return result;
+             }).join('\n\n');
+             
+             resolve({
+               success: true,
+               message: `Found ${analysis.totalResults} results (Top 5 shown):\n\n${formattedResults}`
+             });
+           }
         } else {
           resolve({ success: true, message: 'Search completed but no detailed results found' });
         }
