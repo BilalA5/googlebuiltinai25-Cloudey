@@ -52,6 +52,28 @@ const conversationHistory = new Map();
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-001:generateContent';
 const GEMINI_API_KEY = atob('QUl6YVN5Q0c2czRYaC1VcVI2VEUyY3E0ZFVxUEFRODk4VGhOQlNv');
 
+// Google Sheets API configuration
+const SHEETS_SCOPES = 'https://www.googleapis.com/auth/spreadsheets';
+
+// Helper function to get OAuth token for Google Sheets
+async function getSheetsAuthToken() {
+  return new Promise((resolve, reject) => {
+    chrome.identity.getAuthToken({ interactive: true }, (token) => {
+      if (chrome.runtime.lastError) {
+        reject(new Error(chrome.runtime.lastError.message));
+      } else {
+        resolve(token);
+      }
+    });
+  });
+}
+
+// Helper function to get spreadsheet ID from URL
+function extractSpreadsheetId(url) {
+  const match = url.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
+  return match ? match[1] : null;
+}
+
 // AI-powered message handler
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   
@@ -1989,7 +2011,73 @@ async function updateEmailBody(newBody) {
 }
 
 async function writeToSheets(range, values, formulas = []) {
-  console.log(`📊 Writing to Google Sheets: ${range}`);
+  console.log(`📊 Writing to Google Sheets using API: ${range}`);
+  
+  try {
+    // Get the active tab to extract spreadsheet ID
+    const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (!tabs || tabs.length === 0) {
+      return { success: false, error: 'No active tab found' };
+    }
+    
+    const activeTab = tabs[0];
+    const spreadsheetId = extractSpreadsheetId(activeTab.url);
+    
+    if (!spreadsheetId) {
+      return { success: false, error: 'Could not extract spreadsheet ID from URL. Please make sure you are on a Google Sheets page.' };
+    }
+    
+    console.log('📊 Spreadsheet ID:', spreadsheetId);
+    
+    // Get OAuth token
+    const token = await getSheetsAuthToken();
+    console.log('✅ Got OAuth token');
+    
+    // Prepare values array - convert single value to array of arrays if needed
+    let valuesArray = values;
+    if (values && values.length > 0 && !Array.isArray(values[0])) {
+      // If it's a single row of values, wrap in array
+      valuesArray = [values];
+    }
+    
+    // Make API call to update cells
+    const apiUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${range}?valueInputOption=RAW`;
+    
+    const response = await fetch(apiUrl, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        values: valuesArray
+      })
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.text();
+      console.error('Sheets API error:', errorData);
+      return { success: false, error: `Sheets API error: ${response.status} ${response.statusText}` };
+    }
+    
+    const data = await response.json();
+    console.log('✅ Successfully wrote to Sheets:', data);
+    
+    return {
+      success: true,
+      message: `Wrote ${valuesArray.length} row(s) to range ${range}`,
+      data: data
+    };
+    
+  } catch (error) {
+    console.error('Error writing to Sheets:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+// OLD DOM-BASED VERSION (kept for reference)
+async function writeToSheets_OLD_DOM(range, values, formulas = []) {
+  console.log(`📊 Writing to Google Sheets (DOM method - deprecated): ${range}`);
   return new Promise((resolve) => {
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       chrome.scripting.executeScript({

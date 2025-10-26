@@ -11,14 +11,16 @@
     "sidePanel",
     "scripting",
     "tabs",
-    "i18n"
+    "i18n",
+    "identity"
   ],
   "optional_permissions": [
     "aiLanguageModelOriginTrial"
   ],
   "host_permissions": [
     "https://*/*",
-    "http://*/*"
+    "http://*/*",
+    "https://sheets.googleapis.com/*"
   ],
   
   
