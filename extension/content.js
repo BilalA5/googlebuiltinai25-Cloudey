@@ -113,3 +113,48 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
 console.log('Cloudey indicator initialized');
 }
+
+// Agent Mode Border Management
+let agentBorderOverlay = null;
+
+function createAgentBorder() {
+  if (agentBorderOverlay) return;
+  
+  agentBorderOverlay = document.createElement('div');
+  agentBorderOverlay.className = 'agent-border-overlay';
+  agentBorderOverlay.id = 'cloudey-agent-border';
+  document.body.appendChild(agentBorderOverlay);
+  console.log('Agent border overlay created');
+}
+
+function removeAgentBorder() {
+  if (agentBorderOverlay) {
+    agentBorderOverlay.remove();
+    agentBorderOverlay = null;
+    console.log('Agent border overlay removed');
+  }
+}
+
+function highlightElement(selector) {
+  const element = document.querySelector(selector);
+  if (element) {
+    element.classList.add('agent-element-highlight');
+    setTimeout(() => {
+      element.classList.remove('agent-element-highlight');
+    }, 2000);
+  }
+}
+
+// Listen for agent mode messages
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (request.action === 'agentStart') {
+    createAgentBorder();
+    sendResponse({ success: true });
+  } else if (request.action === 'agentEnd') {
+    removeAgentBorder();
+    sendResponse({ success: true });
+  } else if (request.action === 'agentHighlight') {
+    highlightElement(request.selector);
+    sendResponse({ success: true });
+  }
+});
