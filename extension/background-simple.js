@@ -10,7 +10,6 @@ const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/
 
 // AI-powered message handler
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  console.log('Background received message:', request);
   
   try {
     switch (request.action) {
@@ -289,7 +288,6 @@ async function handleTranslateText(request, sender, sendResponse) {
 // Gemini chat handler
 async function handleGeminiChat(request, sender, sendResponse) {
   const { message, history = [] } = request;
-  console.log('Handling Gemini chat request');
   
   try {
     // Prepare conversation context for Gemini
@@ -313,7 +311,6 @@ async function handleGeminiChat(request, sender, sendResponse) {
       }
     };
 
-    console.log('Making request to Gemini API...');
     const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
       method: 'POST',
       headers: {
@@ -322,11 +319,8 @@ async function handleGeminiChat(request, sender, sendResponse) {
       body: JSON.stringify(requestBody)
     });
 
-    console.log('Response status:', response.status);
-
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Gemini API error response:', errorText);
       throw new Error(`Gemini API error: ${response.status} ${response.statusText} - ${errorText}`);
     }
 
@@ -343,7 +337,6 @@ async function handleGeminiChat(request, sender, sendResponse) {
     }
     
   } catch (error) {
-    console.error('Gemini chat error:', error);
     sendResponse({
       success: false,
       response: `Error: ${error.message}. Please check your internet connection.`

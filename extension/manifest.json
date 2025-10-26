@@ -3,24 +3,20 @@
   "manifest_version": 3,
   "name": "Cloudey",
   "version": "2.0.0",
-  "description": "Cloudey - Your AI-powered browser assistant using Gemini Nano and Chrome's built-in APIs. Summarize, translate, improve text, and chat with context - all running locally for privacy.",
+  "description": "Cloudey - Your AI-powered browser assistant using Google AI Studio. Summarize, translate, improve text, and chat with context.",
   
   "permissions": [
     "activeTab",
     "storage",
     "sidePanel",
     "scripting",
-    "tabs",
-    "aiLanguageModelOriginTrial"
+    "tabs"
   ],
   "host_permissions": [
     "https://*/*",
     "http://*/*"
   ],
   
-  "trial_tokens": [
-    ""
-  ],
   
   "background": {
     "service_worker": "background-simple.js"

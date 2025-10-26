@@ -335,8 +335,6 @@ async function sendMessage() {
   
   try {
     // Use Gemini API via background script
-    console.log('Using Gemini API...');
-    
     const response = await chrome.runtime.sendMessage({
       action: 'geminiChat',
       message: message,
@@ -344,7 +342,6 @@ async function sendMessage() {
     });
     
     if (response.success) {
-      console.log('AI response received from Gemini');
       hideTypingIndicator();
       promptBox?.classList.remove('loading');
       typewriterEffect(response.response);
