@@ -112,3 +112,54 @@
 #side-panel-indicator.visible {
   animation: slideInIndicator 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
+
+/* ===== AGENT MODE BORDER ANIMATION ===== */
+.agent-border-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  z-index: 999998;
+  border: 4px solid transparent;
+  background: linear-gradient(90deg, rgba(180, 160, 190, 0.8), rgba(238, 130, 238, 0.8)) border-box;
+  border-radius: 0;
+  animation: agentBorderFlow 3s linear infinite;
+}
+
+@keyframes agentBorderFlow {
+  0% {
+    background: linear-gradient(90deg, rgba(180, 160, 190, 0.8), rgba(238, 130, 238, 0.8)) border-box;
+  }
+  25% {
+    background: linear-gradient(180deg, rgba(180, 160, 190, 0.8), rgba(238, 130, 238, 0.8)) border-box;
+  }
+  50% {
+    background: linear-gradient(270deg, rgba(180, 160, 190, 0.8), rgba(238, 130, 238, 0.8)) border-box;
+  }
+  75% {
+    background: linear-gradient(360deg, rgba(180, 160, 190, 0.8), rgba(238, 130, 238, 0.8)) border-box;
+  }
+  100% {
+    background: linear-gradient(90deg, rgba(180, 160, 190, 0.8), rgba(238, 130, 238, 0.8)) border-box;
+  }
+}
+
+.agent-element-highlight {
+  position: relative;
+  outline: 2px solid rgba(238, 130, 238, 0.8);
+  outline-offset: 2px;
+  animation: agentElementPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes agentElementPulse {
+  0%, 100% {
+    outline-color: rgba(238, 130, 238, 0.8);
+    box-shadow: 0 0 0 0 rgba(238, 130, 238, 0.4);
+  }
+  50% {
+    outline-color: rgba(180, 160, 190, 1);
+    box-shadow: 0 0 0 4px rgba(180, 160, 190, 0.2);
+  }
+}
