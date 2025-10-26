@@ -646,8 +646,8 @@ body {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  background: #1F2023;
-  border: 1px solid #444444;
+  background: rgba(31, 25, 35, 0.98);
+  border: 1px solid rgba(105, 90, 115, 0.4);
   border-radius: 24px;
   padding: 8px;
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.24);
@@ -655,7 +655,7 @@ body {
 }
 
 .prompt-box:focus-within {
-  border-color: rgba(255, 255, 255, 0.2);
+  border-color: rgba(180, 160, 190, 0.5);
 }
 
 /* Attachment Preview */
@@ -728,7 +728,7 @@ body {
   outline: none;
   overflow-y: auto;
   scrollbar-width: thin;
-  scrollbar-color: #444444 transparent;
+  scrollbar-color: rgba(105, 90, 115, 0.6) transparent;
 }
 
 .prompt-textarea::-webkit-scrollbar {
@@ -740,12 +740,12 @@ body {
 }
 
 .prompt-textarea::-webkit-scrollbar-thumb {
-  background-color: #444444;
+  background-color: rgba(105, 90, 115, 0.6);
   border-radius: 3px;
 }
 
 .prompt-textarea::-webkit-scrollbar-thumb:hover {
-  background-color: #555555;
+  background-color: rgba(130, 110, 145, 0.7);
 }
 
 .prompt-textarea::placeholder {
@@ -777,7 +777,7 @@ body {
   border-radius: 50%;
   background: transparent;
   border: none;
-  color: rgba(156, 163, 175, 1);
+  color: rgba(180, 160, 190, 1);
   cursor: pointer;
   transition: all 0.2s ease;
   padding: 0;
@@ -785,8 +785,8 @@ body {
 }
 
 .prompt-action-btn:hover {
-  background: rgba(107, 114, 128, 0.3);
-  color: rgba(209, 213, 219, 1);
+  background: rgba(180, 160, 190, 0.15);
+  color: rgba(220, 200, 230, 1);
 }
 
 .prompt-action-btn .lucide-icon {
@@ -811,7 +811,7 @@ body {
   border-radius: 16px;
   border: 1px solid transparent;
   background: transparent;
-  color: rgba(156, 163, 175, 1);
+  color: rgba(180, 160, 190, 1);
   cursor: pointer;
   transition: all 0.2s ease;
   font-size: 12px;
@@ -819,7 +819,7 @@ body {
 }
 
 .toggle-btn:hover {
-  color: rgba(209, 213, 219, 1);
+  color: rgba(210, 190, 220, 1);
 }
 
 .toggle-btn.active {
