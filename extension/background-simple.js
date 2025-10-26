@@ -1957,11 +1957,16 @@ async function writeToSheets(range, values, formulas = []) {
               console.log('Is Google Sheets:', isSheets, 'URL:', url);
               
               if (!isSheets) {
-                console.log('Not a Sheets frame, skipping...');
-                // Don't resolve with error yet - try other frames
-                resolveScript({ success: false, error: 'Not in a Sheets iframe' });
+                console.log('❌ Not a Sheets frame, skipping...');
+                // Don't resolve yet - let other frames try
+                // This will be handled by checking all results
+                setTimeout(() => {
+                  resolveScript({ success: false, error: 'Not in a Sheets iframe', skipped: true });
+                }, 100);
                 return;
               }
+              
+              console.log('✅ Found Google Sheets iframe!');
               
               // Try to find the cell editor (active cell)
               // Google Sheets uses various approaches to edit cells
@@ -2106,19 +2111,34 @@ async function writeToSheets(range, values, formulas = []) {
           return;
         }
         
-        // Check all frame results for a success
+        // Check all frame results for a success (skip frames marked as skipped)
+        let actualSuccess = false;
+        let lastRealError = null;
+        
         for (const result of results) {
-          if (result && result.result && result.result.success) {
-            console.log(`✅ Success in one of the frames`);
-            resolve(result.result);
-            return;
+          if (result && result.result) {
+            // Skip frames that weren't Sheets frames
+            if (result.result.skipped) {
+              console.log('⏭️ Skipping non-Sheets frame');
+              continue;
+            }
+            
+            if (result.result.success) {
+              console.log(`✅ Success in Google Sheets frame!`);
+              actualSuccess = true;
+              resolve(result.result);
+              return;
+            } else {
+              lastRealError = result.result.error || 'Unknown error';
+            }
           }
         }
         
         // If we get here, no frame succeeded
         console.error('❌ No frame successfully wrote to Sheets');
-        const lastError = results[results.length - 1]?.result?.error || 'Unknown error';
-        resolve({ success: false, error: `Failed in all frames: ${lastError}` });
+        console.error('All results:', results.map(r => r?.result));
+        const errorMsg = lastRealError || results[results.length - 1]?.result?.error || 'Unknown error';
+        resolve({ success: false, error: `Failed to write to Sheets: ${errorMsg}` });
       });
     });
   });
