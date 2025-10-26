@@ -51,42 +51,44 @@
         <!-- Attachment chips container -->
         <div id="attachment-chips" class="attachment-chips hidden"></div>
         
-        <!-- Primary Action Group: Left Utilities -->
-        <div class="chat-actions-primary">
-          <button id="fab-toggle" class="btn-icon btn-utility" title="Actions" aria-label="Actions menu">
-            <span class="icon">+</span>
-          </button>
-        </div>
-        
-        <!-- Primary Input Area -->
-        <div class="chat-input-wrapper">
-          <textarea 
-            id="chat-input" 
-            class="chat-textarea" 
-            placeholder="Type your message… (Shift+Enter for new line)"
-            rows="1"
-            aria-label="Message input"
-            aria-describedby="input-hint"
-          ></textarea>
-          <span id="input-hint" class="sr-only">Press Enter to send, Shift+Enter for new line</span>
-        </div>
-        
-        <!-- Primary Action Group: Right Actions -->
-        <div class="chat-actions-secondary">
-          <!-- Voice Input -->
-          <button id="microphone-btn" class="btn-icon btn-utility" title="Voice input" aria-label="Start voice input">
-            <span class="icon">🎤</span>
-          </button>
+        <!-- Chat input container -->
+        <div class="chat-input-container">
+          <!-- Left action buttons -->
+          <div class="chat-left-actions">
+            <button id="fab-toggle" class="btn-icon btn-utility" title="Actions" aria-label="Actions menu">
+              <span class="icon">+</span>
+            </button>
+          </div>
           
-          <!-- Send Action (Primary) -->
-          <button id="send-btn" class="btn-icon btn-primary" title="Send message" aria-label="Send message">
-            <span class="icon">→</span>
-          </button>
-          
-          <!-- Stop Action (Hidden by default) -->
-          <button id="stop-btn" class="btn-icon btn-stop hidden" title="Stop generating" aria-label="Stop generating">
-            <span class="icon">⏹</span>
-          </button>
+          <!-- Main input area -->
+          <div class="chat-input-inner">
+            <textarea 
+              id="chat-input" 
+              class="chat-textarea" 
+              placeholder="Type your message here..."
+              rows="1"
+              aria-label="Message input"
+              aria-describedby="input-hint"
+            ></textarea>
+            
+            <!-- Right action buttons -->
+            <div class="chat-right-actions">
+              <!-- Voice Input -->
+              <button id="microphone-btn" class="chat-action-btn" title="Voice input" aria-label="Start voice input">
+                <span class="icon">🎤</span>
+              </button>
+              
+              <!-- Send Action (Primary) -->
+              <button id="send-btn" class="chat-action-btn chat-send-btn" title="Send message" aria-label="Send message">
+                <span class="icon">→</span>
+              </button>
+              
+              <!-- Stop Action (Hidden by default) -->
+              <button id="stop-btn" class="chat-action-btn chat-stop-btn hidden" title="Stop generating" aria-label="Stop generating">
+                <span class="icon">⏹</span>
+              </button>
+            </div>
+          </div>
         </div>
       </div>
       
@@ -113,7 +115,7 @@
           <span class="fab-label">Translate</span>
         </button>
       </div>
-    </div>
+    </footer>
     
   </div>
   
