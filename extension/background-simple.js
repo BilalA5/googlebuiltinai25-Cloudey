@@ -58,6 +58,9 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         handleGeminiChat(request, sender, sendResponse);
         break;
       
+      case 'agentExecute':
+        handleAgentExecute(request, sender, sendResponse);
+        break;
         
       default:
         sendResponse({ error: 'Unknown action' });
@@ -870,5 +873,85 @@ ${pageContext.content}`;
   }
 }
 
+// Agent Mode Execution Handler
+async function handleAgentExecute(request, sender, sendResponse) {
+  const { message, pageContext } = request;
+  
+  try {
+    console.log('🤖 Agent Mode execution started');
+    
+    // Import agent actions module
+    const { planAgentActions, executeAction } = await import('./agentActions.js');
+    
+    // Plan the actions
+    const actions = await planAgentActions(message, pageContext);
+    console.log('📋 Planned actions:', actions);
+    
+    // Send action plan to sidebar for display
+    chrome.runtime.sendMessage({
+      action: 'agentStepsUpdate',
+      steps: actions.map((action, index) => ({
+        id: index,
+        title: `${action.action}: ${action.target}`,
+        status: 'pending',
+        icon: '⚙️'
+      }))
+    });
+    
+    // Execute actions one by one
+    const results = [];
+    for (let i = 0; i < actions.length; i++) {
+      const action = actions[i];
+      
+      // Update step status to active
+      chrome.runtime.sendMessage({
+        action: 'agentStepUpdate',
+        stepId: i,
+        status: 'active',
+        icon: '⚙️'
+      });
+      
+      // Highlight element if it's a DOM action
+      if (action.target && action.target !== 'page') {
+        chrome.tabs.sendMessage(sender.tab.id, {
+          action: 'agentHighlight',
+          selector: action.target
+        });
+      }
+      
+      // Execute the action
+      const result = await executeAction(action.action, action.target, action.params);
+      results.push(result);
+      
+      // Update step status
+      const stepStatus = result.success ? 'completed' : 'failed';
+      const stepIcon = result.success ? '✓' : '✗';
+      
+      chrome.runtime.sendMessage({
+        action: 'agentStepUpdate',
+        stepId: i,
+        status: stepStatus,
+        icon: stepIcon
+      });
+      
+      // Small delay between actions
+      await new Promise(resolve => setTimeout(resolve, 500));
+    }
+    
+    // Send final result
+    sendResponse({
+      success: true,
+      results: results,
+      message: `Agent completed ${actions.length} actions`
+    });
+    
+  } catch (error) {
+    console.error('Agent execution error:', error);
+    sendResponse({
+      success: false,
+      error: error.message
+    });
+  }
+}
 
 console.log('Cloudey background script ready');
