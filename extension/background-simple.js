@@ -1736,64 +1736,30 @@ Write a complete, well-formatted email body (2-4 sentences) that is warm, profes
           return new Promise((resolve) => {
             const url = window.location.href.toLowerCase();
             
-            // Detect email service - more comprehensive detection
+            // Detect email service - Gmail only
             const isGmail = url.includes('mail.google.com');
-            const isOutlook = url.includes('outlook.com') || 
-                             url.includes('outlook.live.com') || 
-                             url.includes('outlook.office.com') ||
-                             url.includes('outlook.office365.com') ||
-                             document.querySelector('[data-appid="Office.Outlook"]') ||
-                             document.querySelector('[aria-label*="Microsoft 365"]');
             
-            console.log('Email service detection:', { isGmail, isOutlook, url });
+            console.log('Email service detection:', { isGmail, url });
             
-            if (!isGmail && !isOutlook) {
-              resolve({ success: false, error: 'Not on Gmail or Outlook. Please open your email service first.' });
+            if (!isGmail) {
+              resolve({ success: false, error: 'Not on Gmail. Please open Gmail first.' });
               return;
             }
             
             try {
-              // Click compose button
+              // Click compose button - Gmail only
               let composeButton = null;
               
-              if (isGmail) {
-                // Gmail compose button - try multiple selectors
-                const gmailSelectors = [
-                  '.T-I.T-I-KE.L3', // Gmail compose button class
-                  'div[role="button"][aria-label*="Compose"]',
-                  'div[data-tooltip*="Compose"]',
-                  'div.z0'
-                ];
-                
-                for (const sel of gmailSelectors) {
-                  composeButton = document.querySelector(sel);
-                  if (composeButton) break;
-                }
-              } else if (isOutlook) {
-                // Outlook compose button - try multiple selectors
-                const outlookSelectors = [
-                  'button[aria-label*="New Mail"]',
-                  'button[title*="New Mail"]',
-                  'button[aria-label*="New message"]',
-                  'button[title*="New message"]',
-                  'button[title*="Nouveau message"]', // French
-                  'button[aria-label*="Nouveau message"]',
-                  'button.ms-Button--primary',
-                  'button[name="New Message"]',
-                  'button[data-automation-id="newMessageButton"]',
-                  'div[role="button"][aria-label*="New message"]',
-                  'button:has([data-icon-name="Add"])',
-                  'button:has([aria-label="New message"])',
-                  'button:has([aria-label*="New Mail"])'
-                ];
-                
-                for (const sel of outlookSelectors) {
-                  composeButton = document.querySelector(sel);
-                  if (composeButton) {
-                    console.log('Found Outlook compose button with selector:', sel);
-                    break;
-                  }
-                }
+              const gmailSelectors = [
+                '.T-I.T-I-KE.L3', // Gmail compose button class
+                'div[role="button"][aria-label*="Compose"]',
+                'div[data-tooltip*="Compose"]',
+                'div.z0'
+              ];
+              
+              for (const sel of gmailSelectors) {
+                composeButton = document.querySelector(sel);
+                if (composeButton) break;
               }
               
               if (!composeButton) {
@@ -1814,33 +1780,15 @@ Write a complete, well-formatted email body (2-4 sentences) that is warm, profes
               }
               
               if (!composeButton) {
-                console.error('❌ Could not find compose button');
-                if (isOutlook) {
-                  console.error('Outlook: Searching for all buttons with "New", "mail", or "message"...');
-                  const allButtons = Array.from(document.querySelectorAll('button, div[role="button"]'));
-                  const relevantButtons = allButtons.filter(el => {
-                    const text = el.textContent.toLowerCase();
-                    const aria = el.getAttribute('aria-label')?.toLowerCase() || '';
-                    return text.includes('new') || text.includes('mail') || text.includes('message') || 
-                           aria.includes('new') || aria.includes('mail') || aria.includes('message');
-                  }).slice(0, 15);
-                  
-                  console.error('Found potential buttons:', relevantButtons.map(el => ({
-                    text: el.textContent.substring(0, 30),
+                console.error('❌ Could not find Gmail compose button');
+                console.error('Available buttons:', 
+                  Array.from(document.querySelectorAll('button, div[role="button"]')).map(el => ({
+                    text: el.textContent.substring(0, 20),
                     ariaLabel: el.getAttribute('aria-label'),
-                    className: el.className,
-                    id: el.id
-                  })));
-                } else {
-                  console.error('Available buttons:', 
-                    Array.from(document.querySelectorAll('button, div[role="button"]')).map(el => ({
-                      text: el.textContent.substring(0, 20),
-                      ariaLabel: el.getAttribute('aria-label'),
-                      className: el.className
-                    })).slice(0, 10)
-                  );
-                }
-                resolve({ success: false, error: 'Could not find compose button. Please click it manually first.' });
+                    className: el.className
+                  })).slice(0, 10)
+                );
+                resolve({ success: false, error: 'Could not find Gmail compose button. Please click it manually first.' });
                 return;
               }
               
@@ -1850,10 +1798,8 @@ Write a complete, well-formatted email body (2-4 sentences) that is warm, profes
               
               // Wait a bit for compose window to appear
               setTimeout(() => {
-              // Fill recipient
-              const toSelectors = isGmail 
-                ? ['input[name="to"]', 'input[aria-label*="To"]', 'input[placeholder*="To"]', 'textarea[name="to"]']
-                : ['input[aria-label*="To"]', 'input[placeholder*="To"]'];
+              // Fill recipient - Gmail
+              const toSelectors = ['input[name="to"]', 'input[aria-label*="To"]', 'input[placeholder*="To"]', 'textarea[name="to"]'];
               
               let toField = null;
               for (const selector of toSelectors) {
@@ -1875,10 +1821,8 @@ Write a complete, well-formatted email body (2-4 sentences) that is warm, profes
               
               // Small delay before filling subject
               setTimeout(() => {
-                // Fill subject
-                const subjectSelectors = isGmail
-                  ? ['input[name="subjectbox"]', 'input[name="subject"]', 'input[aria-label*="Subject"]']
-                  : ['input[aria-label*="Subject"]', 'input[name="subject"]'];
+                // Fill subject - Gmail
+                const subjectSelectors = ['input[name="subjectbox"]', 'input[name="subject"]', 'input[aria-label*="Subject"]'];
                 
                 let subjectField = null;
                 for (const selector of subjectSelectors) {
@@ -1900,10 +1844,8 @@ Write a complete, well-formatted email body (2-4 sentences) that is warm, profes
                 
                 // Small delay before filling body
                 setTimeout(() => {
-                  // Fill body
-                  const bodySelectors = isGmail
-                    ? ['div[aria-label*="Message Body"]', 'div[g_editable="true"][role="textbox"]', 'div[contenteditable="true"][role="textbox"]']
-                    : ['div[aria-label*="Message body"]', 'div[contenteditable="true"][role="textbox"]'];
+                  // Fill body - Gmail
+                  const bodySelectors = ['div[aria-label*="Message Body"]', 'div[g_editable="true"][role="textbox"]', 'div[contenteditable="true"][role="textbox"]'];
                   
                   let bodyField = null;
                   for (const selector of bodySelectors) {
@@ -1958,12 +1900,8 @@ async function updateEmailBody(newBody) {
       chrome.scripting.executeScript({
         target: { tabId: tabs[0].id },
         func: (updatedBody) => {
-          const isGmail = window.location.href.toLowerCase().includes('mail.google.com');
-          
-          // Find email body field
-          const bodySelectors = isGmail
-            ? ['div[aria-label*="Message Body"]', 'div[g_editable="true"][role="textbox"]', 'div[contenteditable="true"][role="textbox"]']
-            : ['div[aria-label*="Message body"]', 'div[contenteditable="true"][role="textbox"]'];
+          // Gmail only
+          const bodySelectors = ['div[aria-label*="Message Body"]', 'div[g_editable="true"][role="textbox"]', 'div[contenteditable="true"][role="textbox"]'];
           
           let bodyField = null;
           for (const selector of bodySelectors) {
