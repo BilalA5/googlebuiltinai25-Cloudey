@@ -131,10 +131,30 @@ async function getPageContext(tab) {
 // generate AI response using Gemini Nano
 async function generateAIResponse(message, pageContext, history = []) {
   try {
+    // DEBUG: Check context and global objects
+    console.log('=== DEBUG: AI Availability Check ===');
+    console.log('typeof self:', typeof self);
+    console.log('typeof globalThis:', typeof globalThis);
+    console.log('typeof chrome:', typeof chrome);
+    console.log('typeof chrome?.ai:', typeof chrome?.ai);
+    console.log('chrome.ai object:', chrome?.ai);
+    
+    if (chrome?.ai) {
+      console.log('chrome.ai keys:', Object.keys(chrome.ai));
+      console.log('chrome.ai.prompt type:', typeof chrome.ai.prompt);
+    }
+    console.log('=== END DEBUG ===');
+    
     // check if AI is available
     console.log('Checking AI availability...');
+    console.log('typeof chrome:', typeof chrome);
     console.log('typeof chrome.ai:', typeof chrome.ai);
     console.log('chrome.ai available:', !!chrome.ai);
+    
+    if (chrome.ai) {
+      console.log('chrome.ai keys:', Object.keys(chrome.ai));
+      console.log('chrome.ai.prompt exists:', !!chrome.ai.prompt);
+    }
     
     // Check if chrome.ai.prompt is available (the Prompt API for Gemini Nano)
     if (!chrome.ai || !chrome.ai.prompt) {
