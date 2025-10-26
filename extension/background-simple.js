@@ -5,8 +5,16 @@ console.log('Cloudey background script loaded');
 const conversationHistory = new Map();
 
 // Google AI Studio configuration
-const GEMINI_API_KEY = 'AIzaSyCG6s4Xh-UqR6TE2cq4dUqPAQ898ThNBSo';
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-001:generateContent';
+
+// Get API key from storage
+async function getApiKey() {
+  return new Promise((resolve) => {
+    chrome.storage.local.get(['geminiApiKey'], (result) => {
+      resolve(result.geminiApiKey || null);
+    });
+  });
+}
 
 // AI-powered message handler
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
@@ -52,6 +60,14 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       
       case 'geminiChat':
         handleGeminiChat(request, sender, sendResponse);
+        break;
+      
+      case 'setApiKey':
+        handleSetApiKey(request, sender, sendResponse);
+        break;
+      
+      case 'getApiKeyStatus':
+        handleGetApiKeyStatus(request, sender, sendResponse);
         break;
         
       default:
@@ -290,6 +306,16 @@ async function handleGeminiChat(request, sender, sendResponse) {
   const { message, history = [], includeContext = false } = request;
   
   try {
+    // Get API key from storage
+    const apiKey = await getApiKey();
+    if (!apiKey) {
+      sendResponse({
+        success: false,
+        response: 'API key not configured. Please set your Gemini API key in settings.'
+      });
+      return;
+    }
+
     // Get page context if requested
     let pageContext = null;
     if (includeContext && sender.tab) {
@@ -330,7 +356,7 @@ async function handleGeminiChat(request, sender, sendResponse) {
       }
     };
 
-    const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
+    const response = await fetch(`${GEMINI_API_URL}?key=${apiKey}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -359,6 +385,41 @@ async function handleGeminiChat(request, sender, sendResponse) {
     sendResponse({
       success: false,
       response: `Error: ${error.message}. Please check your internet connection.`
+    });
+  }
+}
+
+// API key management
+async function handleSetApiKey(request, sender, sendResponse) {
+  const { apiKey } = request;
+  
+  try {
+    await chrome.storage.local.set({ geminiApiKey: apiKey });
+    sendResponse({
+      success: true,
+      message: 'API key saved successfully'
+    });
+  } catch (error) {
+    sendResponse({
+      success: false,
+      message: 'Failed to save API key'
+    });
+  }
+}
+
+async function handleGetApiKeyStatus(request, sender, sendResponse) {
+  try {
+    const apiKey = await getApiKey();
+    sendResponse({
+      success: true,
+      hasApiKey: !!apiKey,
+      message: apiKey ? 'API key is configured' : 'API key not configured'
+    });
+  } catch (error) {
+    sendResponse({
+      success: false,
+      hasApiKey: false,
+      message: 'Failed to check API key status'
     });
   }
 }
