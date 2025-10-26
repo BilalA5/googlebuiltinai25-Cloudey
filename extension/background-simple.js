@@ -1359,9 +1359,90 @@ async function writeContent(selector, content, useWriterAPI = false) {
           // ===== GOOGLE DOCS SPECIAL HANDLING =====
           // Google Docs uses complex iframes and requires special handling
           
-          // First, try to find contenteditable elements in the main document
+          // First, try to find and access iframes
+          const iframes = document.querySelectorAll('iframe');
+          console.log(`🔍 Found ${iframes.length} iframes`);
+          
+          // Try to access iframe content (this requires same-origin)
+          for (let i = 0; i < iframes.length; i++) {
+            try {
+              const iframe = iframes[i];
+              const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
+              
+              if (iframeDoc) {
+                console.log(`✅ Can access iframe ${i} content`);
+                const iframeContentEditables = iframeDoc.querySelectorAll('[contenteditable="true"]');
+                console.log(`🔍 Found ${iframeContentEditables.length} contenteditables in iframe ${i}`);
+                
+                if (iframeContentEditables.length > 0) {
+                  for (const elem of iframeContentEditables) {
+                    console.log(`📍 Found contenteditable in iframe:`, elem);
+                    // Use the first valid contenteditable we find
+                    const bestElement = elem;
+                    
+                    // Focus the element
+                    bestElement.focus();
+                    
+                    // Check if there's existing content
+                    const existingContent = bestElement.textContent || bestElement.innerText || '';
+                    console.log(`📄 Existing content length: ${existingContent.length}`);
+                    
+                    // Position cursor at the end of existing content
+                    const range = iframeDoc.createRange();
+                    const selection = iframeDoc.getSelection();
+                    
+                    if (existingContent.length > 0) {
+                      // Append to existing content
+                      console.log(`📝 Appending to existing content`);
+                      
+                      // Create a text node and add it to the end
+                      const textNode = iframeDoc.createTextNode('\n\n' + finalContent);
+                      bestElement.appendChild(textNode);
+                      
+                      // Position cursor after the new text
+                      range.setStartAfter(textNode);
+                      range.setEndAfter(textNode);
+                      selection.removeAllRanges();
+                      selection.addRange(range);
+                    } else {
+                      // No existing content, just insert
+                      console.log(`📝 Writing to empty document`);
+                      range.selectNodeContents(bestElement);
+                      selection.removeAllRanges();
+                      selection.addRange(range);
+                      
+                      // Use execCommand to insert text
+                      const success = iframeDoc.execCommand('insertText', false, finalContent);
+                      
+                      if (!success) {
+                        // Fallback: set content directly
+                        bestElement.textContent = finalContent;
+                      }
+                    }
+                    
+                    console.log(`✅ Successfully wrote content to Google Docs via iframe`);
+                    
+                    // Dispatch events to trigger Google Docs to save
+                    bestElement.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
+                    bestElement.dispatchEvent(new Event('change', { bubbles: true, cancelable: true }));
+                    
+                    // Trigger a blur event to signal completion
+                    setTimeout(() => {
+                      bestElement.dispatchEvent(new Event('blur', { bubbles: true, cancelable: true }));
+                    }, 100);
+                    
+                    return { success: true, message: `Wrote content to Google Docs via iframe` };
+                  }
+                }
+              }
+            } catch (e) {
+              console.log(`⚠️ Cannot access iframe ${i} (likely cross-origin):`, e.message);
+            }
+          }
+          
+          // Fallback: try to find contenteditable elements in the main document
           const contenteditables = document.querySelectorAll('[contenteditable="true"]');
-          console.log(`🔍 Found ${contenteditables.length} contenteditable elements`);
+          console.log(`🔍 Found ${contenteditables.length} contenteditable elements in main document`);
           
           if (contenteditables.length > 0) {
             // Find the best contenteditable element (usually the main document)
