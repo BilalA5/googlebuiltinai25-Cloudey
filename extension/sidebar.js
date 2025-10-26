@@ -533,7 +533,7 @@ async function sendMessage() {
   const message = chatInput.value.trim();
   
   // Validate message length - must be at least 1 character
-  if (message.length < 1 && attachedFiles.length === 0) {
+  if (message.length < 1) {
     console.log('Message too short, not sending');
     
     // Add visual feedback for empty message
@@ -564,10 +564,13 @@ async function sendMessage() {
   if (emptyState) emptyState.remove();
   
   // Add user message
-  addMessage('user', message || '[File attachments]');
+  addMessage('user', message || '[Empty message]');
   
   // Add to history
   conversationHistory.push({ role: 'user', content: message });
+  
+  console.log('Message being sent:', message);
+  console.log('Message length:', message.length);
   
   // Show typing indicator
   showTypingIndicator();
