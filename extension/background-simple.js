@@ -960,10 +960,28 @@ async function handleAgentExecute(request, sender, sendResponse) {
     }
     
     // Send final result
+    const successCount = results.filter(r => r.success).length;
+    const failureCount = results.filter(r => !r.success).length;
+    
+    let responseMessage = `Agent completed ${actions.length} actions`;
+    if (successCount > 0) {
+      responseMessage += ` (${successCount} successful)`;
+    }
+    if (failureCount > 0) {
+      responseMessage += ` (${failureCount} failed)`;
+    }
+    
+    // Add details about what was accomplished
+    const writeResults = results.filter(r => r.success && (r.message?.includes('Wrote content') || r.message?.includes('Filled')));
+    if (writeResults.length > 0) {
+      responseMessage += `\n\n✅ Successfully wrote content to the document!`;
+    }
+    
     sendResponse({
       success: true,
       results: results,
-      message: `Agent completed ${actions.length} actions`
+      response: responseMessage,
+      message: responseMessage
     });
     
   } catch (error) {
@@ -1298,14 +1316,21 @@ async function writeContent(selector, content, useWriterAPI = false) {
           console.log(`🎯 Initial element found:`, element);
           
           // If not found, try Google Docs specific selectors
-          if (!element && sel === 'body') {
+          if (!element) {
             console.log(`🔍 Trying Google Docs selectors...`);
             const googleDocsSelectors = [
               '.kix-lineview-text-block',
               '.kix-wordhtmlgenerator-word',
               '[contenteditable="true"]',
               '.docs-texteventtarget-iframe',
-              '.kix-appview-editor'
+              '.kix-appview-editor',
+              '.kix-canvas-tile-content',
+              '.kix-page',
+              '.kix-document',
+              'div[role="textbox"]',
+              'div[contenteditable="true"]',
+              '.kix-appview-editor .kix-lineview-text-block',
+              'body'
             ];
             
             for (const docSelector of googleDocsSelectors) {
@@ -1345,10 +1370,31 @@ async function writeContent(selector, content, useWriterAPI = false) {
           } else if (element.contentEditable === 'true' || element.hasAttribute('contenteditable')) {
             // For contenteditable elements (like Google Docs)
             element.focus();
-            element.innerHTML = finalContent;
+            
+            // Try multiple methods for Google Docs
+            try {
+              // Method 1: Direct text content
+              element.textContent = finalContent;
+              console.log(`✅ Set textContent for contenteditable`);
+            } catch (e) {
+              try {
+                // Method 2: innerHTML
+                element.innerHTML = finalContent;
+                console.log(`✅ Set innerHTML for contenteditable`);
+              } catch (e2) {
+                // Method 3: Create text node
+                element.innerHTML = '';
+                const textNode = document.createTextNode(finalContent);
+                element.appendChild(textNode);
+                console.log(`✅ Created text node for contenteditable`);
+              }
+            }
+            
+            // Dispatch events
             element.dispatchEvent(new Event('input', { bubbles: true }));
             element.dispatchEvent(new Event('change', { bubbles: true }));
-            console.log(`✅ Set innerHTML for contenteditable`);
+            element.dispatchEvent(new Event('keyup', { bubbles: true }));
+            element.dispatchEvent(new Event('blur', { bubbles: true }));
           } else {
             // For regular elements
             element.textContent = finalContent;
