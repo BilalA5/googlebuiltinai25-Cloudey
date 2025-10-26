@@ -1,4 +1,5 @@
 import { icons, getIconHTML } from './icons.js';
+import { OllamaClient } from './ollamaClient.js';
 
 console.log('Cloudey side panel loaded');
 
@@ -26,6 +27,9 @@ let attachedFiles = [];
 let typewriterAbortController = null;
 const MAX_FILES = 5;
 const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25MB
+
+// Initialize Ollama client
+const ollamaClient = new OllamaClient();
 
 // Initialize icons
 function initializeIcons() {
@@ -332,69 +336,12 @@ async function sendMessage() {
   }
   
   try {
-    // Try Chrome AI Origin Trial API first
-    console.log('Checking for Chrome AI API...');
-    console.log('chrome.aiOriginTrial:', chrome.aiOriginTrial);
+    // Use Ollama for AI responses
+    console.log('Using Ollama for AI response...');
     
-    if (chrome.aiOriginTrial && chrome.aiOriginTrial.languageModel) {
-      console.log('Chrome AI API available, checking capabilities...');
-      
-      try {
-        const capabilities = await chrome.aiOriginTrial.languageModel.capabilities();
-        console.log('Model capabilities:', capabilities);
-        
-        if (capabilities.available === 'readily' || capabilities.available === 'downloadable') {
-          console.log('Model is available, creating session...');
-          
-          const lm = await chrome.aiOriginTrial.languageModel.create();
-          const prompt = `You are Cloudey, a helpful AI assistant. Answer this question directly and completely: ${message}`;
-          
-          const result = await lm.prompt(prompt);
-          
-          console.log('AI response received from Gemini Nano');
-          hideTypingIndicator();
-          promptBox?.classList.remove('loading');
-          typewriterEffect(result);
-          conversationHistory.push({ role: 'assistant', content: result });
-          return;
-        }
-      } catch (apiError) {
-        console.error('Error with Chrome AI API:', apiError);
-        // Fall through to pattern matching
-      }
-    }
+    const aiResponse = await ollamaClient.generateResponse(message, conversationHistory);
     
-    // Fallback to client-side local pattern matching
-    console.log('Using client-side local responses...');
-    
-    const lowerMessage = message.toLowerCase();
-    let aiResponse = '';
-    
-    // Pattern matching for common queries
-    if (lowerMessage.includes('hello') || lowerMessage.includes('hi') || lowerMessage.includes('hey')) {
-      aiResponse = 'Hello! I\'m Cloudey, your AI assistant. How can I help you today?';
-    } else if (lowerMessage.includes('help')) {
-      aiResponse = 'I can help you with:\n• Answering questions\n• Providing information\n• Assisting with various tasks\n\nWhat would you like help with?';
-    } else if (lowerMessage.includes('weather')) {
-      aiResponse = 'I don\'t have access to real-time weather data. For weather information, please check a weather website or app.';
-    } else if (lowerMessage.includes('time') || lowerMessage.includes('date')) {
-      const now = new Date();
-      aiResponse = `Current time: ${now.toLocaleTimeString()}\nDate: ${now.toLocaleDateString()}`;
-    } else if (lowerMessage.includes('thank')) {
-      aiResponse = 'You\'re welcome! Happy to help. Is there anything else you need?';
-    } else if (lowerMessage.includes('goodbye') || lowerMessage.includes('bye')) {
-      aiResponse = 'Goodbye! Feel free to come back anytime you need assistance.';
-    } else if (lowerMessage.includes('what can you do')) {
-      aiResponse = 'I can help you with information, answer questions, and assist with various tasks. For advanced features, please ensure Chrome\'s Prompt API is enabled.';
-    } else if (lowerMessage.includes('who are you')) {
-      aiResponse = 'I\'m Cloudey, your AI-powered browser assistant. I use client-side processing to help you with tasks and answer questions.';
-    } else {
-      // Default fallback response
-      aiResponse = `I understand you said: "${message}". To enable full AI capabilities with Gemini Nano, please:\n\n1. Go to chrome://flags/\n2. Enable "Prompt API for Gemini Nano"\n3. Enable "optimization-guide-on-device-model" (BypassPerfRequirement)\n4. Add a valid origin trial token to manifest.json\n5. Restart Chrome and reload this extension`;
-    }
-    
-    console.log('Generated local response');
-    
+    console.log('AI response received from Ollama');
     hideTypingIndicator();
     promptBox?.classList.remove('loading');
     typewriterEffect(aiResponse);
@@ -406,7 +353,16 @@ async function sendMessage() {
     hideTypingIndicator();
     promptBox?.classList.remove('loading');
     
-    addMessage('assistant', `Error: ${error.message}. Please check your internet connection.`);
+    let errorMessage = '';
+    if (error.message.includes('Ollama server is not running')) {
+      errorMessage = 'Ollama server is not running. Please start it with: brew services start ollama';
+    } else if (error.message.includes('fetch')) {
+      errorMessage = 'Cannot connect to Ollama server. Please ensure Ollama is running on localhost:11434';
+    } else {
+      errorMessage = `Error: ${error.message}. Please check your Ollama installation.`;
+    }
+    
+    addMessage('assistant', errorMessage);
     announceToScreenReader('An error occurred', 'assertive');
   }
 }

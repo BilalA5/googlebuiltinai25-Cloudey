@@ -2,6 +2,7 @@
 console.log('ChatManager loaded');
 
 class ChatManager {
+  //Constructor method
   constructor() {
     this.maxMessagesPerTab = 50;
     this.contextTTL = 5 * 60 * 1000; // 5 minutes in milliseconds
