@@ -2003,11 +2003,13 @@ async function searchGoogleMaps(query) {
     if (!isMaps) {
       // Open Google Maps in a new tab with the search query
       const mapsUrl = `https://www.google.com/maps/search/${encodeURIComponent(query)}`;
-      chrome.tabs.create({ url: mapsUrl });
-      return { 
-        success: true, 
-        message: `Opened Google Maps search for: ${query}` 
-      };
+      const newTab = await chrome.tabs.create({ url: mapsUrl });
+      
+      // Wait for the page to load
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      
+      // Now perform the enhanced search and analysis
+      return await analyzeMapsResults(newTab.id, query);
     }
     
     // If already on Maps, perform the search
@@ -2015,46 +2017,71 @@ async function searchGoogleMaps(query) {
       chrome.scripting.executeScript({
         target: { tabId: activeTab.id },
         func: (searchQuery) => {
-          try {
-            // Find the search box on Google Maps
-            const searchSelectors = [
-              'input#searchboxinput',
-              'input[aria-label*="Search"]',
-              'input[placeholder*="Search"]',
-              'input[type="text"]'
-            ];
-            
-            let searchBox = null;
-            for (const selector of searchSelectors) {
-              searchBox = document.querySelector(selector);
-              if (searchBox) break;
-            }
-            
-            if (searchBox) {
-              searchBox.value = searchQuery;
-              searchBox.dispatchEvent(new Event('input', { bubbles: true }));
-              searchBox.dispatchEvent(new Event('change', { bubbles: true }));
+          return new Promise((resolveSearch) => {
+            try {
+              // Find the search box on Google Maps
+              const searchSelectors = [
+                'input#searchboxinput',
+                'input[aria-label*="Search"]',
+                'input[placeholder*="Search"]',
+                'input[type="text"]'
+              ];
               
-              // Trigger search by pressing Enter
-              searchBox.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', bubbles: true }));
-              searchBox.dispatchEvent(new KeyboardEvent('keyup', { key: 'Enter', code: 'Enter', bubbles: true }));
+              let searchBox = null;
+              for (const selector of searchSelectors) {
+                searchBox = document.querySelector(selector);
+                if (searchBox) break;
+              }
               
-              return { success: true, message: `Searched for: ${searchQuery}` };
-            } else {
-              return { success: false, error: 'Could not find search box on Google Maps' };
+              if (searchBox) {
+                // Clear and set search query
+                searchBox.value = '';
+                searchBox.focus();
+                
+                // Type the search query character by character to trigger autocomplete
+                const chars = searchQuery.split('');
+                let index = 0;
+                
+                const typeChar = () => {
+                  if (index < chars.length) {
+                    searchBox.value = searchQuery.substring(0, index + 1);
+                    searchBox.dispatchEvent(new Event('input', { bubbles: true }));
+                    index++;
+                    setTimeout(typeChar, 50);
+                  } else {
+                    // Trigger search by pressing Enter
+                    setTimeout(() => {
+                      searchBox.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', bubbles: true, keyCode: 13, which: 13 }));
+                      searchBox.dispatchEvent(new KeyboardEvent('keypress', { key: 'Enter', code: 'Enter', bubbles: true, keyCode: 13, which: 13 }));
+                      searchBox.dispatchEvent(new KeyboardEvent('keyup', { key: 'Enter', code: 'Enter', bubbles: true, keyCode: 13, which: 13 }));
+                      
+                      resolveSearch({ success: true, message: `Searched for: ${searchQuery}` });
+                    }, 200);
+                  }
+                };
+                
+                typeChar();
+              } else {
+                resolveSearch({ success: false, error: 'Could not find search box on Google Maps' });
+              }
+            } catch (error) {
+              resolveSearch({ success: false, error: error.message });
             }
-          } catch (error) {
-            return { success: false, error: error.message };
-          }
+          });
         },
         args: [query]
-      }, (results) => {
+      }, async (results) => {
         if (chrome.runtime.lastError) {
           resolve({ success: false, error: chrome.runtime.lastError.message });
-        } else if (results && results[0]) {
-          resolve(results[0].result);
+        } else if (results && results[0] && results[0].result.success) {
+          // Wait for results to load
+          await new Promise(r => setTimeout(r, 4000));
+          
+          // Analyze the results
+          const analysis = await analyzeMapsResults(activeTab.id, query);
+          resolve(analysis);
         } else {
-          resolve({ success: false, error: 'Unknown error' });
+          resolve(results[0]?.result || { success: false, error: 'Unknown error' });
         }
       });
     });
@@ -2063,6 +2090,120 @@ async function searchGoogleMaps(query) {
     console.error('Error searching Google Maps:', error);
     return { success: false, error: error.message };
   }
+}
+
+async function analyzeMapsResults(tabId, query) {
+  console.log(`🔍 Analyzing Google Maps results for: ${query}`);
+  
+  return new Promise((resolve) => {
+    chrome.scripting.executeScript({
+      target: { tabId: tabId },
+      func: (searchQuery) => {
+        return new Promise(async (resolveAnalysis) => {
+          try {
+            // Wait for sidebar to load
+            await new Promise(r => setTimeout(r, 2000));
+            
+            const results = [];
+            let scrollAttempts = 0;
+            const maxScrolls = 5;
+            
+            // Function to extract results from current view
+            const extractCurrentResults = () => {
+              // Look for sidebar results
+              const resultSelectors = [
+                'div[role="article"]',
+                'div.g',
+                'div[jsaction*="mouseover"]',
+                'div[data-value]'
+              ];
+              
+              const resultsList = document.querySelectorAll(resultSelectors.join(','));
+              
+              resultsList.forEach((result, index) => {
+                if (results.length >= 20) return; // Limit to 20 results
+                
+                const title = result.querySelector('h3')?.textContent || 
+                             result.querySelector('[role="heading"]')?.textContent || 
+                             result.textContent.substring(0, 50);
+                
+                const address = result.querySelector('[aria-label*="Address"]')?.textContent ||
+                               result.querySelector('span[aria-label]')?.textContent || '';
+                
+                const rating = result.querySelector('[aria-label*="rating"]')?.textContent || '';
+                
+                // Check if we've already added this result
+                if (!results.some(r => r.title === title && r.address === address)) {
+                  results.push({
+                    index: index + 1,
+                    title: title.trim(),
+                    address: address.trim(),
+                    rating: rating.trim()
+                  });
+                }
+              });
+            };
+            
+            // Extract visible results
+            extractCurrentResults();
+            
+            // Scroll through results to load more
+            while (scrollAttempts < maxScrolls && results.length < 15) {
+              // Find the scrollable sidebar
+              const sidebar = document.querySelector('div[role="feed"]') || 
+                            document.querySelector('[aria-label*="Results"]')?.closest('div') ||
+                            document.querySelector('div.m6QErb');
+              
+              if (sidebar) {
+                // Scroll down
+                sidebar.scrollTop += 800;
+                await new Promise(r => setTimeout(r, 1000));
+                
+                // Extract new results
+                extractCurrentResults();
+              }
+              
+              scrollAttempts++;
+            }
+            
+            resolveAnalysis({
+              success: true,
+              query: searchQuery,
+              totalResults: results.length,
+              results: results,
+              message: `Found ${results.length} results for "${searchQuery}"`
+            });
+            
+          } catch (error) {
+            resolveAnalysis({ success: false, error: error.message });
+          }
+        });
+      },
+      args: [query]
+    }, (results) => {
+      if (chrome.runtime.lastError) {
+        resolve({ success: false, error: chrome.runtime.lastError.message });
+      } else if (results && results[0]) {
+        const analysis = results[0].result;
+        
+        if (analysis.success && analysis.results && analysis.results.length > 0) {
+          // Format results for display
+          const formattedResults = analysis.results.map(r => 
+            `• ${r.title}${r.address ? ` - ${r.address}` : ''}${r.rating ? ` (${r.rating})` : ''}`
+          ).join('\n');
+          
+          resolve({
+            success: true,
+            message: `Found ${analysis.totalResults} results:\n\n${formattedResults}`
+          });
+        } else {
+          resolve({ success: true, message: 'Search completed but no detailed results found' });
+        }
+      } else {
+        resolve({ success: false, error: 'Unknown error' });
+      }
+    });
+  });
 }
 
 console.log('Cloudey background script ready');
