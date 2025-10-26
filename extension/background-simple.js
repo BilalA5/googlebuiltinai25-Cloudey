@@ -5,7 +5,7 @@ console.log('Cloudey background script loaded');
 const conversationHistory = new Map();
 
 // Ollama API configuration
-const OLLAMA_BASE_URL = 'http://localhost:11434';
+const OLLAMA_BASE_URL = 'http://127.0.0.1:11434';
 const OLLAMA_MODEL = 'llama3.2:3b';
 
 // AI-powered message handler
@@ -290,6 +290,8 @@ async function handleTranslateText(request, sender, sendResponse) {
 async function handleOllamaChat(request, sender, sendResponse) {
   const { message, history = [] } = request;
   console.log('Handling Ollama chat request');
+  console.log('Ollama URL:', `${OLLAMA_BASE_URL}/api/chat`);
+  console.log('Model:', OLLAMA_MODEL);
   
   try {
     // Prepare conversation context
@@ -305,6 +307,7 @@ async function handleOllamaChat(request, sender, sendResponse) {
       }
     ];
 
+    console.log('Making request to Ollama...');
     const response = await fetch(`${OLLAMA_BASE_URL}/api/chat`, {
       method: 'POST',
       headers: {
@@ -322,8 +325,13 @@ async function handleOllamaChat(request, sender, sendResponse) {
       })
     });
 
+    console.log('Response status:', response.status);
+    console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+
     if (!response.ok) {
-      throw new Error(`Ollama API error: ${response.status} ${response.statusText}`);
+      const errorText = await response.text();
+      console.error('Ollama API error response:', errorText);
+      throw new Error(`Ollama API error: ${response.status} ${response.statusText} - ${errorText}`);
     }
 
     const data = await response.json();
