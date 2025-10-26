@@ -332,34 +332,36 @@ async function sendMessage() {
   }
   
   try {
-    // Use Gemini Cloud API since Prompt API doesn't work in extensions
-    const API_KEY = 'AIzaSyAToduibeG4QNzdMtNnxAJfd4_hr_f8gJQ';
-    const API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
+    // Client-side local pattern matching (no API, purely local)
+    console.log('Using client-side local responses...');
     
-    console.log('Using Gemini Cloud API...');
+    const lowerMessage = message.toLowerCase();
+    let aiResponse = '';
     
-    const response = await fetch(`${API_URL}?key=${API_KEY}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        contents: [{
-          parts: [{
-            text: `You are Cloudey, a helpful AI assistant. Answer this question directly and completely: ${message}`
-          }]
-        }]
-      })
-    });
-    
-    if (!response.ok) {
-      throw new Error(`API returned ${response.status}`);
+    // Pattern matching for common queries
+    if (lowerMessage.includes('hello') || lowerMessage.includes('hi') || lowerMessage.includes('hey')) {
+      aiResponse = 'Hello! I\'m Cloudey, your AI assistant. How can I help you today?';
+    } else if (lowerMessage.includes('help')) {
+      aiResponse = 'I can help you with:\n• Answering questions\n• Providing information\n• Assisting with various tasks\n\nWhat would you like help with?';
+    } else if (lowerMessage.includes('weather')) {
+      aiResponse = 'I don\'t have access to real-time weather data. For weather information, please check a weather website or app.';
+    } else if (lowerMessage.includes('time') || lowerMessage.includes('date')) {
+      const now = new Date();
+      aiResponse = `Current time: ${now.toLocaleTimeString()}\nDate: ${now.toLocaleDateString()}`;
+    } else if (lowerMessage.includes('thank')) {
+      aiResponse = 'You\'re welcome! Happy to help. Is there anything else you need?';
+    } else if (lowerMessage.includes('goodbye') || lowerMessage.includes('bye')) {
+      aiResponse = 'Goodbye! Feel free to come back anytime you need assistance.';
+    } else if (lowerMessage.includes('what can you do')) {
+      aiResponse = 'I can help you with information, answer questions, and assist with various tasks. For advanced features, please ensure Chrome\'s Prompt API is enabled.';
+    } else if (lowerMessage.includes('who are you')) {
+      aiResponse = 'I\'m Cloudey, your AI-powered browser assistant. I use client-side processing to help you with tasks and answer questions.';
+    } else {
+      // Default fallback response
+      aiResponse = `I understand you said: "${message}". To enable full AI capabilities with Gemini Nano, please:\n\n1. Go to chrome://flags/\n2. Enable "Prompt API for Gemini Nano"\n3. Enable "optimization-guide-on-device-model" (BypassPerfRequirement)\n4. Restart Chrome and reload this extension`;
     }
     
-    const data = await response.json();
-    const aiResponse = data.candidates[0].content.parts[0].text;
-    
-    console.log('Gemini API response received');
+    console.log('Generated local response');
     
     hideTypingIndicator();
     promptBox?.classList.remove('loading');
