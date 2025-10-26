@@ -248,6 +248,47 @@ body {
   box-shadow: var(--shadow-sm);
 }
 
+/* Page-specific actions */
+.page-specific-actions {
+  margin-top: 20px;
+  padding: 16px;
+  background: rgba(150, 130, 160, 0.1);
+  border: 1px solid rgba(150, 130, 160, 0.2);
+  border-radius: 12px;
+}
+
+.actions-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+  margin: 0 0 12px 0;
+}
+
+.action-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.action-btn {
+  padding: 8px 12px;
+  background: rgba(150, 130, 160, 0.2);
+  border: 1px solid rgba(150, 130, 160, 0.3);
+  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.action-btn:hover {
+  background: rgba(150, 130, 160, 0.4);
+  border-color: rgba(150, 130, 160, 0.5);
+  transform: translateY(-1px);
+}
+
 .chip:active {
   transform: translateY(0);
 }

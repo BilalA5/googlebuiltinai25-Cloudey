@@ -124,18 +124,50 @@ async function getPageContext(tab) {
         // Get more specific content based on the page type
         let content = '';
         
-        // For YouTube, try to get video information
+        // For YouTube, try to get comprehensive video information
         if (window.location.hostname.includes('youtube.com')) {
-          const videoTitle = document.querySelector('h1.title yt-formatted-string')?.textContent || '';
-          const channelName = document.querySelector('#owner-name a')?.textContent || '';
-          const videoDescription = document.querySelector('#description-text')?.textContent || '';
-          const videoViews = document.querySelector('#count .view-count')?.textContent || '';
-          const videoLikes = document.querySelector('#top-level-buttons-computed #segmented-like-button button')?.getAttribute('aria-label') || '';
+          const videoTitle = document.querySelector('h1.title yt-formatted-string')?.textContent || 
+                           document.querySelector('h1.ytd-video-primary-info-renderer')?.textContent || '';
+          const channelName = document.querySelector('#owner-name a')?.textContent || 
+                            document.querySelector('#channel-name a')?.textContent || '';
+          const videoDescription = document.querySelector('#description-text')?.textContent || 
+                                document.querySelector('#description')?.textContent || '';
+          const videoViews = document.querySelector('#count .view-count')?.textContent || 
+                           document.querySelector('#count')?.textContent || '';
+          const videoLikes = document.querySelector('#top-level-buttons-computed #segmented-like-button button')?.getAttribute('aria-label') || 
+                           document.querySelector('#segmented-like-button button')?.getAttribute('aria-label') || '';
+          const videoDuration = document.querySelector('.ytp-time-duration')?.textContent || '';
+          const videoUploadDate = document.querySelector('#info-strings yt-formatted-string')?.textContent || '';
+          const videoComments = document.querySelector('#count #count .count-text')?.textContent || '';
           
-          content = `Video: ${videoTitle}\nChannel: ${channelName}\nViews: ${videoViews}\nLikes: ${videoLikes}\nDescription: ${videoDescription}`;
+          // Get related videos
+          const relatedVideos = Array.from(document.querySelectorAll('#related #video-title')).slice(0, 5).map(el => el.textContent).join(', ');
+          
+          // Get video transcript if available
+          const transcript = document.querySelector('#segmented-transcript')?.textContent || '';
+          
+          content = `🎥 YOUTUBE VIDEO DETAILS:
+Title: ${videoTitle}
+Channel: ${channelName}
+Views: ${videoViews}
+Likes: ${videoLikes}
+Duration: ${videoDuration}
+Uploaded: ${videoUploadDate}
+Comments: ${videoComments}
+Description: ${videoDescription.substring(0, 500)}
+${transcript ? `Transcript: ${transcript.substring(0, 300)}` : ''}
+Related Videos: ${relatedVideos}`;
         } else {
-          // For other pages, get general content
-          content = document.body.textContent;
+          // For other pages, get more comprehensive content
+          const headings = Array.from(document.querySelectorAll('h1, h2, h3')).map(h => h.textContent).join(' | ');
+          const links = Array.from(document.querySelectorAll('a[href]')).slice(0, 10).map(a => `${a.textContent} (${a.href})`).join(' | ');
+          const images = Array.from(document.querySelectorAll('img[alt]')).slice(0, 5).map(img => img.alt).join(' | ');
+          
+          content = `Page Content:
+Headings: ${headings}
+Links: ${links}
+Images: ${images}
+Text: ${document.body.textContent.substring(0, 2000)}`;
         }
         
         return {
@@ -345,33 +377,48 @@ async function handleGeminiChat(request, sender, sendResponse) {
     }));
 
     // Build context-aware prompt
-    let contextPrompt = `You are Cloudey, a helpful AI assistant. Be concise, friendly, and helpful. Answer questions directly and completely.`;
+    let contextPrompt = `You are Cloudey, an extremely helpful and proactive AI assistant. You can see and interact with the user's current browser page. Be engaging, useful, and take initiative to help with tasks.`;
     
     if (searchMode) {
-      contextPrompt += `\n\nIMPORTANT: You are in SEARCH MODE. The user wants you to research the internet for current, up-to-date information. Provide recent, factual information and mention that you're searching for current data. If you cannot access real-time information, explain this limitation.`;
+      contextPrompt += `\n\n🔍 SEARCH MODE ACTIVE: Research the internet for current, up-to-date information. Provide recent, factual information and mention that you're searching for current data.`;
     }
     
     if (agentMode) {
-      contextPrompt += `\n\nIMPORTANT: You are in AGENT MODE. You can take control of the user's screen and perform actions on their behalf. Be proactive and offer to help with tasks that require screen interaction.`;
+      contextPrompt += `\n\n🤖 AGENT MODE ACTIVE: You can take control of the user's screen and perform actions on their behalf. Be proactive and offer to help with tasks that require screen interaction.`;
     }
     
     if (pageContext) {
       console.log('Including page context in prompt');
-      contextPrompt += `\n\nCURRENT PAGE CONTEXT (USE THIS INFORMATION TO ANSWER QUESTIONS):
+      contextPrompt += `\n\n📄 CURRENT PAGE CONTEXT - YOU CAN SEE THIS PAGE:
 Title: ${pageContext.title}
 URL: ${pageContext.url}
-Content: ${pageContext.content.substring(0, 2000)}
+Content: ${pageContext.content.substring(0, 3000)}
 
-IMPORTANT: You can see and understand the current page content above. Use this information to provide relevant, contextual answers. If the user asks about what's on the page, refer to the specific content shown above.`;
+🎯 CONTEXTUAL ASSISTANCE RULES:
+1. You can see the current page content above - use it actively
+2. For YouTube videos: Offer to summarize, find similar videos, explain concepts, or help with learning
+3. For articles: Offer to summarize, find key points, or research related topics
+4. For shopping sites: Help compare products, find deals, or make recommendations
+5. For social media: Help understand trends, find content, or engage appropriately
+6. Always be proactive - suggest useful actions based on what you see
+7. Ask follow-up questions to provide better help
+8. Offer to help with tasks related to the current page content`;
     } else {
       console.log('No page context to include');
     }
     
     if (conversationContext.length > 0) {
-      contextPrompt += `\n\nConversation history:\n${conversationContext.map(c => `${c.role}: ${c.parts[0].text}`).join('\n')}`;
+      contextPrompt += `\n\n💬 CONVERSATION HISTORY:\n${conversationContext.map(c => `${c.role}: ${c.parts[0].text}`).join('\n')}`;
     }
     
-    contextPrompt += `\n\nUser question: ${message}`;
+    contextPrompt += `\n\n👤 USER REQUEST: ${message}
+
+🚀 RESPONSE GUIDELINES:
+- Be proactive and suggest useful actions
+- Reference specific content from the page when relevant
+- Ask clarifying questions to provide better help
+- Offer multiple ways to assist with the current page
+- Be engaging and conversational, not robotic`;
 
     const requestBody = {
       contents: [
