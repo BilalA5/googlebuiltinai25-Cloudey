@@ -1945,10 +1945,12 @@ async function writeToSheets(range, values, formulas = []) {
       chrome.scripting.executeScript({
         target: { tabId: tabs[0].id, allFrames: true },
         world: 'MAIN',
-        func: (cellRange, cellValues, cellFormulas) => {
-          return new Promise((resolveScript) => {
-            try {
-              console.log('📊 writeToSheets script started in frame:', window.location.href);
+        func: async (cellRange, cellValues, cellFormulas) => {
+          try {
+            console.log('📊 writeToSheets script started in frame:', window.location.href);
+            
+            return new Promise(async (resolveScript) => {
+              try {
               
               // Check if we're on Google Sheets in ANY iframe
               const url = window.location.href;
@@ -2000,65 +2002,66 @@ async function writeToSheets(range, values, formulas = []) {
                   console.log('Clicking first cell to activate...');
                   firstCell.click();
                   
-                  // Wait for cell editor to appear
-                  setTimeout(async () => {
-                    for (const sel of cellEditors) {
-                      editor = document.querySelector(sel);
-                      if (editor) {
-                        console.log('✅ Found editor after click with selector:', sel);
-                        break;
-                      }
+                  // Wait for cell editor to appear - return a promise that resolves after setTimeout
+                  await new Promise(resolve => setTimeout(resolve, 800));
+                  
+                  // Now look for editor after the delay
+                  for (const sel of cellEditors) {
+                    editor = document.querySelector(sel);
+                    if (editor) {
+                      console.log('✅ Found editor after click with selector:', sel);
+                      break;
                     }
-                    
-                    if (editor && cellValues && cellValues.length > 0) {
-                      try {
-                        console.log('Attempting to write value:', cellValues[0]);
-                        editor.focus();
-                        
-                        // Clear existing content
-                        editor.value = '';
-                        editor.textContent = '';
-                        
-                        // Insert new value using execCommand (works best in Sheets)
-                        const range = document.createRange();
-                        const selection = window.getSelection();
-                        range.selectNodeContents(editor);
-                        range.collapse(true);
-                        selection.removeAllRanges();
-                        selection.addRange(range);
-                        
-                        // Use insertText to simulate typing
-                        if (document.execCommand) {
-                          const success = document.execCommand('insertText', false, cellValues[0]);
-                          console.log('execCommand insertText result:', success);
-                        } else {
-                          editor.value = cellValues[0];
-                          editor.textContent = cellValues[0];
-                        }
-                        
-                        // Trigger events
-                        editor.dispatchEvent(new Event('input', { bubbles: true }));
-                        editor.dispatchEvent(new KeyboardEvent('keyup', { key: 'Enter', code: 'Enter', bubbles: true }));
-                        
-                        // Add a small delay to ensure the value is applied
-                        await new Promise(resolve => setTimeout(resolve, 200));
-                        
-                        console.log(`✅ Wrote value: ${cellValues[0]}`);
-                        console.log('Editor value after write:', editor.value || editor.textContent);
-                        
-                        resolveScript({
-                          success: true,
-                          message: `Wrote to cell A1 in Google Sheets`
-                        });
-                      } catch (e) {
-                        console.error('Error writing to editor:', e);
-                        resolveScript({ success: false, error: e.message });
+                  }
+                  
+                  if (editor && cellValues && cellValues.length > 0) {
+                    try {
+                      console.log('Attempting to write value:', cellValues[0]);
+                      editor.focus();
+                      
+                      // Clear existing content
+                      editor.value = '';
+                      editor.textContent = '';
+                      
+                      // Insert new value using execCommand (works best in Sheets)
+                      const range = document.createRange();
+                      const selection = window.getSelection();
+                      range.selectNodeContents(editor);
+                      range.collapse(true);
+                      selection.removeAllRanges();
+                      selection.addRange(range);
+                      
+                      // Use insertText to simulate typing
+                      if (document.execCommand) {
+                        const success = document.execCommand('insertText', false, cellValues[0]);
+                        console.log('execCommand insertText result:', success);
+                      } else {
+                        editor.value = cellValues[0];
+                        editor.textContent = cellValues[0];
                       }
-                    } else {
-                      console.error('Could not find cell editor or no values to write');
-                      resolveScript({ success: false, error: 'Could not find active cell editor' });
+                      
+                      // Trigger events
+                      editor.dispatchEvent(new Event('input', { bubbles: true }));
+                      editor.dispatchEvent(new KeyboardEvent('keyup', { key: 'Enter', code: 'Enter', bubbles: true }));
+                      
+                      // Add a small delay to ensure the value is applied
+                      await new Promise(resolve => setTimeout(resolve, 200));
+                      
+                      console.log(`✅ Wrote value: ${cellValues[0]}`);
+                      console.log('Editor value after write:', editor.value || editor.textContent);
+                      
+                      resolveScript({
+                        success: true,
+                        message: `Wrote to cell A1 in Google Sheets`
+                      });
+                    } catch (e) {
+                      console.error('Error writing to editor:', e);
+                      resolveScript({ success: false, error: e.message });
                     }
-                  }, 800);
+                  } else {
+                    console.error('Could not find cell editor or no values to write');
+                    resolveScript({ success: false, error: 'Could not find active cell editor' });
+                  }
                 } else {
                   console.error('No grid cells found');
                   resolveScript({ success: false, error: 'No cells found in Google Sheets' });
@@ -2101,7 +2104,11 @@ async function writeToSheets(range, values, formulas = []) {
               console.error('writeToSheets error:', error);
               resolveScript({ success: false, error: error.message });
             }
-          });
+            });
+          } catch (error) {
+            console.error('writeToSheets outer error:', error);
+            return { success: false, error: error.message };
+          }
         },
         args: [range || 'A1', values || [], formulas || []]
       }, (results) => {
