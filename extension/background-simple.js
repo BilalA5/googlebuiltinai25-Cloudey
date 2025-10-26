@@ -2279,24 +2279,30 @@ ${analysis.query.toLowerCase().includes('free') ? '- REQUIRING "FREE" items only
 ${analysis.query.toLowerCase().includes('nearest') || analysis.query.toLowerCase().includes('closest') ? '- PRIORITIZING shortest distance' : ''}
 ${analysis.query.toLowerCase().includes('best') || analysis.query.toLowerCase().includes('highest') ? '- PRIORITIZING highest ratings' : ''}
 
+CRITICAL: You must provide a DEFINITIVE answer, not multiple options. The user needs ONE clear recommendation.
+
 Your output MUST include:
 1. Your reasoning (what criteria you applied)
 2. Which results were eliminated and why
-3. Top 3 recommendations with EXPLICIT explanation of why they match
+3. ONE definitive recommendation with detailed justification
 
 Respond in this EXACT format:
-REASONING:
-[Explain your thinking process, what filters you applied, what you looked for]
+MY ANALYSIS:
+[Explain your critical reasoning: What did you look for? What factors mattered most? 
+What made you eliminate the other options? Be specific about why you chose this ONE result.]
 
-BEST MATCH:
-[Rank #1] [Title] - [EXPLAIN why this is best with specific evidence from the data]
+DEFINITIVE ANSWER:
+[Single result title and address]
 
-OTHER OPTIONS:
-[Rank #2] [Title] - [Explain why recommended]
-[Rank #3] [Title] - [Explain why recommended]
+WHY THIS IS THE BEST CHOICE:
+[Detailed justification with evidence from the data:
+- Does it meet ALL criteria? (prove it)
+- What makes it better than the others? (specific comparison)
+- Any potential downsides? (be honest)
+- Why should the user choose this and not the alternatives?]
 
-ELIMINATED:
-[List any results that didn't meet criteria and why]`;
+ALTERNATIVES CONSIDERED:
+[Briefly list 2-3 other options and why they were eliminated]`;
 
            try {
              const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-001:generateContent', {
@@ -2317,39 +2323,96 @@ ELIMINATED:
              const data = await response.json();
              const rankingText = data.candidates[0].content.parts[0].text;
              
-             // Visualize results on the map
-             try {
-               for (let i = 0; i < Math.min(3, analysis.results.length); i++) {
-                 const result = analysis.results[i];
-                 
-                 // Highlight top 3 results in the sidebar
-                 await new Promise((resolveViz) => {
-                   chrome.tabs.sendMessage(tabId, {
-                     action: 'mapHighlightResult',
-                     selector: `div[role="article"]:nth-child(${i + 1})`
-                   }, () => {
-                     setTimeout(() => resolveViz(), 1000);
-                   });
-                 });
-               }
-               
-               // Draw circles on map for top results
-               for (let i = 0; i < Math.min(5, analysis.results.length); i++) {
-                 await new Promise((resolveCircle) => {
-                   chrome.tabs.sendMessage(tabId, {
-                     action: 'mapDrawCircle',
-                     lat: null, // Would need actual coordinates
-                     lng: null,
-                     radius: 500 - (i * 100), // Different sizes
-                     color: i === 0 ? 'rgba(147, 51, 234, 0.5)' : 'rgba(147, 51, 234, 0.3)'
-                   }, () => {
-                     setTimeout(() => resolveCircle(), 500);
-                   });
-                 });
-               }
-             } catch (error) {
-               console.log('Visualization error (non-critical):', error.message);
-             }
+                           // Click the best result on the map
+              try {
+                // Wait a moment for the analysis text
+                await new Promise(r => setTimeout(r, 500));
+                
+                // Extract the definitive answer title from the AI response
+                const answerMatch = rankingText.match(/DEFINITIVE ANSWER:\s*(.+?)(?:\n|$)/i);
+                if (answerMatch && answerMatch[1]) {
+                  const bestMatchTitle = answerMatch[1].trim();
+                  
+                  // Find and click the matching result in the sidebar
+                  await new Promise((resolveClick) => {
+                    chrome.scripting.executeScript({
+                      target: { tabId: tabId },
+                      func: (targetTitle) => {
+                        // Find the result that contains this title
+                        const results = document.querySelectorAll('div[role="article"]');
+                        
+                        for (const result of results) {
+                          const titleEl = result.querySelector('h3, [role="heading"]');
+                          const resultTitle = titleEl?.textContent?.trim();
+                          
+                          // Check if this is the best match (fuzzy match)
+                          if (resultTitle && (
+                            resultTitle.toLowerCase().includes(targetTitle.toLowerCase()) ||
+                            targetTitle.toLowerCase().includes(resultTitle.toLowerCase()) ||
+                            resultTitle.toLowerCase().substring(0, 30) === targetTitle.toLowerCase().substring(0, 30)
+                          )) {
+                            console.log('Found best match, clicking:', resultTitle);
+                            
+                            // Click to open the details panel
+                            result.click();
+                            
+                            // Also scroll into view
+                            result.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            
+                            return { success: true, clicked: resultTitle };
+                          }
+                        }
+                        
+                        // Fallback: click the first result
+                        if (results.length > 0) {
+                          console.log('Fallback: clicking first result');
+                          results[0].click();
+                          results[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+                          return { success: true, clicked: 'first result (fallback)' };
+                        }
+                        
+                        return { success: false, error: 'No results found' };
+                      },
+                      args: [bestMatchTitle]
+                    }, (result) => {
+                      if (result && result[0] && result[0].result) {
+                        console.log('Clicked result:', result[0].result);
+                      }
+                      setTimeout(() => resolveClick(), 2000); // Wait for details to load
+                    });
+                  });
+                }
+                
+                // Visualize results on the map
+                for (let i = 0; i < Math.min(3, analysis.results.length); i++) {
+                  // Highlight results in sidebar
+                  await new Promise((resolveViz) => {
+                    chrome.tabs.sendMessage(tabId, {
+                      action: 'mapHighlightResult',
+                      selector: `div[role="article"]:nth-child(${i + 1})`
+                    }, () => {
+                      setTimeout(() => resolveViz(), 1000);
+                    });
+                  });
+                }
+                
+                // Draw circles on map for top results
+                for (let i = 0; i < Math.min(5, analysis.results.length); i++) {
+                  await new Promise((resolveCircle) => {
+                    chrome.tabs.sendMessage(tabId, {
+                      action: 'mapDrawCircle',
+                      lat: null,
+                      lng: null,
+                      radius: 500 - (i * 100),
+                      color: i === 0 ? 'rgba(147, 51, 234, 0.5)' : 'rgba(147, 51, 234, 0.3)'
+                    }, () => {
+                      setTimeout(() => resolveCircle(), 500);
+                    });
+                  });
+                }
+              } catch (error) {
+                console.log('Visualization error (non-critical):', error.message);
+              }
              
              resolve({
                success: true,
