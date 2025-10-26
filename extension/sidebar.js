@@ -224,10 +224,14 @@ if (fabToggle) {
   });
 }
 
-// Handle file input click when attachment action is selected
-document.querySelector('[data-action="attach"]')?.addEventListener('click', () => {
-  fileInput.click();
-});
+// Handle file input click when attachment button is clicked
+if (attachBtn) {
+  attachBtn.addEventListener('click', () => {
+    if (fileInput) {
+      fileInput.click();
+    }
+  });
+}
 
 // FAB actions
 document.querySelectorAll('.fab-action').forEach(btn => {
