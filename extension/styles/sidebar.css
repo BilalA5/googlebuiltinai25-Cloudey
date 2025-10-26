@@ -1013,6 +1013,146 @@ body {
   white-space: nowrap;
 }
 
+/* ===== AGENT PERMISSION DIALOG ===== */
+.agent-dialog {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.agent-dialog.hidden {
+  display: none;
+}
+
+.agent-dialog-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+}
+
+.agent-dialog-content {
+  position: relative;
+  background: rgba(20, 15, 25, 0.95);
+  border: 1px solid rgba(180, 160, 190, 0.3);
+  border-radius: 16px;
+  padding: 24px;
+  max-width: 400px;
+  width: 90%;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+}
+
+.agent-dialog-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.agent-dialog-header h3 {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.agent-dialog-close {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 24px;
+  cursor: pointer;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.agent-dialog-close:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.agent-dialog-body p {
+  color: rgba(255, 255, 255, 0.8);
+  margin: 0 0 16px 0;
+  line-height: 1.5;
+}
+
+.agent-planned-actions h4 {
+  color: rgba(180, 160, 190, 1);
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0 0 8px 0;
+}
+
+.agent-planned-actions ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.agent-planned-actions li {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 13px;
+  padding: 4px 0;
+  border-left: 2px solid rgba(180, 160, 190, 0.3);
+  padding-left: 12px;
+  margin: 4px 0;
+}
+
+.agent-dialog-footer {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  margin-top: 20px;
+}
+
+.agent-dialog-btn {
+  padding: 10px 20px;
+  border-radius: 8px;
+  border: 1px solid;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.agent-dialog-btn.cancel {
+  background: transparent;
+  border-color: rgba(255, 255, 255, 0.3);
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.agent-dialog-btn.cancel:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+.agent-dialog-btn.confirm {
+  background: rgba(180, 160, 190, 0.2);
+  border-color: rgba(180, 160, 190, 0.5);
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.agent-dialog-btn.confirm:hover {
+  background: rgba(180, 160, 190, 0.3);
+  border-color: rgba(180, 160, 190, 0.7);
+}
+
 /* Custom Divider */
 .toggle-buttons::before {
   content: '';

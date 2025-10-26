@@ -152,6 +152,28 @@
   <div aria-live="polite" aria-atomic="true" class="sr-only" id="aria-polite"></div>
   <div aria-live="assertive" aria-atomic="true" class="sr-only" id="aria-assertive"></div>
 
+  <!-- Agent Mode Permission Dialog -->
+  <div id="agent-permission-dialog" class="agent-dialog hidden">
+    <div class="agent-dialog-overlay"></div>
+    <div class="agent-dialog-content">
+      <div class="agent-dialog-header">
+        <h3>Agent Mode Activation</h3>
+        <button class="agent-dialog-close" id="agent-dialog-close" aria-label="Close">×</button>
+      </div>
+      <div class="agent-dialog-body">
+        <p>Cloudey will take control to perform actions on this page.</p>
+        <div class="agent-planned-actions" id="agent-planned-actions">
+          <h4>Planned Actions:</h4>
+          <ul id="agent-actions-list"></ul>
+        </div>
+      </div>
+      <div class="agent-dialog-footer">
+        <button class="agent-dialog-btn cancel" id="agent-dialog-cancel">Cancel</button>
+        <button class="agent-dialog-btn confirm" id="agent-dialog-confirm">Allow & Continue</button>
+      </div>
+    </div>
+  </div>
+
   <script type="module" src="sidebar.js"></script>
 </body>
 </html>
