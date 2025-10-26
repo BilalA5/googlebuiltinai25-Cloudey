@@ -270,6 +270,23 @@ body {
 
 .message.assistant {
   align-self: flex-start;
+  display: flex;
+  align-items: flex-start;
+}
+
+/* Message Avatar */
+.message-avatar {
+  display: flex;
+  align-items: flex-start;
+  margin-right: 8px;
+  flex-shrink: 0;
+}
+
+.message-avatar .avatar-icon {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  object-fit: cover;
 }
 
 .message-content {

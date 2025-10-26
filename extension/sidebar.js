@@ -394,6 +394,14 @@ function addMessage(role, content) {
   const messageDiv = document.createElement('div');
   messageDiv.className = `message ${role}`;
   
+  // Add avatar for assistant messages
+  if (role === 'assistant') {
+    const avatarDiv = document.createElement('div');
+    avatarDiv.className = 'message-avatar';
+    avatarDiv.innerHTML = '<img src="assets/Cloudey ICON.svg" alt="Cloudey" class="avatar-icon">';
+    messageDiv.appendChild(avatarDiv);
+  }
+  
   const contentDiv = document.createElement('div');
   contentDiv.className = 'message-content';
   contentDiv.textContent = content;
@@ -417,6 +425,12 @@ async function typewriterEffect(text, speed = 30) {
   
   const messageDiv = document.createElement('div');
   messageDiv.className = 'message assistant';
+  
+  // Add avatar for assistant messages
+  const avatarDiv = document.createElement('div');
+  avatarDiv.className = 'message-avatar';
+  avatarDiv.innerHTML = '<img src="assets/Cloudey ICON.svg" alt="Cloudey" class="avatar-icon">';
+  messageDiv.appendChild(avatarDiv);
   
   const contentDiv = document.createElement('div');
   contentDiv.className = 'message-content typing';
