@@ -1344,45 +1344,6 @@ async function writeContent(selector, content, useWriterAPI = false) {
         func: async (sel, cnt, useAPI) => {
           console.log(`🔍 writeContent script running with:`, { sel, cnt, useAPI });
           
-          // Try multiple selectors for Google Docs
-          let element = document.querySelector(sel);
-          console.log(`🎯 Initial element found:`, element);
-          
-          // If not found, try Google Docs specific selectors
-          if (!element) {
-            console.log(`🔍 Trying Google Docs selectors...`);
-            const googleDocsSelectors = [
-              '.kix-lineview-text-block',
-              '.kix-wordhtmlgenerator-word',
-              '[contenteditable="true"]',
-              '.docs-texteventtarget-iframe',
-              '.kix-appview-editor',
-              '.kix-canvas-tile-content',
-              '.kix-page',
-              '.kix-document',
-              'div[role="textbox"]',
-              'div[contenteditable="true"]',
-              '.kix-appview-editor .kix-lineview-text-block',
-              'body'
-            ];
-            
-            for (const docSelector of googleDocsSelectors) {
-              element = document.querySelector(docSelector);
-              console.log(`🔍 Trying ${docSelector}:`, element ? 'Found' : 'Not found');
-              if (element) {
-                console.log('✅ Found Google Docs element:', docSelector);
-                break;
-              }
-            }
-          }
-          
-          if (!element) {
-            console.log(`❌ No element found for selector: ${sel}`);
-            return { success: false, error: `Element not found: ${sel}` };
-          }
-          
-          console.log(`✅ Element found:`, element.tagName, element.className);
-          
           let finalContent = cnt;
           if (useAPI && 'ai' in self && 'writer' in self.ai) {
             try {
@@ -1395,43 +1356,136 @@ async function writeContent(selector, content, useWriterAPI = false) {
           
           console.log(`📝 Writing content:`, finalContent);
           
+          // ===== GOOGLE DOCS SPECIAL HANDLING =====
+          // Google Docs uses complex iframes and requires special handling
+          
+          // First, try to find contenteditable elements in the main document
+          const contenteditables = document.querySelectorAll('[contenteditable="true"]');
+          console.log(`🔍 Found ${contenteditables.length} contenteditable elements`);
+          
+          if (contenteditables.length > 0) {
+            // Find the best contenteditable element (usually the main document)
+            let bestElement = null;
+            for (const elem of contenteditables) {
+              // Check if it's within a Google Docs iframe or editor
+              const isGoogleDoc = elem.closest('.docs-texteventtarget-iframe') || 
+                                  elem.closest('.kix-appview-editor') ||
+                                  elem.closest('.kix-document');
+              
+              if (isGoogleDoc || elem.getAttribute('aria-label')?.toLowerCase().includes('document')) {
+                bestElement = elem;
+                break;
+              }
+            }
+            
+            if (!bestElement && contenteditables.length > 0) {
+              bestElement = contenteditables[0]; // Use the first one as fallback
+            }
+            
+            if (bestElement) {
+              console.log(`✅ Found Google Docs contenteditable element:`, bestElement);
+              
+              try {
+                // Focus the element
+                bestElement.focus();
+                
+                // Method 1: Use execCommand (most reliable for Google Docs)
+                const selection = window.getSelection();
+                const range = document.createRange();
+                
+                // Select all text
+                range.selectNodeContents(bestElement);
+                selection.removeAllRanges();
+                selection.addRange(range);
+                
+                // Use execCommand to insert text (simulates typing)
+                const success = document.execCommand('insertText', false, finalContent);
+                
+                if (success) {
+                  console.log(`✅ Successfully wrote using execCommand`);
+                  
+                  // Dispatch events to trigger Google Docs to save
+                  bestElement.dispatchEvent(new KeyboardEvent('keydown', { 
+                    key: 'Enter', 
+                    code: 'Enter',
+                    bubbles: true,
+                    cancelable: true
+                  }));
+                  
+                  bestElement.dispatchEvent(new KeyboardEvent('keyup', { 
+                    key: 'Enter', 
+                    code: 'Enter',
+                    bubbles: true,
+                    cancelable: true
+                  }));
+                  
+                  bestElement.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
+                  bestElement.dispatchEvent(new Event('blur', { bubbles: true, cancelable: true }));
+                  
+                  return { success: true, message: `Wrote content to Google Docs using execCommand` };
+                }
+              } catch (e) {
+                console.warn('Method 1 (execCommand) failed:', e);
+              }
+              
+              // Method 2: Try setting innerHTML
+              try {
+                bestElement.innerHTML = finalContent;
+                bestElement.dispatchEvent(new Event('input', { bubbles: true }));
+                console.log(`✅ Successfully wrote using innerHTML`);
+                return { success: true, message: `Wrote content using innerHTML` };
+              } catch (e2) {
+                console.warn('Method 2 (innerHTML) failed:', e2);
+              }
+              
+              // Method 3: Try textContent
+              try {
+                bestElement.textContent = finalContent;
+                bestElement.dispatchEvent(new Event('input', { bubbles: true }));
+                console.log(`✅ Successfully wrote using textContent`);
+                return { success: true, message: `Wrote content using textContent` };
+              } catch (e3) {
+                console.warn('Method 3 (textContent) failed:', e3);
+              }
+            }
+          }
+          
+          // ===== FALLBACK FOR REGULAR ELEMENTS =====
+          let element = document.querySelector(sel);
+          
+          if (!element) {
+            const googleDocsSelectors = [
+              '.kix-lineview-text-block',
+              '.kix-wordhtmlgenerator-word',
+              'div[role="textbox"]',
+              'body'
+            ];
+            
+            for (const docSelector of googleDocsSelectors) {
+              element = document.querySelector(docSelector);
+              if (element) {
+                console.log('✅ Found fallback element:', docSelector);
+                break;
+              }
+            }
+          }
+          
+          if (!element) {
+            console.log(`❌ No element found for selector: ${sel}`);
+            return { success: false, error: `Element not found: ${sel}` };
+          }
+          
+          console.log(`✅ Element found:`, element.tagName, element.className);
+          
           // Handle different element types
           if (element.tagName === 'INPUT' || element.tagName === 'TEXTAREA') {
             element.value = finalContent;
             element.dispatchEvent(new Event('input', { bubbles: true }));
             console.log(`✅ Set value for input/textarea`);
-          } else if (element.contentEditable === 'true' || element.hasAttribute('contenteditable')) {
-            // For contenteditable elements (like Google Docs)
-            element.focus();
-            
-            // Try multiple methods for Google Docs
-            try {
-              // Method 1: Direct text content
-              element.textContent = finalContent;
-              console.log(`✅ Set textContent for contenteditable`);
-            } catch (e) {
-              try {
-                // Method 2: innerHTML
-                element.innerHTML = finalContent;
-                console.log(`✅ Set innerHTML for contenteditable`);
-              } catch (e2) {
-                // Method 3: Create text node
-                element.innerHTML = '';
-                const textNode = document.createTextNode(finalContent);
-                element.appendChild(textNode);
-                console.log(`✅ Created text node for contenteditable`);
-              }
-            }
-            
-            // Dispatch events
-            element.dispatchEvent(new Event('input', { bubbles: true }));
-            element.dispatchEvent(new Event('change', { bubbles: true }));
-            element.dispatchEvent(new Event('keyup', { bubbles: true }));
-            element.dispatchEvent(new Event('blur', { bubbles: true }));
           } else {
-            // For regular elements
             element.textContent = finalContent;
-            console.log(`✅ Set textContent for regular element`);
+            element.dispatchEvent(new Event('input', { bubbles: true }));
+            console.log(`✅ Set textContent for element`);
           }
           
           return { success: true, message: `Wrote content to ${sel}` };
