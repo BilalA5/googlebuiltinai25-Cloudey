@@ -121,10 +121,27 @@ async function getPageContext(tab) {
     const results = await chrome.scripting.executeScript({
       target: { tabId: tab.id },
       func: () => {
+        // Get more specific content based on the page type
+        let content = '';
+        
+        // For YouTube, try to get video information
+        if (window.location.hostname.includes('youtube.com')) {
+          const videoTitle = document.querySelector('h1.title yt-formatted-string')?.textContent || '';
+          const channelName = document.querySelector('#owner-name a')?.textContent || '';
+          const videoDescription = document.querySelector('#description-text')?.textContent || '';
+          const videoViews = document.querySelector('#count .view-count')?.textContent || '';
+          const videoLikes = document.querySelector('#top-level-buttons-computed #segmented-like-button button')?.getAttribute('aria-label') || '';
+          
+          content = `Video: ${videoTitle}\nChannel: ${channelName}\nViews: ${videoViews}\nLikes: ${videoLikes}\nDescription: ${videoDescription}`;
+        } else {
+          // For other pages, get general content
+          content = document.body.textContent;
+        }
+        
         return {
           title: document.title,
           url: window.location.href,
-          content: document.body.textContent.substring(0, 5000) // Limit content
+          content: content.substring(0, 5000) // Limit content
         };
       }
     });
@@ -296,17 +313,29 @@ async function handleGeminiChat(request, sender, sendResponse) {
 
     // Get page context if requested
     let pageContext = null;
-    if (includeContext && sender.tab) {
-      console.log('Getting page context for tab:', sender.tab.id, sender.tab.url);
-      pageContext = await getPageContext(sender.tab);
-      console.log('Page context retrieved:', pageContext ? 'Success' : 'Failed');
-      if (pageContext) {
-        console.log('Page title:', pageContext.title);
-        console.log('Page URL:', pageContext.url);
-        console.log('Content length:', pageContext.content?.length || 0);
+    if (includeContext) {
+      // Try to get the current active tab if sender.tab is not available
+      let targetTab = sender.tab;
+      if (!targetTab) {
+        console.log('No sender tab, getting current active tab');
+        const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+        targetTab = tabs[0];
+      }
+      
+      if (targetTab) {
+        console.log('Getting page context for tab:', targetTab.id, targetTab.url);
+        pageContext = await getPageContext(targetTab);
+        console.log('Page context retrieved:', pageContext ? 'Success' : 'Failed');
+        if (pageContext) {
+          console.log('Page title:', pageContext.title);
+          console.log('Page URL:', pageContext.url);
+          console.log('Content length:', pageContext.content?.length || 0);
+        }
+      } else {
+        console.log('No active tab found for page context');
       }
     } else {
-      console.log('Page context not requested or no tab available');
+      console.log('Page context not requested');
     }
 
     // Prepare conversation context for Gemini
