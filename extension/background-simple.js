@@ -121,13 +121,15 @@ async function getPageContext(tab) {
     const results = await chrome.scripting.executeScript({
       target: { tabId: tab.id },
       func: () => {
-        // UNIVERSAL CONTENT EXTRACTION - Get ALL page content
+        // UNIVERSAL CONTENT EXTRACTION - Get ALL page content including raw HTML
         const extractAllContent = () => {
           const content = {
             title: document.title,
             url: window.location.href,
             domain: window.location.hostname,
             timestamp: new Date().toISOString(),
+            // Get raw HTML for deep analysis
+            rawHTML: document.documentElement.outerHTML.substring(0, 50000), // First 50KB of HTML
             // Extract all text content
             fullText: document.body.innerText || document.body.textContent || '',
             // Extract all headings
@@ -148,12 +150,73 @@ async function getPageContext(tab) {
               alt: img.alt,
               title: img.title
             })).filter(i => i.src),
-            // Extract all videos
+            // Extract all videos with detailed info
             videos: Array.from(document.querySelectorAll('video, iframe[src*="youtube"], iframe[src*="vimeo"]')).map(v => ({
               src: v.src || v.getAttribute('src'),
               title: v.title || v.getAttribute('title'),
               type: v.tagName
             })).filter(v => v.src),
+            // YouTube specific extraction
+            youtubeData: (() => {
+              if (!window.location.hostname.includes('youtube.com')) return null;
+              
+              // Try multiple selectors for YouTube data
+              const videoTitle = document.querySelector('h1.title yt-formatted-string')?.textContent || 
+                               document.querySelector('h1.ytd-video-primary-info-renderer')?.textContent ||
+                               document.querySelector('#title h1')?.textContent || '';
+              
+              const channelName = document.querySelector('#owner-name a')?.textContent || 
+                                document.querySelector('#channel-name a')?.textContent ||
+                                document.querySelector('#owner-text a')?.textContent || '';
+              
+              const subscriberCount = document.querySelector('#owner-sub-count')?.textContent || '';
+              const videoViews = document.querySelector('#count .view-count')?.textContent || 
+                               document.querySelector('#count')?.textContent || '';
+              const videoLikes = document.querySelector('#top-level-buttons-computed #segmented-like-button button')?.getAttribute('aria-label') || 
+                               document.querySelector('#segmented-like-button button')?.getAttribute('aria-label') || '';
+              const videoDuration = document.querySelector('.ytp-time-duration')?.textContent || '';
+              const videoUploadDate = document.querySelector('#info-strings yt-formatted-string')?.textContent || '';
+              const videoDescription = document.querySelector('#description-text')?.textContent || 
+                                    document.querySelector('#description')?.textContent || '';
+              
+              // Get all video elements on the page (recommendations, etc.)
+              const allVideos = Array.from(document.querySelectorAll('ytd-video-renderer, ytd-compact-video-renderer')).map(video => {
+                const title = video.querySelector('#video-title')?.textContent?.trim() || '';
+                const channel = video.querySelector('#channel-name')?.textContent?.trim() || '';
+                const views = video.querySelector('#metadata-line span')?.textContent?.trim() || '';
+                const uploadTime = video.querySelector('#metadata-line span:last-child')?.textContent?.trim() || '';
+                const duration = video.querySelector('.ytd-thumbnail-overlay-time-status-renderer')?.textContent?.trim() || '';
+                const link = video.querySelector('#video-title')?.href || '';
+                
+                return { title, channel, views, uploadTime, duration, link };
+              }).filter(v => v.title);
+              
+              // Get channel uploads if on channel page
+              const channelVideos = Array.from(document.querySelectorAll('ytd-grid-video-renderer')).map(video => {
+                const title = video.querySelector('#video-title')?.textContent?.trim() || '';
+                const views = video.querySelector('#metadata-line span')?.textContent?.trim() || '';
+                const uploadTime = video.querySelector('#metadata-line span:last-child')?.textContent?.trim() || '';
+                const duration = video.querySelector('.ytd-thumbnail-overlay-time-status-renderer')?.textContent?.trim() || '';
+                const link = video.querySelector('#video-title')?.href || '';
+                
+                return { title, views, uploadTime, duration, link };
+              }).filter(v => v.title);
+              
+              return {
+                currentVideo: {
+                  title: videoTitle,
+                  channel: channelName,
+                  subscribers: subscriberCount,
+                  views: videoViews,
+                  likes: videoLikes,
+                  duration: videoDuration,
+                  uploadDate: videoUploadDate,
+                  description: videoDescription.substring(0, 1000)
+                },
+                recommendedVideos: allVideos.slice(0, 20),
+                channelVideos: channelVideos.slice(0, 50)
+              };
+            })(),
             // Extract meta information
             meta: {
               description: document.querySelector('meta[name="description"]')?.content || '',
@@ -212,9 +275,29 @@ ${pageData.links.slice(0, 20).map(l => `• ${l.text} → ${l.href}`).join('\n')
 ${pageData.images.slice(0, 10).map(i => `• ${i.alt || 'No alt text'} (${i.src})`).join('\n')}
 
 🎥 VIDEOS (${pageData.videos.length}):
-${pageData.videos.map(v => `• ${v.title || 'Untitled'} (${v.src})`).join('\n')}
+${pageData.videos.map(v => `• ${v.title || 'Untitled'} (${v.src})`).join('\n')}`;
 
-📊 META DATA:
+        // Add YouTube specific data if available
+        if (pageData.youtubeData) {
+          formattedContent += `\n\n🎥 YOUTUBE DETAILED DATA:
+Current Video:
+• Title: ${pageData.youtubeData.currentVideo.title}
+• Channel: ${pageData.youtubeData.currentVideo.channel}
+• Subscribers: ${pageData.youtubeData.currentVideo.subscribers}
+• Views: ${pageData.youtubeData.currentVideo.views}
+• Likes: ${pageData.youtubeData.currentVideo.likes}
+• Duration: ${pageData.youtubeData.currentVideo.duration}
+• Upload Date: ${pageData.youtubeData.currentVideo.uploadDate}
+• Description: ${pageData.youtubeData.currentVideo.description}
+
+Recommended Videos (${pageData.youtubeData.recommendedVideos.length}):
+${pageData.youtubeData.recommendedVideos.map(v => `• ${v.title} | ${v.channel} | ${v.views} | ${v.uploadTime}`).join('\n')}
+
+Channel Videos (${pageData.youtubeData.channelVideos.length}):
+${pageData.youtubeData.channelVideos.map(v => `• ${v.title} | ${v.views} | ${v.uploadTime}`).join('\n')}`;
+        }
+
+        formattedContent += `\n\n📊 META DATA:
 Description: ${pageData.meta.description}
 Keywords: ${pageData.meta.keywords}
 Author: ${pageData.meta.author}
@@ -222,12 +305,15 @@ OG Title: ${pageData.meta.ogTitle}
 OG Description: ${pageData.meta.ogDescription}
 
 📋 TABLES (${pageData.tables.length}):
-${pageData.tables.slice(0, 3).map((t, i) => `Table ${i+1}:\n${t.rows.map(r => r.join(' | ')).join('\n')}`).join('\n\n')}`;
+${pageData.tables.slice(0, 3).map((t, i) => `Table ${i+1}:\n${t.rows.map(r => r.join(' | ')).join('\n')}`).join('\n\n')}
+
+🔍 RAW HTML (First 10KB):
+${pageData.rawHTML.substring(0, 10000)}`;
 
         return {
           title: pageData.title,
           url: pageData.url,
-          content: formattedContent.substring(0, 8000) // Increased limit for comprehensive content
+          content: formattedContent.substring(0, 12000) // Increased limit for comprehensive content
         };
       }
     });
@@ -460,7 +546,11 @@ Content: ${pageContext.content.substring(0, 2000)}`;
 - Use emojis 🎯 📝 🔗 💡
 - Use bullet points • or numbered lists
 - Be direct and helpful
-- Reference page content when relevant`;
+- Reference page content when relevant
+- FORMAT: Use line breaks between bullet points
+- STRUCTURE: Each bullet point on its own line
+- NO: Long paragraphs with bullets inline
+- YES: Proper line breaks for readability`;
 
     const requestBody = {
       contents: [
