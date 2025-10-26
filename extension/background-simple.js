@@ -4,6 +4,10 @@ console.log('Cloudey background script loaded');
 // store conversation history per tab
 const conversationHistory = new Map();
 
+// Ollama API configuration
+const OLLAMA_BASE_URL = 'http://localhost:11434';
+const OLLAMA_MODEL = 'llama3.2:3b';
+
 // AI-powered message handler
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   console.log('Background received message:', request);
@@ -45,6 +49,10 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       
       case 'translateText':
         handleTranslateText(request, sender, sendResponse);
+        break;
+      
+      case 'ollamaChat':
+        handleOllamaChat(request, sender, sendResponse);
         break;
         
       default:
@@ -274,6 +282,62 @@ async function handleTranslateText(request, sender, sendResponse) {
     sendResponse({
       success: false,
       response: 'Failed to translate text. Please try again.'
+    });
+  }
+}
+
+// Ollama chat handler
+async function handleOllamaChat(request, sender, sendResponse) {
+  const { message, history = [] } = request;
+  console.log('Handling Ollama chat request');
+  
+  try {
+    // Prepare conversation context
+    const messages = [
+      {
+        role: 'system',
+        content: 'You are Cloudey, a helpful AI assistant. Be concise, friendly, and helpful. Answer questions directly and completely.'
+      },
+      ...history.slice(-6), // Keep last 6 messages for context
+      {
+        role: 'user',
+        content: message
+      }
+    ];
+
+    const response = await fetch(`${OLLAMA_BASE_URL}/api/chat`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: OLLAMA_MODEL,
+        messages: messages,
+        stream: false,
+        options: {
+          temperature: 0.7,
+          top_p: 0.9,
+          max_tokens: 1000
+        }
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Ollama API error: ${response.status} ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    
+    sendResponse({
+      success: true,
+      response: data.message.content
+    });
+    
+  } catch (error) {
+    console.error('Ollama chat error:', error);
+    sendResponse({
+      success: false,
+      response: `Error: ${error.message}. Please ensure Ollama is running on localhost:11434`
     });
   }
 }

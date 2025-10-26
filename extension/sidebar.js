@@ -1,5 +1,4 @@
 import { icons, getIconHTML } from './icons.js';
-import { OllamaClient } from './ollamaClient.js';
 
 console.log('Cloudey side panel loaded');
 
@@ -28,8 +27,7 @@ let typewriterAbortController = null;
 const MAX_FILES = 5;
 const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25MB
 
-// Initialize Ollama client
-const ollamaClient = new OllamaClient();
+// Ollama integration handled via background script to avoid CORS issues
 
 // Initialize icons
 function initializeIcons() {
@@ -336,17 +334,25 @@ async function sendMessage() {
   }
   
   try {
-    // Use Ollama for AI responses
-    console.log('Using Ollama for AI response...');
+    // Use Ollama via background script to avoid CORS issues
+    console.log('Using Ollama via background script...');
     
-    const aiResponse = await ollamaClient.generateResponse(message, conversationHistory);
+    const response = await chrome.runtime.sendMessage({
+      action: 'ollamaChat',
+      message: message,
+      history: conversationHistory
+    });
     
-    console.log('AI response received from Ollama');
-    hideTypingIndicator();
-    promptBox?.classList.remove('loading');
-    typewriterEffect(aiResponse);
-    conversationHistory.push({ role: 'assistant', content: aiResponse });
-    return;
+    if (response.success) {
+      console.log('AI response received from Ollama');
+      hideTypingIndicator();
+      promptBox?.classList.remove('loading');
+      typewriterEffect(response.response);
+      conversationHistory.push({ role: 'assistant', content: response.response });
+      return;
+    } else {
+      throw new Error(response.response);
+    }
     
   } catch (error) {
     console.error('Error sending message:', error);
