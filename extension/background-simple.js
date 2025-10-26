@@ -1,6 +1,24 @@
 // enhanced background script with AI integration
 console.log('Cloudey background script loaded');
 
+// Test localhost access on startup
+async function testLocalhostAccess() {
+  try {
+    console.log('Testing localhost access...');
+    const response = await fetch('http://127.0.0.1:11434/api/tags');
+    console.log('Localhost test response status:', response.status);
+    if (response.ok) {
+      const data = await response.json();
+      console.log('Ollama models available:', data.models?.map(m => m.name) || 'none');
+    }
+  } catch (error) {
+    console.error('Localhost access test failed:', error);
+  }
+}
+
+// Run test after a short delay
+setTimeout(testLocalhostAccess, 1000);
+
 // store conversation history per tab
 const conversationHistory = new Map();
 

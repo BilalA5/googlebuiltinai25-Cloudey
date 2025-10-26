@@ -334,13 +334,25 @@ async function sendMessage() {
   }
   
   try {
-    // Use Ollama via background script to avoid CORS issues
-    console.log('Using Ollama via background script...');
+    // Use Ollama via content script to avoid CORS issues
+    console.log('Using Ollama via content script...');
+    
+    // Prepare conversation context
+    const messages = [
+      {
+        role: 'system',
+        content: 'You are Cloudey, a helpful AI assistant. Be concise, friendly, and helpful. Answer questions directly and completely.'
+      },
+      ...conversationHistory.slice(-6), // Keep last 6 messages for context
+      {
+        role: 'user',
+        content: message
+      }
+    ];
     
     const response = await chrome.runtime.sendMessage({
-      action: 'ollamaChat',
-      message: message,
-      history: conversationHistory
+      action: 'ollamaRequest',
+      messages: messages
     });
     
     if (response.success) {

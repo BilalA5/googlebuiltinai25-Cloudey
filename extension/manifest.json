@@ -31,7 +31,7 @@
   "content_scripts": [
     {
       "matches": ["https://*/*", "http://*/*"],
-      "js": ["content.js"],
+      "js": ["content.js", "ollamaProxy.js"],
       "css": ["styles/page-indicator.css"],
       "run_at": "document_end"
     }
