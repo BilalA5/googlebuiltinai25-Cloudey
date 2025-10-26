@@ -132,7 +132,7 @@ async function getPageContext(tab) {
       func: () => {
         console.log('🚀 UNIVERSAL CONTENT EXTRACTION running on:', window.location.href);
         
-        // UNIVERSAL CONTENT EXTRACTION - Works on ANY page type
+        // UNIVERSAL CONTENT EXTRACTION -  should Work on ANY page type
         const extractUniversalContent = () => {
           // Detect page type based on URL patterns and content
           const detectPageType = () => {
@@ -1147,6 +1147,8 @@ async function executeAction(action, target, params = {}) {
         return await writeContent(target, params.content, apis.writer);
       case 'summarize_content':
         return await summarizeContent(target, apis.summarizer);
+      case 'compose_email':
+        return await composeEmail(params.to, params.subject, params.body);
       default:
         return { success: false, error: `Unknown action: ${action}` };
     }
@@ -1676,6 +1678,138 @@ async function summarizeContent(selector, useSummarizerAPI = false) {
         args: [selector || 'body', Boolean(useSummarizerAPI)]
       }, (results) => {
         resolve(results[0].result);
+      });
+    });
+  });
+}
+
+async function composeEmail(to, subject, body) {
+  console.log(`📧 Composing email to: ${to}`);
+  return new Promise((resolve) => {
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      chrome.scripting.executeScript({
+        target: { tabId: tabs[0].id },
+        func: (emailTo, emailSubject, emailBody) => {
+          const url = window.location.href.toLowerCase();
+          
+          // Detect email service
+          const isGmail = url.includes('mail.google.com');
+          const isOutlook = url.includes('outlook.com') || url.includes('outlook.live.com');
+          
+          if (!isGmail && !isOutlook) {
+            return { success: false, error: 'Not on Gmail or Outlook. Please open your email service first.' };
+          }
+          
+          try {
+            // Click compose button
+            let composeButton = null;
+            
+            if (isGmail) {
+              // Gmail compose button
+              composeButton = document.querySelector('[aria-label*="Compose"], [data-tooltip*="New message"], .z0');
+            } else if (isOutlook) {
+              // Outlook compose button
+              composeButton = document.querySelector('[aria-label*="New message"], button[title*="New message"]');
+            }
+            
+            if (!composeButton) {
+              // Try alternative selectors
+              const altSelectors = [
+                'div[role="button"][data-tooltip*="Compose"]',
+                'button[title*="New message"]',
+                '[aria-label*="New message"]'
+              ];
+              
+              for (const selector of altSelectors) {
+                composeButton = document.querySelector(selector);
+                if (composeButton) break;
+              }
+            }
+            
+            if (composeButton) {
+              composeButton.click();
+              console.log('Clicked compose button');
+            } else {
+              return { success: false, error: 'Could not find compose button. Please click it manually first.' };
+            }
+            
+            // Wait a bit for compose window to appear
+            setTimeout(() => {
+              // Fill recipient
+              const toSelectors = isGmail 
+                ? ['input[aria-label*="To"], input[placeholder*="To"], input[aria-label*="Recipients"]']
+                : ['input[aria-label*="To"], input[placeholder*="To"]'];
+              
+              let toField = null;
+              for (const selector of toSelectors) {
+                toField = document.querySelector(selector);
+                if (toField) break;
+              }
+              
+              if (toField) {
+                toField.value = emailTo;
+                toField.dispatchEvent(new Event('input', { bubbles: true }));
+                console.log('Filled To field');
+              }
+              
+              // Fill subject
+              const subjectSelectors = [
+                'input[aria-label*="Subject"]',
+                'input[placeholder*="Subject"]',
+                'input[name="subject"]'
+              ];
+              
+              let subjectField = null;
+              for (const selector of subjectSelectors) {
+                subjectField = document.querySelector(selector);
+                if (subjectField) break;
+              }
+              
+              if (subjectField) {
+                subjectField.value = emailSubject;
+                subjectField.dispatchEvent(new Event('input', { bubbles: true }));
+                console.log('Filled Subject field');
+              }
+              
+              // Fill body
+              const bodySelectors = [
+                'div[aria-label*="Message body"]',
+                'div[contenteditable="true"][aria-label*="Message"]',
+                'div[contenteditable="true"][role="textbox"]'
+              ];
+              
+              let bodyField = null;
+              for (const selector of bodySelectors) {
+                bodyField = document.querySelector(selector);
+                if (bodyField) break;
+              }
+              
+              if (bodyField) {
+                bodyField.focus();
+                bodyField.innerHTML = emailBody;
+                bodyField.dispatchEvent(new Event('input', { bubbles: true }));
+                console.log('Filled email body');
+              }
+              
+              // DO NOT CLICK SEND - let user review
+              console.log('Email composed and ready for review');
+            }, 1000);
+            
+            return { success: true, message: `Email composed to ${emailTo}. Please review and click send manually.` };
+            
+          } catch (error) {
+            return { success: false, error: `Error composing email: ${error.message}` };
+          }
+        },
+        args: [to || '', subject || '', body || '']
+      }, (results) => {
+        if (chrome.runtime.lastError) {
+          resolve({ success: false, error: chrome.runtime.lastError.message });
+        } else if (results && results[0]) {
+          resolve(results[0].result);
+        } else {
+          resolve({ success: false, error: 'Unknown error' });
+        }
       });
     });
   });
