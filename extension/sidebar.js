@@ -640,6 +640,10 @@ async function sendMessage() {
     // Use Gemini API via background script with page context
     let response;
     if (isAgentMode) {
+      // Show pause button for agent mode
+      if (sendBtn) sendBtn.classList.add('hidden');
+      if (pauseBtn) pauseBtn.classList.remove('hidden');
+      
       // Show initial agent action
       showAgentActionIndicator('analyzing', 'page content');
       
@@ -801,6 +805,13 @@ function stopGeneration() {
   }
   hideTypingIndicator();
   isStreaming = false;
+  
+  // Also stop agent mode if active
+  if (agentToggle && agentToggle.classList.contains('active')) {
+    deactivateAgentMode();
+    addMessage('assistant', 'Agent mode stopped by user.');
+  }
+  
   if (stopBtn) stopBtn.classList.add('hidden');
   if (pauseBtn) pauseBtn.classList.add('hidden');
   if (sendBtn) sendBtn.classList.remove('hidden');

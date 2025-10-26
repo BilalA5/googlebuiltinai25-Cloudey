@@ -1202,8 +1202,8 @@ async function fillTextField(selector, text, useWriterAPI = false) {
   return new Promise((resolve) => {
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       chrome.scripting.executeScript({
-        target: { tabId: tabs[0].id },
-        allFrames: true,
+        target: { tabId: tabs[0].id, frameIds: [0] },
+        world: 'MAIN',
         func: async (sel, txt, useAPI) => {
           // Try multiple selectors for Google Docs
           let element = document.querySelector(sel);
@@ -1350,9 +1350,8 @@ async function writeContent(selector, content, useWriterAPI = false) {
   return new Promise((resolve) => {
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       chrome.scripting.executeScript({
-        target: { tabId: tabs[0].id },
+        target: { tabId: tabs[0].id, frameIds: [0] },
         world: 'MAIN',
-        allFrames: true,
         func: async (sel, cnt, useAPI) => {
           console.log(`🚀 INJECTED SCRIPT STARTED`);
           console.log(`🔍 writeContent script running with:`, { sel, cnt, useAPI });
