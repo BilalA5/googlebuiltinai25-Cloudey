@@ -131,69 +131,24 @@ async function getPageContext(tab) {
 // generate AI response using Gemini Nano
 async function generateAIResponse(message, pageContext, history = []) {
   try {
-    // Check if Prompt API is available
-    if (navigator.languageModel && navigator.languageModel.create) {
-      console.log('Prompt API is available, attempting to use Gemini Nano...');
-      
-      // Create a language model session
-      const lm = navigator.languageModel.create();
-      
-      // build conversation context
-      let conversationContext = '';
-      if (history.length > 0) {
-        conversationContext = '\n\nPrevious conversation:\n';
-        history.slice(-4).forEach(msg => { // Last 4 messages for context
-          conversationContext += `${msg.role}: ${msg.content}\n`;
-        });
-      }
-      
-      // build context for AI
-      let contextPrompt = '';
-      if (pageContext) {
-        contextPrompt = `You are Cloudey, a helpful AI assistant. Answer the user's question directly and completely.
-
-Page Context:
-Title: ${pageContext.title}
-URL: ${pageContext.url}
-Content: ${pageContext.content.substring(0, 2000)}${conversationContext}
-
-User Question: ${message}
-
-Provide a direct, helpful answer using your full knowledge and capabilities.`;
-      } else {
-        contextPrompt = `You are Cloudey, a helpful AI assistant. Answer the user's question directly and completely.${conversationContext}
-
-User Question: ${message}
-
-Provide a direct, helpful answer using your full knowledge and capabilities.`;
-      }
-      
-      // use Prompt API
-      console.log('Calling language model with prompt length:', contextPrompt.length);
-      const result = await lm.prompt(contextPrompt);
-      
-      console.log('Gemini Nano response received (length):', result ? result.length : 0);
-      console.log('First 100 chars:', result ? result.substring(0, 100) + '...' : 'No result');
-      
-      return {
-        success: true,
-        response: result,
-        usedContext: !!pageContext
-      };
-    } else {
-      console.warn('Prompt API not available. Ensure Chrome AI flags are enabled in chrome://flags/');
-      return {
-        success: true,
-        response: generateFallbackResponse(message, pageContext, history)
-      };
-    }
+    // Note: navigator.languageModel is NOT available in service worker context
+    // The Prompt API only works in window contexts (sidebar, popup, etc.)
+    // All AI calls should be made directly from the sidebar.
+    
+    console.log('Background script: Prompt API not available in service worker context');
+    console.log('This is expected - the sidebar handles all AI calls directly.');
+    
+    // Return a helpful message explaining the situation
+    return {
+      success: false,
+      response: generateFallbackResponse(message, pageContext, history)
+    };
     
   } catch (error) {
     console.error('AI generation error:', error);
     console.error('Error details:', error.message, error.stack);
-    console.log('Falling back to minimal response...');
     return {
-      success: true,
+      success: false,
       response: generateFallbackResponse(message, pageContext, history)
     };
   }
@@ -208,11 +163,14 @@ function generateFallbackResponse(message, pageContext, history = []) {
 To enable Cloudey with Gemini Nano:
 
 1. Go to chrome://flags/
-2. Search for "optimization-guide-on-device-model"
-3. Set it to "Enabled (BypassPerfRequirement)"
-4. Restart Chrome
+2. Search for and enable:
+   - "Prompt API for Gemini Nano" → Set to "Enabled"
+   - "optimization-guide-on-device-model" → Set to "Enabled (BypassPerfRequirement)"
+3. Click "Relaunch" and wait for Chrome to restart
 
 After restarting, Cloudey will be able to use on-device AI capabilities.
+
+Note: The Prompt API only works in Chrome 127+ with the required flags enabled.
 `;
   
   if (pageContext) {

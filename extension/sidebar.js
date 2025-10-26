@@ -362,32 +362,29 @@ Provide a direct, helpful answer using your full knowledge and capabilities.`;
         return; // Success, exit early
       } catch (lmError) {
         console.error('Error calling language model:', lmError);
-        // Fall through to API fallback
+        // Fall through to setup instructions
       }
     }
     
-    // Fallback: Use Gemini API via background script
-    console.log('Prompt API not available, using Gemini API via background');
-    chrome.runtime.sendMessage(
-      {
-        action: 'chat',
-        message: message,
-        includeContext: false
-      },
-      (response) => {
-        hideTypingIndicator();
-        promptBox?.classList.remove('loading');
-        
-        if (response && response.success) {
-          const aiResponse = response.response;
-          typewriterEffect(aiResponse);
-          conversationHistory.push({ role: 'assistant', content: aiResponse });
-        } else {
-          addMessage('assistant', response?.response || 'Sorry, I encountered an error. Please check your API key configuration.');
-          announceToScreenReader('Error processing message', 'assertive');
-        }
-      }
-    );
+    // Gemini Nano not available - show setup instructions in chat
+    console.log('Prompt API not available - showing setup instructions in chat');
+    hideTypingIndicator();
+    promptBox?.classList.remove('loading');
+    
+    const setupMessage = `Hello! I'm Cloudey, your AI assistant. To use Gemini Nano on-device AI:
+
+1. Go to chrome://flags/
+2. Search for and enable:
+   - "Prompt API for Gemini Nano" → Set to "Enabled"
+   - "optimization-guide-on-device-model" → Set to "Enabled (BypassPerfRequirement)"
+3. Click "Relaunch" and wait for Chrome to restart
+4. Come back here and try again!
+
+Note: Requires Chrome 127+ with the flags enabled for on-device AI processing.`;
+    
+    addMessage('assistant', setupMessage);
+    announceToScreenReader('Setup instructions displayed', 'polite');
+    return;
     
   } catch (error) {
     console.error('Error sending message:', error);
