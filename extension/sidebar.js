@@ -714,7 +714,27 @@ async function handleFabAction(action) {
 function handleFabResponse(response) {
   hideTypingIndicator();
   if (response && response.success) {
-    typewriterEffect(response.response);
+    // Handle translation responses specially
+    if (response.result && response.from && response.to) {
+      const translatedText = response.result;
+      const detectedLanguage = response.detectedLanguage || response.from || 'auto';
+      const targetLanguage = response.to || 'en';
+      const method = response.method || 'unknown';
+      
+      // Show translation in chat with method indicator
+      let methodIcon = '🌐';
+      if (method === 'chrome_translator_api') {
+        methodIcon = '⚡'; // Chrome Translator API
+      } else if (method === 'chrome_api') {
+        methodIcon = '🔧'; // Chrome i18n API
+      }
+      
+      const translationMessage = `${methodIcon} **Translation** (${detectedLanguage} → ${targetLanguage}):\n\n${translatedText}`;
+      typewriterEffect(translationMessage);
+    } else {
+      // Handle other responses normally
+      typewriterEffect(response.response);
+    }
   } else {
     addMessage('assistant', response?.response || 'Feature coming soon!');
   }

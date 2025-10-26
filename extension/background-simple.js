@@ -329,26 +329,38 @@ ${pageData.rawHTML.substring(0, 10000)}`;
   }
 }
 
-// Chrome Translate API handler
+// Chrome Translator API handler using self.Translator
 async function handleChromeTranslate(request, sender, sendResponse) {
   const { text, from = 'auto', to = 'en' } = request;
   
+  console.log('Chrome Translate API called with:', { text: text.substring(0, 50) + '...', from, to });
+  
   try {
-    // Use Chrome's built-in translation API
-    if (typeof chrome.i18n === 'undefined') {
-      throw new Error('Chrome i18n API not available');
+    // Check if Translator API is supported
+    if (!('Translator' in self)) {
+      console.error('Translator API not available in service worker');
+      throw new Error('Chrome Translator API not supported in this browser. Please ensure you have Chrome 138+ with the Translator API enabled.');
     }
+    
+    console.log('Translator API is available');
     
     // Detect language if auto is specified
     let sourceLanguage = from;
     if (from === 'auto') {
       try {
-        // Use Chrome's language detection
-        const detectedLanguages = await chrome.i18n.detectLanguage(text);
-        if (detectedLanguages && detectedLanguages.languages && detectedLanguages.languages.length > 0) {
-          sourceLanguage = detectedLanguages.languages[0].language;
+        // Use Chrome's Language Detector API
+        if ('LanguageDetector' in self) {
+          const detector = await LanguageDetector.create();
+          const detection = await detector.detectLanguage(text);
+          sourceLanguage = detection.language;
         } else {
-          sourceLanguage = 'en'; // fallback
+          // Fallback to i18n detection
+          const detectedLanguages = await chrome.i18n.detectLanguage(text);
+          if (detectedLanguages && detectedLanguages.languages && detectedLanguages.languages.length > 0) {
+            sourceLanguage = detectedLanguages.languages[0].language;
+          } else {
+            sourceLanguage = 'en'; // fallback
+          }
         }
       } catch (detectError) {
         console.warn('Language detection failed, using fallback:', detectError);
@@ -356,38 +368,64 @@ async function handleChromeTranslate(request, sender, sendResponse) {
       }
     }
     
-    // Get supported languages
-    const acceptLanguages = await chrome.i18n.getAcceptLanguages();
-    console.log('Supported languages:', acceptLanguages);
-    
-    // Check if target language is supported
-    if (!acceptLanguages.includes(to)) {
-      console.warn(`Target language ${to} not supported, using English`);
-      to = 'en';
-    }
-    
-    // Use Chrome's translation service
-    let translatedText = text;
-    
-    // If source and target are the same, return original text
+    // Check if source and target are the same
     if (sourceLanguage === to) {
-      translatedText = text;
-    } else {
-      // Use Chrome's built-in translation
-      try {
-        // Chrome doesn't have a direct translate API, so we'll use the browser's translation
-        // This is a workaround since Chrome extensions can't directly access the translate service
-        // We'll use a combination of Chrome APIs and fallback to Gemini for actual translation
-        
-        // For now, we'll use Gemini as fallback since Chrome doesn't expose translate API to extensions
-        const prompt = `Translate the following text from ${sourceLanguage} to ${to}. Only return the translated text, no explanations: "${text}"`;
-        translatedText = await callGeminiAPI(prompt);
-        
-      } catch (translateError) {
-        console.error('Translation failed:', translateError);
-        throw new Error('Translation service unavailable');
-      }
+      sendResponse({
+        success: true,
+        result: text,
+        detectedLanguage: sourceLanguage,
+        from: sourceLanguage,
+        to: to,
+        method: 'chrome_translator_api'
+      });
+      return;
     }
+    
+    // Check language pair availability
+    console.log('Checking language pair availability:', { sourceLanguage, targetLanguage: to });
+    const translatorCapabilities = await Translator.availability({
+      sourceLanguage: sourceLanguage,
+      targetLanguage: to,
+    });
+    
+    console.log('Translator capabilities:', translatorCapabilities);
+    
+    if (translatorCapabilities !== 'available') {
+      throw new Error(`Translation from ${sourceLanguage} to ${to} is not available (status: ${translatorCapabilities})`);
+    }
+    
+    // Create translator with download monitoring
+    console.log('Creating translator...');
+    const translator = await Translator.create({
+      sourceLanguage: sourceLanguage,
+      targetLanguage: to,
+      monitor(m) {
+        m.addEventListener('downloadprogress', (e) => {
+          console.log(`Model download progress: ${e.loaded * 100}%`);
+        });
+      },
+    });
+    
+    console.log('Translator created successfully');
+    
+    // Translate the text (use streaming for longer texts)
+    let translatedText;
+    if (text.length > 1000) {
+      console.log('Using streaming translation for long text');
+      // Use streaming for longer texts
+      const stream = translator.translateStreaming(text);
+      const chunks = [];
+      for await (const chunk of stream) {
+        chunks.push(chunk);
+      }
+      translatedText = chunks.join('');
+    } else {
+      console.log('Using regular translation for short text');
+      // Use regular translate for shorter texts
+      translatedText = await translator.translate(text);
+    }
+    
+    console.log('Translation completed:', translatedText.substring(0, 100) + '...');
     
     sendResponse({
       success: true,
@@ -395,11 +433,11 @@ async function handleChromeTranslate(request, sender, sendResponse) {
       detectedLanguage: sourceLanguage,
       from: sourceLanguage,
       to: to,
-      method: 'chrome_api'
+      method: 'chrome_translator_api'
     });
     
   } catch (error) {
-    console.error('Chrome Translate API error:', error);
+    console.error('Chrome Translator API error:', error);
     sendResponse({
       success: false,
       error: error.message

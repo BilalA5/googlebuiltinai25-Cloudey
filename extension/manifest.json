@@ -13,6 +13,9 @@
     "tabs",
     "i18n"
   ],
+  "optional_permissions": [
+    "aiLanguageModelOriginTrial"
+  ],
   "host_permissions": [
     "https://*/*",
     "http://*/*"
