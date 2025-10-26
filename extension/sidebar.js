@@ -23,6 +23,7 @@ let isListening = false;
 let isStreaming = false;
 let conversationHistory = [];
 let attachedFiles = [];
+let typewriterAbortController = null;
 const MAX_FILES = 5;
 const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25MB
 
@@ -379,8 +380,6 @@ function addMessage(role, content) {
 }
 
 // Typewriter effect
-let typewriterAbortController = null;
-
 async function typewriterEffect(text, speed = 30) {
   isStreaming = true;
   typewriterAbortController = new AbortController();

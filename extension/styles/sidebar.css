@@ -274,7 +274,7 @@ body {
 
 .message-content {
   padding: var(--space-md) var(--space-lg);
-  border-radius: var(--radius-md);
+  border-radius: 20px;
   line-height: var(--line-height-base);
   font-size: var(--font-size-base);
   word-wrap: break-word;
@@ -282,15 +282,15 @@ body {
 }
 
 .message.user .message-content {
-  background: linear-gradient(135deg, rgba(66, 133, 244, 0.3), rgba(66, 133, 244, 0.2));
-  border: 1px solid rgba(66, 133, 244, 0.4);
-  border-radius: var(--radius-md) var(--radius-md) var(--radius-xs) var(--radius-md);
+  background: rgba(150, 130, 160, 0.25);
+  border: 1px solid rgba(150, 130, 160, 0.4);
+  border-radius: 20px;
 }
 
 .message.assistant .message-content {
   background: var(--color-surface-glass);
   border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-md) var(--radius-md) var(--radius-md) var(--radius-xs);
+  border-radius: 20px;
 }
 
 .message-content.typing::after {
