@@ -2121,20 +2121,29 @@ async function writeToSheets(range, values, formulas = []) {
         let actualSuccess = false;
         let lastRealError = null;
         
-        for (const result of results) {
+        console.log(`📊 Received ${results.length} results from frames`);
+        
+        for (let i = 0; i < results.length; i++) {
+          const result = results[i];
+          console.log(`Frame ${i}:`, {
+            hasResult: !!result.result,
+            result: result.result
+          });
+          
           if (result && result.result) {
             // Skip frames that weren't Sheets frames
             if (result.result.skipped) {
-              console.log('⏭️ Skipping non-Sheets frame');
+              console.log(`⏭️ Frame ${i}: Skipping non-Sheets frame`);
               continue;
             }
             
             if (result.result.success) {
-              console.log(`✅ Success in Google Sheets frame!`);
+              console.log(`✅ Frame ${i}: Success in Google Sheets frame!`, result.result);
               actualSuccess = true;
               resolve(result.result);
               return;
             } else {
+              console.log(`❌ Frame ${i}: Failed -`, result.result.error);
               lastRealError = result.result.error || 'Unknown error';
             }
           }
