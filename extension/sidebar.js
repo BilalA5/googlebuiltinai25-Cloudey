@@ -388,9 +388,17 @@ function deactivateAgentMode() {
   isAgentMode = false;
   agentToggle.classList.remove('active');
   
-  // Remove border animation
-  chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-    chrome.tabs.sendMessage(tabs[0].id, { action: 'agentEnd' });
+  // Remove border animation from ALL tabs
+  chrome.tabs.query({}, (allTabs) => {
+    allTabs.forEach((tab) => {
+      try {
+        chrome.tabs.sendMessage(tab.id, { action: 'agentEnd' }).catch(() => {
+          // Ignore errors for tabs that can't receive messages
+        });
+      } catch (error) {
+        // Ignore errors
+      }
+    });
   });
   
   announceToScreenReader('Agent mode disabled', 'polite');
