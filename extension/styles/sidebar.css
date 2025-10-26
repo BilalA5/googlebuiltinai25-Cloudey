@@ -387,6 +387,12 @@ body {
   }
 }
 
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-2px); }
+  20%, 40%, 60%, 80% { transform: translateX(2px); }
+}
+
 /* ===== INTERACTION REGION: Chat Input ===== */
 .bottom-dock-wrapper {
   position: fixed;
@@ -942,9 +948,16 @@ body {
   flex-shrink: 0;
 }
 
-.prompt-send-btn:hover {
+.prompt-send-btn:hover:not(:disabled) {
   background: rgba(255, 255, 255, 0.9);
   transform: scale(1.05);
+}
+
+.prompt-send-btn:disabled {
+  background: rgba(255, 255, 255, 0.3);
+  color: rgba(31, 32, 35, 0.4);
+  cursor: not-allowed;
+  transform: none;
 }
 
 .prompt-send-btn .lucide-icon {

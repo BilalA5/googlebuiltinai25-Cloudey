@@ -356,7 +356,24 @@ function removeAttachment(fileName) {
 // Send message
 async function sendMessage() {
   const message = chatInput.value.trim();
-  if (!message && attachedFiles.length === 0) return;
+  
+  // Validate message length - must be at least 1 character
+  if (message.length < 1 && attachedFiles.length === 0) {
+    console.log('Message too short, not sending');
+    
+    // Add visual feedback for empty message
+    const promptBox = document.getElementById('prompt-box');
+    if (promptBox) {
+      promptBox.style.animation = 'shake 0.5s ease-in-out';
+      setTimeout(() => {
+        promptBox.style.animation = '';
+      }, 500);
+    }
+    
+    // Show brief error message
+    announceToScreenReader('Please enter a message before sending', 'assertive');
+    return;
+  }
   
   // Clear input
   chatInput.value = '';

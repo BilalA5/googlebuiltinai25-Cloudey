@@ -357,7 +357,12 @@ async function handleGeminiChat(request, sender, sendResponse) {
     
     if (pageContext) {
       console.log('Including page context in prompt');
-      contextPrompt += `\n\nCurrent page context:\nTitle: ${pageContext.title}\nURL: ${pageContext.url}\nContent: ${pageContext.content.substring(0, 2000)}...`;
+      contextPrompt += `\n\nCURRENT PAGE CONTEXT (USE THIS INFORMATION TO ANSWER QUESTIONS):
+Title: ${pageContext.title}
+URL: ${pageContext.url}
+Content: ${pageContext.content.substring(0, 2000)}
+
+IMPORTANT: You can see and understand the current page content above. Use this information to provide relevant, contextual answers. If the user asks about what's on the page, refer to the specific content shown above.`;
     } else {
       console.log('No page context to include');
     }
@@ -366,7 +371,7 @@ async function handleGeminiChat(request, sender, sendResponse) {
       contextPrompt += `\n\nConversation history:\n${conversationContext.map(c => `${c.role}: ${c.parts[0].text}`).join('\n')}`;
     }
     
-    contextPrompt += `\n\nUser: ${message}`;
+    contextPrompt += `\n\nUser question: ${message}`;
 
     const requestBody = {
       contents: [
