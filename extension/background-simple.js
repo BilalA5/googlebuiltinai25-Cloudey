@@ -1695,116 +1695,161 @@ async function composeEmail(to, subject, body) {
       chrome.scripting.executeScript({
         target: { tabId: tabs[0].id },
         func: (emailTo, emailSubject, emailBody) => {
-          const url = window.location.href.toLowerCase();
-          
-          // Detect email service
-          const isGmail = url.includes('mail.google.com');
-          const isOutlook = url.includes('outlook.com') || url.includes('outlook.live.com');
-          
-          if (!isGmail && !isOutlook) {
-            return { success: false, error: 'Not on Gmail or Outlook. Please open your email service first.' };
-          }
-          
-          try {
-            // Click compose button
-            let composeButton = null;
+          return new Promise((resolve) => {
+            const url = window.location.href.toLowerCase();
             
-            if (isGmail) {
-              // Gmail compose button
-              composeButton = document.querySelector('[aria-label*="Compose"], [data-tooltip*="New message"], .z0');
-            } else if (isOutlook) {
-              // Outlook compose button
-              composeButton = document.querySelector('[aria-label*="New message"], button[title*="New message"]');
+            // Detect email service
+            const isGmail = url.includes('mail.google.com');
+            const isOutlook = url.includes('outlook.com') || url.includes('outlook.live.com');
+            
+            if (!isGmail && !isOutlook) {
+              resolve({ success: false, error: 'Not on Gmail or Outlook. Please open your email service first.' });
+              return;
             }
             
-            if (!composeButton) {
-              // Try alternative selectors
-              const altSelectors = [
-                'div[role="button"][data-tooltip*="Compose"]',
-                'button[title*="New message"]',
-                '[aria-label*="New message"]'
-              ];
+            try {
+              // Click compose button
+              let composeButton = null;
               
-              for (const selector of altSelectors) {
-                composeButton = document.querySelector(selector);
-                if (composeButton) break;
+              if (isGmail) {
+                // Gmail compose button - try multiple selectors
+                const gmailSelectors = [
+                  '.T-I.T-I-KE.L3', // Gmail compose button class
+                  'div[role="button"][aria-label*="Compose"]',
+                  'div[data-tooltip*="Compose"]',
+                  'div.z0'
+                ];
+                
+                for (const sel of gmailSelectors) {
+                  composeButton = document.querySelector(sel);
+                  if (composeButton) break;
+                }
+              } else if (isOutlook) {
+                // Outlook compose button
+                composeButton = document.querySelector('[aria-label*="New message"], button[title*="New message"]');
               }
-            }
-            
-            if (composeButton) {
+              
+              if (!composeButton) {
+                // Try more alternative selectors
+                const altSelectors = [
+                  'button[aria-label*="Compose"]',
+                  'button[data-tooltip*="Compose"]',
+                  'div[role="button"][aria-label*="Compose"]'
+                ];
+                
+                for (const selector of altSelectors) {
+                  composeButton = document.querySelector(selector);
+                  if (composeButton) {
+                    console.log('Found compose button with selector:', selector);
+                    break;
+                  }
+                }
+              }
+              
+              if (!composeButton) {
+                console.error('❌ Could not find compose button. Available buttons:', 
+                  Array.from(document.querySelectorAll('button, div[role="button"]')).map(el => ({
+                    text: el.textContent.substring(0, 20),
+                    ariaLabel: el.getAttribute('aria-label'),
+                    className: el.className
+                  })).slice(0, 10)
+                );
+                resolve({ success: false, error: 'Could not find compose button. Please click it manually first.' });
+                return;
+              }
+              
+              console.log('✅ Found compose button, clicking...');
               composeButton.click();
-              console.log('Clicked compose button');
-            } else {
-              return { success: false, error: 'Could not find compose button. Please click it manually first.' };
-            }
-            
-            // Wait a bit for compose window to appear
-            setTimeout(() => {
+              console.log('✅ Clicked compose button');
+              
+              // Wait a bit for compose window to appear
+              setTimeout(() => {
               // Fill recipient
               const toSelectors = isGmail 
-                ? ['input[aria-label*="To"], input[placeholder*="To"], input[aria-label*="Recipients"]']
-                : ['input[aria-label*="To"], input[placeholder*="To"]'];
+                ? ['input[name="to"]', 'input[aria-label*="To"]', 'input[placeholder*="To"]', 'textarea[name="to"]']
+                : ['input[aria-label*="To"]', 'input[placeholder*="To"]'];
               
               let toField = null;
               for (const selector of toSelectors) {
                 toField = document.querySelector(selector);
-                if (toField) break;
+                if (toField) {
+                  console.log('Found To field with selector:', selector);
+                  break;
+                }
               }
               
               if (toField) {
                 toField.value = emailTo;
                 toField.dispatchEvent(new Event('input', { bubbles: true }));
-                console.log('Filled To field');
+                toField.dispatchEvent(new Event('change', { bubbles: true }));
+                console.log('✅ Filled To field');
+              } else {
+                console.error('❌ Could not find To field');
               }
               
-              // Fill subject
-              const subjectSelectors = [
-                'input[aria-label*="Subject"]',
-                'input[placeholder*="Subject"]',
-                'input[name="subject"]'
-              ];
+              // Small delay before filling subject
+              setTimeout(() => {
+                // Fill subject
+                const subjectSelectors = isGmail
+                  ? ['input[name="subjectbox"]', 'input[name="subject"]', 'input[aria-label*="Subject"]']
+                  : ['input[aria-label*="Subject"]', 'input[name="subject"]'];
+                
+                let subjectField = null;
+                for (const selector of subjectSelectors) {
+                  subjectField = document.querySelector(selector);
+                  if (subjectField) {
+                    console.log('Found Subject field with selector:', selector);
+                    break;
+                  }
+                }
+                
+                if (subjectField) {
+                  subjectField.value = emailSubject;
+                  subjectField.dispatchEvent(new Event('input', { bubbles: true }));
+                  subjectField.dispatchEvent(new Event('change', { bubbles: true }));
+                  console.log('✅ Filled Subject field');
+                } else {
+                  console.error('❌ Could not find Subject field');
+                }
+                
+                // Small delay before filling body
+                setTimeout(() => {
+                  // Fill body
+                  const bodySelectors = isGmail
+                    ? ['div[aria-label*="Message Body"]', 'div[g_editable="true"][role="textbox"]', 'div[contenteditable="true"][role="textbox"]']
+                    : ['div[aria-label*="Message body"]', 'div[contenteditable="true"][role="textbox"]'];
+                  
+                  let bodyField = null;
+                  for (const selector of bodySelectors) {
+                    bodyField = document.querySelector(selector);
+                    if (bodyField) {
+                      console.log('Found Body field with selector:', selector);
+                      break;
+                    }
+                  }
+                  
+                  if (bodyField) {
+                    bodyField.focus();
+                    bodyField.innerHTML = emailBody;
+                    bodyField.dispatchEvent(new Event('input', { bubbles: true }));
+                    console.log('✅ Filled email body');
+                  } else {
+                    console.error('❌ Could not find Body field');
+                  }
+                  
+                  // DO NOT CLICK SEND - let user review
+                  console.log('✅ Email composed and ready for review');
+                  
+                  resolve({ success: true, message: `Email composed to ${emailTo}. Please review and click send manually.` });
+                                 }, 300);
+               }, 300);
+              }, 1500);
               
-              let subjectField = null;
-              for (const selector of subjectSelectors) {
-                subjectField = document.querySelector(selector);
-                if (subjectField) break;
-              }
-              
-              if (subjectField) {
-                subjectField.value = emailSubject;
-                subjectField.dispatchEvent(new Event('input', { bubbles: true }));
-                console.log('Filled Subject field');
-              }
-              
-              // Fill body
-              const bodySelectors = [
-                'div[aria-label*="Message body"]',
-                'div[contenteditable="true"][aria-label*="Message"]',
-                'div[contenteditable="true"][role="textbox"]'
-              ];
-              
-              let bodyField = null;
-              for (const selector of bodySelectors) {
-                bodyField = document.querySelector(selector);
-                if (bodyField) break;
-              }
-              
-              if (bodyField) {
-                bodyField.focus();
-                bodyField.innerHTML = emailBody;
-                bodyField.dispatchEvent(new Event('input', { bubbles: true }));
-                console.log('Filled email body');
-              }
-              
-              // DO NOT CLICK SEND - let user review
-              console.log('Email composed and ready for review');
-            }, 1000);
-            
-            return { success: true, message: `Email composed to ${emailTo}. Please review and click send manually.` };
-            
-          } catch (error) {
-            return { success: false, error: `Error composing email: ${error.message}` };
-          }
+            } catch (error) {
+              console.error('❌ Error composing email:', error);
+              resolve({ success: false, error: `Error composing email: ${error.message}` });
+            }
+          });
         },
         args: [to || '', subject || '', body || '']
       }, (results) => {
