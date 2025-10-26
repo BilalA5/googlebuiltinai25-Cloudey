@@ -1772,6 +1772,8 @@ Write a complete, well-formatted email body (2-4 sentences) that is warm, profes
               } else if (isOutlook) {
                 // Outlook compose button - try multiple selectors
                 const outlookSelectors = [
+                  'button[aria-label*="New Mail"]',
+                  'button[title*="New Mail"]',
                   'button[aria-label*="New message"]',
                   'button[title*="New message"]',
                   'button[title*="Nouveau message"]', // French
@@ -1781,7 +1783,8 @@ Write a complete, well-formatted email body (2-4 sentences) that is warm, profes
                   'button[data-automation-id="newMessageButton"]',
                   'div[role="button"][aria-label*="New message"]',
                   'button:has([data-icon-name="Add"])',
-                  'button:has([aria-label="New message"])'
+                  'button:has([aria-label="New message"])',
+                  'button:has([aria-label*="New Mail"])'
                 ];
                 
                 for (const sel of outlookSelectors) {
@@ -1813,12 +1816,13 @@ Write a complete, well-formatted email body (2-4 sentences) that is warm, profes
               if (!composeButton) {
                 console.error('❌ Could not find compose button');
                 if (isOutlook) {
-                  console.error('Outlook: Searching for all buttons with "New" or "message"...');
+                  console.error('Outlook: Searching for all buttons with "New", "mail", or "message"...');
                   const allButtons = Array.from(document.querySelectorAll('button, div[role="button"]'));
                   const relevantButtons = allButtons.filter(el => {
                     const text = el.textContent.toLowerCase();
                     const aria = el.getAttribute('aria-label')?.toLowerCase() || '';
-                    return text.includes('new') || text.includes('message') || aria.includes('new') || aria.includes('message');
+                    return text.includes('new') || text.includes('mail') || text.includes('message') || 
+                           aria.includes('new') || aria.includes('mail') || aria.includes('message');
                   }).slice(0, 15);
                   
                   console.error('Found potential buttons:', relevantButtons.map(el => ({
