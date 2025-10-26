@@ -1153,6 +1153,119 @@ body {
   border-color: rgba(180, 160, 190, 0.7);
 }
 
+/* ===== AGENT STEPS UI ===== */
+.agent-steps-container {
+  background: rgba(20, 15, 25, 0.8);
+  border: 1px solid rgba(180, 160, 190, 0.2);
+  border-radius: 12px;
+  margin: 12px;
+  padding: 16px;
+  backdrop-filter: blur(10px);
+}
+
+.agent-steps-container.hidden {
+  display: none;
+}
+
+.agent-steps-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.agent-steps-header h3 {
+  color: rgba(180, 160, 190, 1);
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.agent-steps-toggle {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 18px;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.agent-steps-toggle:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.agent-steps-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.agent-step {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  background: rgba(30, 25, 35, 0.5);
+  border-radius: 8px;
+  border-left: 3px solid rgba(180, 160, 190, 0.3);
+  transition: all 0.2s ease;
+}
+
+.agent-step.active {
+  border-left-color: rgba(238, 130, 238, 0.8);
+  background: rgba(238, 130, 238, 0.1);
+}
+
+.agent-step.completed {
+  border-left-color: rgba(100, 200, 100, 0.8);
+  background: rgba(100, 200, 100, 0.1);
+}
+
+.agent-step.failed {
+  border-left-color: rgba(255, 100, 100, 0.8);
+  background: rgba(255, 100, 100, 0.1);
+}
+
+.step-icon {
+  font-size: 16px;
+  width: 20px;
+  text-align: center;
+}
+
+.step-content {
+  flex: 1;
+}
+
+.step-title {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 13px;
+  font-weight: 500;
+  margin: 0 0 2px 0;
+}
+
+.step-status {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 11px;
+  margin: 0;
+}
+
+.step-spinner {
+  width: 12px;
+  height: 12px;
+  border: 2px solid rgba(180, 160, 190, 0.3);
+  border-top: 2px solid rgba(238, 130, 238, 0.8);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
 /* Custom Divider */
 .toggle-buttons::before {
   content: '';
