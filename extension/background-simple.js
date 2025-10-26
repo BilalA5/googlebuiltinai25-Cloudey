@@ -1200,19 +1200,11 @@ async function clickElement(selector) {
 
 async function fillTextField(selector, text, useWriterAPI = false) {
   return new Promise((resolve) => {
-    chrome.tabs.query({ active: true, currentWindow: true }, async (tabs) => {
-      const tabId = tabs[0].id;
-      
-      // Get all frames and try each one
-      const frames = await chrome.scripting.getFrames({ tabId });
-      console.log(`🔍 Found ${frames.length} frames for fillTextField`);
-      
-      for (const frame of frames) {
-        try {
-          const result = await chrome.scripting.executeScript({
-            target: { tabId, frameIds: [frame.frameId] },
-            world: 'MAIN',
-            func: async (sel, txt, useAPI) => {
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      chrome.scripting.executeScript({
+        target: { tabId: tabs[0].id, allFrames: true },
+        world: 'MAIN',
+        func: async (sel, txt, useAPI) => {
           // Try multiple selectors for Google Docs
           let element = document.querySelector(sel);
           
@@ -1264,23 +1256,19 @@ async function fillTextField(selector, text, useWriterAPI = false) {
             element.textContent = content;
           }
           
-              return { success: true, message: `Filled ${sel} with content` };
-            },
-            args: [selector || 'input', text || '', Boolean(useWriterAPI)]
-          });
-          
-          if (result && result[0] && result[0].result) {
-            if (result[0].result.success) {
-              resolve(result[0].result);
-              return;
-            }
+          return { success: true, message: `Filled ${sel} with content` };
+        },
+        args: [selector || 'input', text || '', Boolean(useWriterAPI)]
+      }, (results) => {
+        // Check all results for a success
+        for (const result of results || []) {
+          if (result && result.result && result.result.success) {
+            resolve(result.result);
+            return;
           }
-        } catch (error) {
-          console.log(`⚠️ Failed to fill in frame ${frame.frameId}:`, error.message);
         }
-      }
-      
-      resolve({ success: false, error: 'Failed to fill in any frame' });
+        resolve(results[0]?.result || { success: false, error: 'Failed to fill' });
+      });
     });
   });
 }
@@ -1367,20 +1355,11 @@ async function rewriteText(selector, useRewriterAPI = false) {
 async function writeContent(selector, content, useWriterAPI = false) {
   console.log(`📝 writeContent called with:`, { selector, content, useWriterAPI });
   return new Promise((resolve) => {
-    chrome.tabs.query({ active: true, currentWindow: true }, async (tabs) => {
-      const tabId = tabs[0].id;
-      
-      // Get all frames in the tab
-      const frames = await chrome.scripting.getFrames({ tabId });
-      console.log(`🔍 Found ${frames.length} frames in tab`);
-      
-      // Try each frame to find the Google Docs editor
-      for (const frame of frames) {
-        try {
-          const result = await chrome.scripting.executeScript({
-            target: { tabId, frameIds: [frame.frameId] },
-            world: 'MAIN',
-            func: async (sel, cnt, useAPI) => {
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      chrome.scripting.executeScript({
+        target: { tabId: tabs[0].id, allFrames: true },
+        world: 'MAIN',
+        func: async (sel, cnt, useAPI) => {
           console.log(`🚀 INJECTED SCRIPT STARTED`);
           console.log(`🔍 writeContent script running with:`, { sel, cnt, useAPI });
           console.log(`📍 Current URL:`, window.location.href);
@@ -1635,26 +1614,36 @@ async function writeContent(selector, content, useWriterAPI = false) {
             console.log(`✅ Set textContent for element`);
           }
           
-              return { success: true, message: `Wrote content to ${sel}` };
-            },
-            args: [selector || 'body', content || '', Boolean(useWriterAPI)]
-          });
-          
-          if (result && result[0] && result[0].result) {
-            console.log(`✅ Success in frame ${frame.frameId}:`, result[0].result);
-            if (result[0].result.success) {
-              resolve(result[0].result);
-              return;
-            }
-          }
-        } catch (error) {
-          console.log(`⚠️ Failed in frame ${frame.frameId}:`, error.message);
+          return { success: true, message: `Wrote content to ${sel}` };
+        },
+        args: [selector || 'body', content || '', Boolean(useWriterAPI)]
+      }, (results) => {
+        if (chrome.runtime.lastError) {
+          console.error('❌ Script injection error:', chrome.runtime.lastError);
+          resolve({ success: false, error: chrome.runtime.lastError.message });
+          return;
         }
-      }
-      
-      // If we get here, no frame worked
-      console.log('❌ No frame successfully wrote content');
-      resolve({ success: false, error: 'Failed to write content in any frame' });
+        
+        if (!results || results.length === 0) {
+          console.error('❌ No results from script injection');
+          resolve({ success: false, error: 'No results from script injection' });
+          return;
+        }
+        
+        // Check all frame results for a success
+        for (const result of results) {
+          if (result && result.result && result.result.success) {
+            console.log(`✅ Success in one of the frames`);
+            resolve(result.result);
+            return;
+          }
+        }
+        
+        // If we get here, no frame succeeded
+        console.error('❌ No frame successfully wrote content');
+        const lastError = results[results.length - 1]?.result?.error || 'Unknown error';
+        resolve({ success: false, error: lastError });
+      });
     });
   });
 }
