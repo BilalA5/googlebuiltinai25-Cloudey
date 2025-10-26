@@ -317,6 +317,10 @@ async function sendMessage() {
   autoResizeTextarea();
   updateSendButtonState();
   
+  // Add loading state to prompt box
+  const promptBox = document.getElementById('prompt-box');
+  promptBox?.classList.add('loading');
+  
   // Remove empty state
   const emptyState = messagesContainer.querySelector('.empty-state');
   if (emptyState) emptyState.remove();
@@ -354,6 +358,10 @@ async function sendMessage() {
       (response) => {
         hideTypingIndicator();
         
+        // Remove loading state from prompt box
+        const promptBox = document.getElementById('prompt-box');
+        promptBox?.classList.remove('loading');
+        
         if (response && response.success) {
           const aiResponse = response.response;
           typewriterEffect(aiResponse);
@@ -367,6 +375,11 @@ async function sendMessage() {
   } catch (error) {
     console.error('Error sending message:', error);
     hideTypingIndicator();
+    
+    // Remove loading state from prompt box
+    const promptBox = document.getElementById('prompt-box');
+    promptBox?.classList.remove('loading');
+    
     addMessage('assistant', 'An error occurred. Please try again.');
     announceToScreenReader('An error occurred', 'assertive');
   }

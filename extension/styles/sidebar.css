@@ -345,8 +345,28 @@ body {
 
 .typing-status {
   font-size: var(--font-size-xs);
-  color: var(--color-text-tertiary);
-  animation: pulse 1.5s ease-in-out infinite;
+  color: rgba(180, 160, 190, 0.8);
+  animation: shimmer-text 2s linear infinite;
+  background: linear-gradient(
+    90deg,
+    rgba(180, 160, 190, 0.4) 0%,
+    rgba(220, 200, 230, 1) 50%,
+    rgba(180, 160, 190, 0.4) 100%
+  );
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+@keyframes shimmer-text {
+  0% {
+    background-position-x: -200%;
+  }
+  100% {
+    background-position-x: 200%;
+  }
 }
 
 /* ===== INTERACTION REGION: Chat Input ===== */
@@ -901,6 +921,27 @@ body {
   width: 16px;
   height: 16px;
   stroke-width: 2;
+}
+
+/* ===== SHIMMER ANIMATION ===== */
+.prompt-box.loading .prompt-textarea {
+  background: linear-gradient(
+    90deg,
+    rgba(180, 160, 190, 0.1) 0%,
+    rgba(220, 200, 230, 0.3) 50%,
+    rgba(180, 160, 190, 0.1) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 2s linear infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position-x: -200%;
+  }
+  100% {
+    background-position-x: 200%;
+  }
 }
 
 /* ===== FAB ACTIONS ===== */
