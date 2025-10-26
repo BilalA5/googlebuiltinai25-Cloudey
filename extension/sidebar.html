@@ -87,45 +87,47 @@
               
               <!-- Toggle Buttons -->
               <div class="toggle-buttons">
-                <!-- Translate Button with Tooltip -->
+                <!-- Translate Button -->
+                <button class="translate-main-btn" id="translate-main-btn" title="Translate selected text">
+                  <svg class="lucide-icon-small" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path d="M5 8l6 6"></path>
+                    <path d="M4 14l6-6 2-3"></path>
+                    <path d="M2 5h12"></path>
+                    <path d="M7 2h1"></path>
+                    <path d="M22 22l-5-10-5 10"></path>
+                    <path d="M14 18h6"></path>
+                  </svg>
+                  <span class="toggle-label">Translate</span>
+                </button>
+                
+                <!-- Agent Toggle with Tooltip -->
                 <div class="toggle-container">
-                  <button class="translate-main-btn" id="translate-main-btn" title="Translate selected text">
+                  <button class="toggle-btn" id="agent-toggle" data-toggle="agent">
                     <svg class="lucide-icon-small" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                      <path d="M5 8l6 6"></path>
-                      <path d="M4 14l6-6 2-3"></path>
-                      <path d="M2 5h12"></path>
-                      <path d="M7 2h1"></path>
-                      <path d="M22 22l-5-10-5 10"></path>
-                      <path d="M14 18h6"></path>
+                      <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
+                      <path d="M2 17l10 5 10-5"></path>
+                      <path d="M2 12l10 5 10-5"></path>
                     </svg>
-                    <span class="toggle-label">Translate</span>
+                    <span class="toggle-label">Agent</span>
                   </button>
                   
-                  <!-- Translate Tooltip -->
-                  <div class="translate-tooltip" id="translate-tooltip">
-                    <button class="translate-btn" id="translate-btn">
-                      <svg class="lucide-icon-small" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <path d="M5 8l6 6"></path>
-                        <path d="M4 14l6-6 2-3"></path>
-                        <path d="M2 5h12"></path>
-                        <path d="M7 2h1"></path>
-                        <path d="M22 22l-5-10-5 10"></path>
-                        <path d="M14 18h6"></path>
-                      </svg>
-                      Translate
-                    </button>
+                  <!-- Agent Tooltip -->
+                  <div class="agent-tooltip" id="agent-tooltip">
+                    <div class="tooltip-content">
+                      <div class="tooltip-header">
+                        <svg class="lucide-icon-small" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                          <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
+                          <path d="M2 17l10 5 10-5"></path>
+                          <path d="M2 12l10 5 10-5"></path>
+                        </svg>
+                        <span>Agent Mode</span>
+                      </div>
+                      <div class="tooltip-description">
+                        Cloudey can take control of your screen and perform actions automatically
+                      </div>
+                    </div>
                   </div>
                 </div>
-                
-                <!-- Agent Toggle -->
-                <button class="toggle-btn" id="agent-toggle" data-toggle="agent">
-                  <svg class="lucide-icon-small" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                    <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
-                    <path d="M2 17l10 5 10-5"></path>
-                    <path d="M2 12l10 5 10-5"></path>
-                  </svg>
-                  <span class="toggle-label">Agent</span>
-                </button>
                 
                 <!-- Context Status Indicator (Always On) -->
                 <div class="context-indicator" title="Page context is always enabled">

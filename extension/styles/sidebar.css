@@ -964,11 +964,6 @@ body {
 }
 
 /* ===== TRANSLATE BUTTON ===== */
-.toggle-container {
-  position: relative;
-  display: inline-block;
-}
-
 .translate-main-btn {
   display: flex;
   align-items: center;
@@ -1012,7 +1007,13 @@ body {
   padding-left: 2px;
 }
 
-.translate-tooltip {
+/* ===== AGENT TOOLTIP ===== */
+.toggle-container {
+  position: relative;
+  display: inline-block;
+}
+
+.agent-tooltip {
   position: absolute;
   bottom: 100%;
   left: 50%;
@@ -1020,50 +1021,47 @@ body {
   margin-bottom: 8px;
   background: rgba(31, 25, 35, 0.95);
   border-radius: 8px;
-  padding: 8px 12px;
-  min-width: 160px;
+  padding: 12px;
+  min-width: 200px;
   opacity: 0;
   visibility: hidden;
-  transition: all 0.15s ease;
+  transition: all 0.2s ease;
   z-index: 10000;
   backdrop-filter: blur(10px);
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
 }
 
-.toggle-container:hover .translate-tooltip {
+.toggle-container:hover .agent-tooltip {
   opacity: 1;
   visibility: visible;
   transform: translateX(-50%) translateY(0);
-  transition-delay: 1s;
 }
 
-.translate-btn {
+.tooltip-content {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.tooltip-header {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 10px;
-  background: rgba(238, 130, 238, 0.15);
-  border: none;
-  border-radius: 6px;
-  color: rgba(238, 130, 238, 1);
+  color: rgba(180, 160, 190, 1);
   font-size: 12px;
   font-weight: 500;
-  cursor: pointer;
-  transition: all 0.15s ease;
-  width: 100%;
-  justify-content: center;
 }
 
-.translate-btn:hover {
-  background: rgba(238, 130, 238, 0.25);
-  color: rgba(255, 255, 255, 1);
-  transform: scale(1.02);
-}
-
-.translate-btn .lucide-icon-small {
+.tooltip-header .lucide-icon-small {
   width: 14px;
   height: 14px;
   stroke-width: 1.5;
+}
+
+.tooltip-description {
+  color: rgba(200, 180, 210, 1);
+  font-size: 11px;
+  line-height: 1.4;
 }
 
 /* ===== CONTEXT INDICATOR ===== */
