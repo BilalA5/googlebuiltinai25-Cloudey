@@ -696,7 +696,7 @@ async function handleFabAction(action) {
           addMessage('user', `Translate this: "${textToTranslate}"`);
           showTypingIndicator();
           chrome.runtime.sendMessage(
-            { action: 'translateText', text: textToTranslate },
+            { action: 'translate', text: textToTranslate, from: 'auto', to: 'en' },
             handleFabResponse
           );
         } else {
