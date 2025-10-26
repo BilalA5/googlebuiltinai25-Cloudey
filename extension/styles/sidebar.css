@@ -119,21 +119,6 @@ body {
   gap: var(--space-sm);
 }
 
-.header-logo {
-  width: 24px;
-  height: 24px;
-  object-fit: contain;
-  flex-shrink: 0;
-}
-
-.header-title {
-  font-size: var(--font-size-md);
-  font-weight: var(--font-weight-semibold);
-  color: var(--color-text-primary);
-  margin: 0;
-  letter-spacing: -0.01em;
-}
-
 .header-close {
   width: var(--interactive-size);
   height: var(--interactive-size);
@@ -332,17 +317,17 @@ body {
   width: var(--interactive-size-sm);
   height: var(--interactive-size-sm);
   border-radius: 50%;
-  background: var(--color-surface-glass);
+  background: transparent;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .avatar-icon {
-  width: 100%;
-  height: 100%;
+  width: 32px;
+  height: 32px;
   object-fit: contain;
 }
 
