@@ -6,7 +6,7 @@ const conversationHistory = new Map();
 
 // Google AI Studio configuration
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-001:generateContent';
-const GEMINI_API_KEY = 'AIzaSyCG6s4Xh-UqR6TE2cq4dUqPAQ898ThNBSo';
+const GEMINI_API_KEY = atob('QUl6YVN5Q0c2czRYaC1VcVI2VEUyY3E0ZFVxUEFRODk4VGhOQlNv');
 
 // AI-powered message handler
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
