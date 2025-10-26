@@ -297,7 +297,16 @@ async function handleGeminiChat(request, sender, sendResponse) {
     // Get page context if requested
     let pageContext = null;
     if (includeContext && sender.tab) {
+      console.log('Getting page context for tab:', sender.tab.id, sender.tab.url);
       pageContext = await getPageContext(sender.tab);
+      console.log('Page context retrieved:', pageContext ? 'Success' : 'Failed');
+      if (pageContext) {
+        console.log('Page title:', pageContext.title);
+        console.log('Page URL:', pageContext.url);
+        console.log('Content length:', pageContext.content?.length || 0);
+      }
+    } else {
+      console.log('Page context not requested or no tab available');
     }
 
     // Prepare conversation context for Gemini
@@ -318,7 +327,10 @@ async function handleGeminiChat(request, sender, sendResponse) {
     }
     
     if (pageContext) {
+      console.log('Including page context in prompt');
       contextPrompt += `\n\nCurrent page context:\nTitle: ${pageContext.title}\nURL: ${pageContext.url}\nContent: ${pageContext.content.substring(0, 2000)}...`;
+    } else {
+      console.log('No page context to include');
     }
     
     if (conversationContext.length > 0) {

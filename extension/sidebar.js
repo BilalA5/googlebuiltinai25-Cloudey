@@ -394,6 +394,13 @@ async function sendMessage() {
     const isSearchMode = searchToggle?.classList.contains('active') || false;
     const isAgentMode = agentToggle?.classList.contains('active') || false;
     
+    console.log('Sending message with context:', {
+      includeContext,
+      isSearchMode,
+      isAgentMode,
+      message: message.substring(0, 50) + '...'
+    });
+    
     // Use Gemini API via background script with page context
     const response = await chrome.runtime.sendMessage({
       action: 'geminiChat',
