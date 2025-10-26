@@ -691,15 +691,24 @@ async function handleFabAction(action) {
         break;
         
       case 'translate':
+        console.log('🌐 Translation requested');
         const textToTranslate = await getSelectedText(tab.id);
-        if (textToTranslate) {
+        console.log('Selected text:', textToTranslate);
+        
+        if (textToTranslate && textToTranslate.trim().length > 0) {
           addMessage('user', `Translate this: "${textToTranslate}"`);
           showTypingIndicator();
+          
+          console.log('Sending translation request to background script...');
           chrome.runtime.sendMessage(
             { action: 'translate', text: textToTranslate, from: 'auto', to: 'en' },
-            handleFabResponse
+            (response) => {
+              console.log('Translation response received:', response);
+              handleFabResponse(response);
+            }
           );
         } else {
+          console.log('No text selected for translation');
           announceToScreenReader('Please select some text first', 'assertive');
         }
         break;
@@ -742,11 +751,19 @@ function handleFabResponse(response) {
 
 async function getSelectedText(tabId) {
   try {
+    console.log('Getting selected text from tab:', tabId);
     const results = await chrome.scripting.executeScript({
       target: { tabId: tabId },
-      func: () => window.getSelection().toString()
+      func: () => {
+        const selection = window.getSelection();
+        const selectedText = selection.toString();
+        console.log('Selected text in page:', selectedText);
+        return selectedText;
+      }
     });
-    return results[0]?.result || '';
+    const selectedText = results[0]?.result || '';
+    console.log('Retrieved selected text:', selectedText);
+    return selectedText;
   } catch (error) {
     console.error('Error getting selected text:', error);
     return '';
@@ -783,45 +800,7 @@ window.addEventListener('load', () => {
   );
 });
 
-// Check Chrome AI flags status on load
-function checkChromeAIFlags() {
-  const flagsStatus = {
-    chromeVersion: navigator.userAgent.match(/Chrome\/(\d+)/)?.[1],
-    languageModelExists: typeof navigator.languageModel !== 'undefined',
-    languageModel: navigator.languageModel,
-    otherAIAPIs: {
-      navigatorAI: typeof navigator.ai !== 'undefined',
-      windowAI: typeof window.ai !== 'undefined',
-      selfAI: typeof self.ai !== 'undefined'
-    }
-  };
-  
-  console.log('=== CHROME AI FLAGS STATUS ===');
-  console.log('Chrome Version:', flagsStatus.chromeVersion);
-  console.log('navigator.languageModel exists:', flagsStatus.languageModelExists);
-  console.log('navigator.languageModel:', flagsStatus.languageModel);
-  console.log('Other AI APIs:', flagsStatus.otherAIAPIs);
-  
-  if (!flagsStatus.languageModelExists) {
-    console.warn('⚠️ PROMPT API NOT AVAILABLE');
-    console.warn('Chrome flags required:');
-    console.warn('  1. "Prompt API for Gemini Nano" → Enabled');
-    console.warn('  2. "optimization-guide-on-device-model" → Enabled (BypassPerfRequirement)');
-    console.warn('  3. "Prompt API for Gemini Nano Multimodal Input" → Enabled (if available)');
-    console.warn('');
-    console.warn('Steps to enable:');
-    console.warn('  1. Go to chrome://flags/');
-    console.warn('  2. Search for each flag and enable it');
-    console.warn('  3. Click "Relaunch" and wait for Chrome to restart');
-    console.warn('  4. Reload this extension');
-  } else {
-    console.log('✅ PROMPT API AVAILABLE');
-    console.log('Available methods:', Object.keys(flagsStatus.languageModel || {}));
-  }
-  console.log('=== END CHROME AI FLAGS STATUS ===');
-  
-  return flagsStatus;
-}
+// Chrome AI flags check removed - using Gemini API for AI chat
 
 
 // Detect page type and show appropriate actions
@@ -904,9 +883,8 @@ function hidePageActions() {
   }
 }
 
-// Run flags check when sidebar loads
+// Initialize sidebar when DOM loads
 document.addEventListener('DOMContentLoaded', () => {
-  setTimeout(() => checkChromeAIFlags(), 1000); // Wait 1s for everything to load
   detectPageTypeAndShowActions(); // Detect page type and show actions
 });
 

@@ -122,9 +122,12 @@ async function getPageContext(tab) {
       return null;
     }
     
+    console.log('Getting page context for tab:', tab.id, tab.url);
+    
     const results = await chrome.scripting.executeScript({
       target: { tabId: tab.id },
       func: () => {
+        console.log('Content extraction script running on:', window.location.href);
         // UNIVERSAL CONTENT EXTRACTION - Get ALL page content including raw HTML
         const extractAllContent = () => {
           const content = {
@@ -314,15 +317,30 @@ ${pageData.tables.slice(0, 3).map((t, i) => `Table ${i+1}:\n${t.rows.map(r => r.
 🔍 RAW HTML (First 10KB):
 ${pageData.rawHTML.substring(0, 10000)}`;
 
-        return {
+        const result = {
           title: pageData.title,
           url: pageData.url,
           content: formattedContent.substring(0, 12000) // Increased limit for comprehensive content
         };
+        
+        console.log('Content extraction completed:', {
+          title: result.title,
+          url: result.url,
+          contentLength: result.content.length,
+          fullTextLength: pageData.fullText.length
+        });
+        
+        return result;
       }
     });
     
-    return results[0]?.result || null;
+    const pageContext = results[0]?.result || null;
+    console.log('Page context extraction result:', pageContext ? 'Success' : 'Failed');
+    if (pageContext) {
+      console.log('Extracted content length:', pageContext.content?.length || 0);
+    }
+    
+    return pageContext;
   } catch (error) {
     console.error('Failed to get page context:', error);
     return null;
@@ -438,9 +456,23 @@ async function handleChromeTranslate(request, sender, sendResponse) {
     
   } catch (error) {
     console.error('Chrome Translator API error:', error);
+    
+    // Fallback: Try to provide a helpful error message
+    let errorMessage = error.message;
+    if (error.message.includes('not supported')) {
+      errorMessage = 'Chrome Translator API not available. Please ensure you have Chrome 138+ with the Translator API enabled in chrome://flags/';
+    } else if (error.message.includes('not available')) {
+      errorMessage = `Translation from ${sourceLanguage} to ${to} is not available. Try a different language pair.`;
+    }
+    
     sendResponse({
       success: false,
-      error: error.message
+      error: errorMessage,
+      details: {
+        sourceLanguage,
+        targetLanguage: to,
+        originalError: error.message
+      }
     });
   }
 }
