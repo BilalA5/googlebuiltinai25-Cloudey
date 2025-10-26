@@ -880,16 +880,31 @@ async function handleAgentExecute(request, sender, sendResponse) {
   try {
     console.log('🤖 Agent Mode execution started');
     
+    // Validate sender
+    if (!sender || !sender.tab) {
+      throw new Error('Agent mode requires an active tab');
+    }
+    
     // Plan the actions
     const actions = await planAgentActions(message, pageContext);
     console.log('📋 Planned actions:', actions);
+    
+    // If no actions planned, provide a helpful message
+    if (!actions || actions.length === 0) {
+      sendResponse({
+        success: false,
+        error: 'No actions could be planned from your request',
+        response: 'I couldn\'t determine what actions to take. Could you be more specific about what you\'d like me to do?'
+      });
+      return true;
+    }
     
     // Send action plan to sidebar for display
     chrome.runtime.sendMessage({
       action: 'agentStepsUpdate',
       steps: actions.map((action, index) => ({
         id: index,
-        title: `${action.action}: ${action.target}`,
+        title: `${action.action}: ${action.target || 'page'}`,
         status: 'pending',
         icon: '⚙️'
       }))
@@ -909,11 +924,11 @@ async function handleAgentExecute(request, sender, sendResponse) {
       });
       
       // Highlight element if it's a DOM action
-      if (action.target && action.target !== 'page') {
+      if (action.target && action.target !== 'page' && sender && sender.tab && sender.tab.id) {
         chrome.tabs.sendMessage(sender.tab.id, {
           action: 'agentHighlight',
           selector: action.target
-        });
+        }).catch(err => console.warn('Could not highlight element:', err));
       }
       
       // Execute the action
@@ -946,9 +961,12 @@ async function handleAgentExecute(request, sender, sendResponse) {
     console.error('Agent execution error:', error);
     sendResponse({
       success: false,
-      error: error.message
+      error: error.message,
+      response: `Agent error: ${error.message}`
     });
   }
+  
+  return true; // Keep message channel open
 }
 
 // Agent Actions Functions (moved from agentActions.js for service worker compatibility)
