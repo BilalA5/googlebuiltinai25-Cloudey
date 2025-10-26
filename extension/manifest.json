@@ -33,9 +33,9 @@
   "action": {
     "default_title": "Cloudey - AI Assistant",
     "default_icon": {
-      "16": "assets/cloudey-icon-16.svg",
-      "48": "assets/cloudey-icon-48.svg",
-      "192": "assets/cloudey-icon-192.svg"
+      "16": "assets/cloudey-icon-16.png",
+      "48": "assets/cloudey-icon-48.png",
+      "192": "assets/cloudey-icon-192.png"
     }
   },
   
@@ -44,9 +44,9 @@
   },
   
   "icons": {
-    "16": "assets/cloudey-icon-16.svg",
-    "48": "assets/cloudey-icon-48.svg",
-    "192": "assets/cloudey-icon-192.svg"
+    "16": "assets/cloudey-main-icon.svg",
+    "48": "assets/cloudey-main-icon.svg",
+    "192": "assets/cloudey-main-icon.svg"
   },
   
   "web_accessible_resources": [
