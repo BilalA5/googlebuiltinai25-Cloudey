@@ -971,21 +971,20 @@ body {
 
 .translate-tooltip {
   position: absolute;
-  top: 100%;
+  bottom: 100%;
   left: 50%;
   transform: translateX(-50%);
-  margin-top: 8px;
-  background: rgba(31, 25, 35, 0.98);
-  border: 1px solid rgba(150, 130, 160, 0.3);
-  border-radius: 12px;
-  padding: 12px;
-  min-width: 200px;
+  margin-bottom: 8px;
+  background: rgba(31, 25, 35, 0.95);
+  border-radius: 8px;
+  padding: 8px 12px;
+  min-width: 160px;
   opacity: 0;
   visibility: hidden;
-  transition: all 0.2s ease;
-  z-index: 1000;
+  transition: all 0.15s ease;
+  z-index: 10000;
   backdrop-filter: blur(10px);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
 }
 
 .toggle-container:hover .translate-tooltip {
@@ -994,46 +993,27 @@ body {
   transform: translateX(-50%) translateY(0);
 }
 
-.tooltip-content {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.tooltip-header {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  color: rgba(180, 160, 190, 1);
-  font-size: 12px;
-  font-weight: 500;
-}
-
-.tooltip-header .lucide-icon-small {
-  width: 14px;
-  height: 14px;
-  stroke-width: 1.5;
-}
-
 .translate-btn {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 8px 12px;
-  background: rgba(238, 130, 238, 0.1);
-  border: 1px solid rgba(238, 130, 238, 0.3);
-  border-radius: 8px;
+  padding: 6px 10px;
+  background: rgba(238, 130, 238, 0.15);
+  border: none;
+  border-radius: 6px;
   color: rgba(238, 130, 238, 1);
   font-size: 12px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
+  width: 100%;
+  justify-content: center;
 }
 
 .translate-btn:hover {
-  background: rgba(238, 130, 238, 0.2);
-  border-color: rgba(238, 130, 238, 0.5);
+  background: rgba(238, 130, 238, 0.25);
   color: rgba(255, 255, 255, 1);
+  transform: scale(1.02);
 }
 
 .translate-btn .lucide-icon-small {
