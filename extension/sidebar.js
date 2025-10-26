@@ -788,6 +788,12 @@ function throttle(func, limit) {
 // Typing indicator
 function showTypingIndicator() {
   assistantTypingRow.classList.remove('hidden');
+  
+  // Position the typing indicator at the top of messages
+  if (messagesContainer) {
+    messagesContainer.appendChild(assistantTypingRow);
+  }
+  
   messagesContainer.scrollTop = messagesContainer.scrollHeight;
   announceToScreenReader('Assistant is thinking', 'polite');
 }
