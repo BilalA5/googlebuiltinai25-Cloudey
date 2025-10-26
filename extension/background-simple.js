@@ -1382,51 +1382,65 @@ async function writeContent(selector, content, useWriterAPI = false) {
               bestElement = contenteditables[0]; // Use the first one as fallback
             }
             
-            if (bestElement) {
-              console.log(`✅ Found Google Docs contenteditable element:`, bestElement);
-              
-              try {
-                // Focus the element
-                bestElement.focus();
-                
-                // Method 1: Use execCommand (most reliable for Google Docs)
-                const selection = window.getSelection();
-                const range = document.createRange();
-                
-                // Select all text
-                range.selectNodeContents(bestElement);
-                selection.removeAllRanges();
-                selection.addRange(range);
-                
-                // Use execCommand to insert text (simulates typing)
-                const success = document.execCommand('insertText', false, finalContent);
-                
-                if (success) {
-                  console.log(`✅ Successfully wrote using execCommand`);
-                  
-                  // Dispatch events to trigger Google Docs to save
-                  bestElement.dispatchEvent(new KeyboardEvent('keydown', { 
-                    key: 'Enter', 
-                    code: 'Enter',
-                    bubbles: true,
-                    cancelable: true
-                  }));
-                  
-                  bestElement.dispatchEvent(new KeyboardEvent('keyup', { 
-                    key: 'Enter', 
-                    code: 'Enter',
-                    bubbles: true,
-                    cancelable: true
-                  }));
-                  
-                  bestElement.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
-                  bestElement.dispatchEvent(new Event('blur', { bubbles: true, cancelable: true }));
-                  
-                  return { success: true, message: `Wrote content to Google Docs using execCommand` };
-                }
-              } catch (e) {
-                console.warn('Method 1 (execCommand) failed:', e);
-              }
+                         if (bestElement) {
+               console.log(`✅ Found Google Docs contenteditable element:`, bestElement);
+               
+               try {
+                 // Focus the element
+                 bestElement.focus();
+                 
+                 // Check if there's existing content
+                 const existingContent = bestElement.textContent || bestElement.innerText || '';
+                 console.log(`📄 Existing content length: ${existingContent.length}`);
+                 
+                 // Position cursor at the end of existing content
+                 const range = document.createRange();
+                 const selection = window.getSelection();
+                 
+                 if (existingContent.length > 0) {
+                   // Append to existing content
+                   console.log(`📝 Appending to existing content`);
+                   
+                   // Create a text node and add it to the end
+                   const textNode = document.createTextNode('\n\n' + finalContent);
+                   bestElement.appendChild(textNode);
+                   
+                   // Position cursor after the new text
+                   range.setStartAfter(textNode);
+                   range.setEndAfter(textNode);
+                   selection.removeAllRanges();
+                   selection.addRange(range);
+                 } else {
+                   // No existing content, just insert
+                   console.log(`📝 Writing to empty document`);
+                   range.selectNodeContents(bestElement);
+                   selection.removeAllRanges();
+                   selection.addRange(range);
+                   
+                   // Use execCommand to insert text
+                   const success = document.execCommand('insertText', false, finalContent);
+                   
+                   if (!success) {
+                     // Fallback: set content directly
+                     bestElement.textContent = finalContent;
+                   }
+                 }
+                 
+                 console.log(`✅ Successfully wrote content to Google Docs`);
+                 
+                 // Dispatch events to trigger Google Docs to save
+                 bestElement.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
+                 bestElement.dispatchEvent(new Event('change', { bubbles: true, cancelable: true }));
+                 
+                 // Trigger a blur event to signal completion
+                 setTimeout(() => {
+                   bestElement.dispatchEvent(new Event('blur', { bubbles: true, cancelable: true }));
+                 }, 100);
+                 
+                 return { success: true, message: `Wrote content to Google Docs` };
+               } catch (e) {
+                 console.warn('Method 1 (contenteditable append) failed:', e);
+               }
               
               // Method 2: Try setting innerHTML
               try {
