@@ -18,7 +18,6 @@ const fabActions = document.getElementById('fab-actions');
 const closeBtn = document.getElementById('close-btn');
 const ariaPolite = document.getElementById('aria-polite');
 const ariaAssertive = document.getElementById('aria-assertive');
-const pageSpecificActions = document.getElementById('page-specific-actions');
 
 
 // State
@@ -240,15 +239,6 @@ document.querySelectorAll('.fab-action').forEach(btn => {
   });
 });
 
-// Suggestion chips
-document.querySelectorAll('.chip').forEach(chip => {
-  chip.addEventListener('click', () => {
-    const prompt = chip.dataset.prompt;
-    chatInput.value = prompt;
-    autoResizeTextarea();
-    sendMessage();
-  });
-});
 
 // Toggle buttons
 const agentToggle = document.getElementById('agent-toggle');
@@ -793,90 +783,11 @@ window.addEventListener('load', () => {
 // Chrome AI flags check removed - using Gemini API for AI chat
 
 
-// Detect page type and show appropriate actions
-async function detectPageTypeAndShowActions() {
-  try {
-    const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-    const currentTab = tabs[0];
-    
-    if (!currentTab || !currentTab.url) return;
-    
-    const url = currentTab.url;
-    const title = currentTab.title;
-    
-    // Show page-specific actions based on URL
-    if (url.includes('youtube.com')) {
-      showPageActions([
-        { action: 'summarize', text: '📝 Summarize Video', prompt: 'Summarize this YouTube video and explain the key points' },
-        { action: 'key-points', text: '🎯 Key Points', prompt: 'What are the main takeaways from this video?' },
-        { action: 'similar', text: '🔗 Similar Videos', prompt: 'Find similar videos or content related to this topic' },
-        { action: 'explain', text: '💡 Explain Concepts', prompt: 'Explain any technical concepts or terms mentioned in this video' }
-      ]);
-    } else if (url.includes('wikipedia.org')) {
-      showPageActions([
-        { action: 'summarize', text: '📝 Summarize Article', prompt: 'Summarize this Wikipedia article in simple terms' },
-        { action: 'key-points', text: '🎯 Key Facts', prompt: 'What are the most important facts from this article?' },
-        { action: 'similar', text: '🔗 Related Topics', prompt: 'What related topics should I explore next?' },
-        { action: 'explain', text: '💡 Explain Simply', prompt: 'Explain this topic in simple, easy-to-understand language' }
-      ]);
-    } else if (url.includes('amazon.com') || url.includes('shop') || url.includes('store')) {
-      showPageActions([
-        { action: 'summarize', text: '📝 Product Summary', prompt: 'Summarize the key features and details of this product' },
-        { action: 'key-points', text: '🎯 Key Features', prompt: 'What are the main features and benefits of this product?' },
-        { action: 'similar', text: '🔗 Compare Products', prompt: 'Help me compare this with similar products' },
-        { action: 'explain', text: '💡 Buying Guide', prompt: 'Should I buy this product? What should I consider?' }
-      ]);
-    } else if (url.includes('news') || url.includes('article')) {
-      showPageActions([
-        { action: 'summarize', text: '📝 Article Summary', prompt: 'Summarize this news article and highlight the main points' },
-        { action: 'key-points', text: '🎯 Key Facts', prompt: 'What are the most important facts from this article?' },
-        { action: 'similar', text: '🔗 Related News', prompt: 'Find related news articles or background information' },
-        { action: 'explain', text: '💡 Context', prompt: 'Provide context and background for this news story' }
-      ]);
-    } else {
-      // Hide page-specific actions for unknown page types
-      hidePageActions();
-    }
-  } catch (error) {
-    console.log('Error detecting page type:', error);
-  }
-}
 
-function showPageActions(actions) {
-  if (!pageSpecificActions) return;
-  
-  const actionButtons = pageSpecificActions.querySelector('.action-buttons');
-  actionButtons.innerHTML = '';
-  
-  actions.forEach(action => {
-    const button = document.createElement('button');
-    button.className = 'action-btn';
-    button.textContent = action.text;
-    button.setAttribute('data-action', action.action);
-    button.setAttribute('data-prompt', action.prompt);
-    
-    button.addEventListener('click', () => {
-      chatInput.value = action.prompt;
-      updateSendButtonState();
-      sendMessage();
-    });
-    
-    actionButtons.appendChild(button);
-  });
-  
-  pageSpecificActions.classList.remove('hidden');
-}
 
-function hidePageActions() {
-  if (pageSpecificActions) {
-    pageSpecificActions.classList.add('hidden');
-  }
-}
 
 // Initialize sidebar when DOM loads
 document.addEventListener('DOMContentLoaded', () => {
-  detectPageTypeAndShowActions(); // Detect page type and show actions
-  
   // Initialize translate button
   const translateBtn = document.getElementById('translate-btn');
   if (translateBtn) {
