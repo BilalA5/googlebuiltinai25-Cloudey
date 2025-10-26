@@ -27,7 +27,7 @@ let typewriterAbortController = null;
 const MAX_FILES = 5;
 const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25MB
 
-// Ollama integration handled via background script to avoid CORS issues
+// Gemini API integration handled via background script
 
 // Initialize icons
 function initializeIcons() {
@@ -334,29 +334,17 @@ async function sendMessage() {
   }
   
   try {
-    // Use Ollama via content script to avoid CORS issues
-    console.log('Using Ollama via content script...');
-    
-    // Prepare conversation context
-    const messages = [
-      {
-        role: 'system',
-        content: 'You are Cloudey, a helpful AI assistant. Be concise, friendly, and helpful. Answer questions directly and completely.'
-      },
-      ...conversationHistory.slice(-6), // Keep last 6 messages for context
-      {
-        role: 'user',
-        content: message
-      }
-    ];
+    // Use Gemini API via background script
+    console.log('Using Gemini API...');
     
     const response = await chrome.runtime.sendMessage({
-      action: 'ollamaRequest',
-      messages: messages
+      action: 'geminiChat',
+      message: message,
+      history: conversationHistory
     });
     
     if (response.success) {
-      console.log('AI response received from Ollama');
+      console.log('AI response received from Gemini');
       hideTypingIndicator();
       promptBox?.classList.remove('loading');
       typewriterEffect(response.response);
@@ -372,12 +360,12 @@ async function sendMessage() {
     promptBox?.classList.remove('loading');
     
     let errorMessage = '';
-    if (error.message.includes('Ollama server is not running')) {
-      errorMessage = 'Ollama server is not running. Please start it with: brew services start ollama';
+    if (error.message.includes('Gemini API error')) {
+      errorMessage = `Gemini API error: ${error.message}`;
     } else if (error.message.includes('fetch')) {
-      errorMessage = 'Cannot connect to Ollama server. Please ensure Ollama is running on localhost:11434';
+      errorMessage = 'Cannot connect to Gemini API. Please check your internet connection.';
     } else {
-      errorMessage = `Error: ${error.message}. Please check your Ollama installation.`;
+      errorMessage = `Error: ${error.message}. Please try again.`;
     }
     
     addMessage('assistant', errorMessage);

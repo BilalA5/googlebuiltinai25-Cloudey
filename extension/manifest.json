@@ -15,9 +15,7 @@
   ],
   "host_permissions": [
     "https://*/*",
-    "http://*/*",
-    "http://localhost:11434/*",
-    "http://127.0.0.1:11434/*"
+    "http://*/*"
   ],
   
   "trial_tokens": [
@@ -31,7 +29,7 @@
   "content_scripts": [
     {
       "matches": ["https://*/*", "http://*/*"],
-      "js": ["content.js", "ollamaProxy.js"],
+      "js": ["content.js"],
       "css": ["styles/page-indicator.css"],
       "run_at": "document_end"
     }

@@ -1,30 +1,12 @@
 // enhanced background script with AI integration
 console.log('Cloudey background script loaded');
 
-// Test localhost access on startup
-async function testLocalhostAccess() {
-  try {
-    console.log('Testing localhost access...');
-    const response = await fetch('http://127.0.0.1:11434/api/tags');
-    console.log('Localhost test response status:', response.status);
-    if (response.ok) {
-      const data = await response.json();
-      console.log('Ollama models available:', data.models?.map(m => m.name) || 'none');
-    }
-  } catch (error) {
-    console.error('Localhost access test failed:', error);
-  }
-}
-
-// Run test after a short delay
-setTimeout(testLocalhostAccess, 1000);
-
 // store conversation history per tab
 const conversationHistory = new Map();
 
-// Ollama API configuration
-const OLLAMA_BASE_URL = 'http://127.0.0.1:11434';
-const OLLAMA_MODEL = 'llama3.2:3b';
+// Google AI Studio configuration
+const GEMINI_API_KEY = 'AIzaSyCG6s4Xh-UqR6TE2cq4dUqPAQ898ThNBSo';
+const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
 
 // AI-powered message handler
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
@@ -69,8 +51,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         handleTranslateText(request, sender, sendResponse);
         break;
       
-      case 'ollamaChat':
-        handleOllamaChat(request, sender, sendResponse);
+      case 'geminiChat':
+        handleGeminiChat(request, sender, sendResponse);
         break;
         
       default:
@@ -304,66 +286,67 @@ async function handleTranslateText(request, sender, sendResponse) {
   }
 }
 
-// Ollama chat handler
-async function handleOllamaChat(request, sender, sendResponse) {
+// Gemini chat handler
+async function handleGeminiChat(request, sender, sendResponse) {
   const { message, history = [] } = request;
-  console.log('Handling Ollama chat request');
-  console.log('Ollama URL:', `${OLLAMA_BASE_URL}/api/chat`);
-  console.log('Model:', OLLAMA_MODEL);
+  console.log('Handling Gemini chat request');
   
   try {
-    // Prepare conversation context
-    const messages = [
-      {
-        role: 'system',
-        content: 'You are Cloudey, a helpful AI assistant. Be concise, friendly, and helpful. Answer questions directly and completely.'
-      },
-      ...history.slice(-6), // Keep last 6 messages for context
-      {
-        role: 'user',
-        content: message
-      }
-    ];
+    // Prepare conversation context for Gemini
+    const conversationContext = history.slice(-6).map(msg => ({
+      role: msg.role === 'assistant' ? 'model' : 'user',
+      parts: [{ text: msg.content }]
+    }));
 
-    console.log('Making request to Ollama...');
-    const response = await fetch(`${OLLAMA_BASE_URL}/api/chat`, {
+    const requestBody = {
+      contents: [
+        {
+          role: 'user',
+          parts: [{ text: `You are Cloudey, a helpful AI assistant. Be concise, friendly, and helpful. Answer questions directly and completely.\n\nConversation history:\n${conversationContext.map(c => `${c.role}: ${c.parts[0].text}`).join('\n')}\n\nUser: ${message}` }]
+        }
+      ],
+      generationConfig: {
+        temperature: 0.7,
+        topK: 40,
+        topP: 0.95,
+        maxOutputTokens: 1000,
+      }
+    };
+
+    console.log('Making request to Gemini API...');
+    const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        model: OLLAMA_MODEL,
-        messages: messages,
-        stream: false,
-        options: {
-          temperature: 0.7,
-          top_p: 0.9,
-          max_tokens: 1000
-        }
-      })
+      body: JSON.stringify(requestBody)
     });
 
     console.log('Response status:', response.status);
-    console.log('Response headers:', Object.fromEntries(response.headers.entries()));
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Ollama API error response:', errorText);
-      throw new Error(`Ollama API error: ${response.status} ${response.statusText} - ${errorText}`);
+      console.error('Gemini API error response:', errorText);
+      throw new Error(`Gemini API error: ${response.status} ${response.statusText} - ${errorText}`);
     }
 
     const data = await response.json();
     
-    sendResponse({
-      success: true,
-      response: data.message.content
-    });
+    if (data.candidates && data.candidates[0] && data.candidates[0].content) {
+      const aiResponse = data.candidates[0].content.parts[0].text;
+      sendResponse({
+        success: true,
+        response: aiResponse
+      });
+    } else {
+      throw new Error('Invalid response format from Gemini API');
+    }
     
   } catch (error) {
-    console.error('Ollama chat error:', error);
+    console.error('Gemini chat error:', error);
     sendResponse({
       success: false,
-      response: `Error: ${error.message}. Please ensure Ollama is running on localhost:11434`
+      response: `Error: ${error.message}. Please check your internet connection.`
     });
   }
 }
