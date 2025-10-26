@@ -1121,6 +1121,57 @@ body {
   line-height: 1.5;
 }
 
+/* Compatible Sites Section */
+.agent-compatible-sites {
+  margin: 16px 0;
+  padding: 16px;
+  background: rgba(180, 160, 190, 0.05);
+  border: 1px solid rgba(180, 160, 190, 0.2);
+  border-radius: 8px;
+}
+
+.agent-compatible-sites h4 {
+  color: rgba(180, 160, 190, 1);
+  font-size: 13px;
+  font-weight: 600;
+  margin: 0 0 12px 0;
+}
+
+.compatible-sites-grid {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.compatible-site-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  background: rgba(180, 160, 190, 0.08);
+  border: 1px solid rgba(180, 160, 190, 0.2);
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.compatible-site-item:hover {
+  background: rgba(180, 160, 190, 0.12);
+  border-color: rgba(180, 160, 190, 0.4);
+  transform: translateY(-1px);
+}
+
+.site-icon {
+  width: 20px;
+  height: 20px;
+  color: rgba(180, 160, 190, 0.9);
+}
+
+.site-name {
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 13px;
+  font-weight: 500;
+}
+
 .agent-planned-actions h4 {
   color: rgba(180, 160, 190, 1);
   font-size: 14px;
