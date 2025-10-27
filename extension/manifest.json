@@ -10,7 +10,8 @@
     "storage",
     "sidePanel",
     "scripting",
-    "tabs"
+    "tabs",
+    "microphone"
   ],
   "host_permissions": [
     "https://*/*",

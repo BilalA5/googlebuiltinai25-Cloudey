@@ -7,6 +7,7 @@ let microphonePermission = false;
 let isRecording = false;
 let mediaRecorder = null;
 let audioChunks = [];
+let isUserInitiated = false; // Flag to ensure user-initiated microphone access
 
 // DOM elements
 const chatInput = document.getElementById('chat-input');
@@ -153,13 +154,20 @@ async function toggleRecording() {
   if (isRecording) {
     stopRecording();
   } else {
+    // Set user-initiated flag before requesting microphone access
+    isUserInitiated = true;
     await startRecording();
   }
 }
 
 async function requestMicrophonePermission() {
   try {
-    console.log('🎤 Requesting microphone permission via content script...');
+    console.log('🎤 Requesting microphone permission...');
+    
+    // Check if we're in a user-initiated context
+    if (!isUserInitiated) {
+      throw new Error('Microphone access must be initiated by user interaction');
+    }
     
     // Get the active tab first
     const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -230,22 +238,7 @@ async function requestMicrophonePermission() {
     
   } catch (error) {
     console.log('❌ Microphone permission denied:', error);
-    
-    let errorMessage = '🎤 **Microphone Access Denied**\n\n';
-    
-    if (error.message.includes('NotAllowedError') || error.message.includes('Permission dismissed')) {
-      errorMessage += 'To enable voice input:\n1. Click the microphone button again\n2. Click "Allow" when Chrome asks for microphone access\n3. Or check Chrome settings: chrome://settings/content/microphone\n4. Make sure to click "Allow" instead of dismissing the dialog';
-    } else if (error.message.includes('NotFoundError')) {
-      errorMessage += 'No microphone found. Please connect a microphone and try again.';
-    } else if (error.message.includes('NotSupportedError')) {
-      errorMessage += 'Microphone access is not supported in this browser.';
-    } else if (error.message.includes('Content script timeout') || error.message.includes('message port closed')) {
-      errorMessage += 'Content script communication failed. Please:\n1. Refresh the current page\n2. Try clicking the microphone button again\n3. Or check if the extension is properly loaded';
-    } else {
-      errorMessage += `Error: ${error.message}\n\nPlease try clicking the microphone button again.`;
-    }
-    
-    addMessage('system', errorMessage);
+    handleMicrophonePermissionError(error);
     return false;
   }
 }
@@ -564,6 +557,126 @@ function resetListeningAnimation() {
   
   if (listeningWaveform) {
     listeningWaveform.style.display = 'none';
+  }
+}
+
+function handleMicrophonePermissionError(error) {
+  let errorMessage = '';
+  let recoverySteps = '';
+  
+  if (error.message.includes('NotAllowedError') || error.message.includes('Permission dismissed')) {
+    errorMessage = '🎤 **Microphone Permission Denied**';
+    recoverySteps = `
+**The browser blocked microphone access. Here's how to fix it:**
+
+1. **Click the microphone button again** and select "Allow" when prompted
+2. **Check Chrome settings:**
+   - Go to chrome://settings/content/microphone
+   - Find "Cloudey" in the list
+   - Set it to "Allow"
+3. **Extension permissions:**
+   - Right-click the Cloudey extension icon
+   - Select "Manage extension"
+   - Ensure microphone permission is enabled
+4. **Refresh and retry:**
+   - Reload this page
+   - Try the microphone button again
+
+**Important:** Make sure to click "Allow" instead of dismissing the permission dialog.`;
+  } else if (error.message.includes('NotFoundError')) {
+    errorMessage = '🎤 **No Microphone Found**';
+    recoverySteps = `
+**No microphone device detected:**
+
+1. **Connect a microphone** to your computer
+2. **Check device settings:**
+   - Go to chrome://settings/content/microphone
+   - Verify a microphone is selected
+3. **Test your microphone** in other applications
+4. **Try refreshing** this page and try again`;
+  } else if (error.message.includes('NotSupportedError')) {
+    errorMessage = '🎤 **Microphone Not Supported**';
+    recoverySteps = `
+**Microphone access is not supported:**
+
+1. **Update Chrome** to the latest version
+2. **Use HTTPS** - microphone requires secure connection
+3. **Try a different browser** if the issue persists
+4. **Check system permissions** for microphone access`;
+  } else if (error.message.includes('Content script timeout') || error.message.includes('message port closed')) {
+    errorMessage = '🎤 **Extension Communication Failed**';
+    recoverySteps = `
+**Extension communication error:**
+
+1. **Refresh the current page** and try again
+2. **Reload the extension:**
+   - Go to chrome://extensions/
+   - Find Cloudey and click the refresh icon
+3. **Check extension permissions** in chrome://extensions/
+4. **Try clicking the microphone button** again`;
+  } else if (error.message.includes('user-initiated')) {
+    errorMessage = '🎤 **User Interaction Required**';
+    recoverySteps = `
+**Microphone access must be initiated by user interaction:**
+
+1. **Click the microphone button** directly
+2. **Don't use keyboard shortcuts** for microphone access
+3. **Ensure you're clicking** the button, not using automated triggers
+4. **Try clicking again** if the first attempt failed`;
+  } else {
+    errorMessage = '🎤 **Microphone Access Error**';
+    recoverySteps = `
+**Unexpected error occurred:**
+
+**Error:** ${error.message}
+
+**Troubleshooting steps:**
+1. **Refresh this page** and try again
+2. **Check Chrome settings:** chrome://settings/content/microphone
+3. **Verify extension permissions** in chrome://extensions/
+4. **Try a different microphone** if available
+5. **Contact support** if the issue persists`;
+  }
+  
+  // Show error message with recovery steps
+  addMessage('system', `${errorMessage}\n\n${recoverySteps}`);
+  
+  // Reset microphone button state
+  if (micBtn) {
+    micBtn.classList.remove('recording', 'processing', 'active');
+    micBtn.title = 'Voice input';
+  }
+  
+  // Reset listening animation
+  resetListeningAnimation();
+  
+  // Show microphone status indicator
+  showMicrophoneStatusIndicator();
+}
+
+function showMicrophoneStatusIndicator() {
+  const micStatusIndicator = document.getElementById('mic-status-indicator');
+  const micRetryBtn = document.getElementById('mic-retry-btn');
+  
+  if (micStatusIndicator) {
+    micStatusIndicator.classList.remove('hidden');
+    
+    // Add retry button event listener
+    if (micRetryBtn) {
+      micRetryBtn.addEventListener('click', () => {
+        hideMicrophoneStatusIndicator();
+        // Reset user-initiated flag and try again
+        isUserInitiated = true;
+        startRecording();
+      });
+    }
+  }
+}
+
+function hideMicrophoneStatusIndicator() {
+  const micStatusIndicator = document.getElementById('mic-status-indicator');
+  if (micStatusIndicator) {
+    micStatusIndicator.classList.add('hidden');
   }
 }
 
