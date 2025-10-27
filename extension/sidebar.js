@@ -572,12 +572,12 @@ function handleMicrophonePermissionError(error) {
 1. **Click the microphone button again** and select "Allow" when prompted
 2. **Check Chrome settings:**
    - Go to chrome://settings/content/microphone
-   - Find "Cloudey" in the list
+   - Find this website/extension in the list
    - Set it to "Allow"
 3. **Extension permissions:**
    - Right-click the Cloudey extension icon
    - Select "Manage extension"
-   - Ensure microphone permission is enabled
+   - Check if microphone access is enabled
 4. **Refresh and retry:**
    - Reload this page
    - Try the microphone button again
@@ -612,7 +612,7 @@ function handleMicrophonePermissionError(error) {
 2. **Reload the extension:**
    - Go to chrome://extensions/
    - Find Cloudey and click the refresh icon
-3. **Check extension permissions** in chrome://extensions/
+3. **Check if extension is enabled** in chrome://extensions/
 4. **Try clicking the microphone button** again`;
   } else if (error.message.includes('user-initiated')) {
     errorMessage = '🎤 **User Interaction Required**';
