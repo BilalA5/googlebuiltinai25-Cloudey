@@ -167,29 +167,65 @@ async function requestMicrophonePermission() {
       throw new Error('No active tab found');
     }
     
-    // Send message to content script in the active tab
-    const response = await new Promise((resolve, reject) => {
-      chrome.tabs.sendMessage(tabs[0].id, { 
-        action: 'requestMicrophonePermission' 
-      }, (response) => {
-        if (chrome.runtime.lastError) {
-          reject(new Error(chrome.runtime.lastError.message));
-        } else {
-          resolve(response);
-        }
+    // Try content script approach first
+    try {
+      const response = await new Promise((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          reject(new Error('Content script timeout - no response received'));
+        }, 5000); // 5 second timeout
+        
+        chrome.tabs.sendMessage(tabs[0].id, { 
+          action: 'requestMicrophonePermission' 
+        }, (response) => {
+          clearTimeout(timeout);
+          if (chrome.runtime.lastError) {
+            reject(new Error(chrome.runtime.lastError.message));
+          } else {
+            resolve(response);
+          }
+        });
       });
-    });
-    
-    if (response && response.success) {
-      microphonePermission = true;
-      console.log('✅ Microphone permission granted');
       
-      // Show success message
-      addMessage('system', '🎤 **Microphone Access Granted!**\n\nYou can now use voice input. Click the microphone button to start recording.');
+      if (response && response.success) {
+        microphonePermission = true;
+        console.log('✅ Microphone permission granted via content script');
+        
+        // Show success message
+        addMessage('system', '🎤 **Microphone Access Granted!**\n\nYou can now use voice input. Click the microphone button to start recording.');
+        
+        return true;
+      } else {
+        throw new Error(response?.error || 'Permission denied');
+      }
       
-      return true;
-    } else {
-      throw new Error(response?.error || 'Permission denied');
+    } catch (contentScriptError) {
+      console.log('⚠️ Content script approach failed, trying direct approach:', contentScriptError.message);
+      
+      // Fallback: Try direct microphone access in sidebar
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ 
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            sampleRate: 44100
+          } 
+        });
+        
+        // Stop the stream immediately - we just needed permission
+        stream.getTracks().forEach(track => track.stop());
+        
+        microphonePermission = true;
+        console.log('✅ Microphone permission granted via direct access');
+        
+        // Show success message
+        addMessage('system', '🎤 **Microphone Access Granted!**\n\nYou can now use voice input. Click the microphone button to start recording.');
+        
+        return true;
+        
+      } catch (directError) {
+        console.log('❌ Direct microphone access also failed:', directError.message);
+        throw directError; // Re-throw the direct error
+      }
     }
     
   } catch (error) {
@@ -203,8 +239,8 @@ async function requestMicrophonePermission() {
       errorMessage += 'No microphone found. Please connect a microphone and try again.';
     } else if (error.message.includes('NotSupportedError')) {
       errorMessage += 'Microphone access is not supported in this browser.';
-    } else if (error.message.includes('Unknown action')) {
-      errorMessage += 'Content script not loaded. Please refresh the page and try again.';
+    } else if (error.message.includes('Content script timeout') || error.message.includes('message port closed')) {
+      errorMessage += 'Content script communication failed. Please:\n1. Refresh the current page\n2. Try clicking the microphone button again\n3. Or check if the extension is properly loaded';
     } else {
       errorMessage += `Error: ${error.message}\n\nPlease try clicking the microphone button again.`;
     }
@@ -235,20 +271,74 @@ async function startRecording() {
       throw new Error('No active tab found');
     }
     
-    // Send message to content script to start recording
-    const response = await new Promise((resolve, reject) => {
-      chrome.tabs.sendMessage(tabs[0].id, { 
-        action: 'startRecording' 
-      }, (response) => {
-        if (chrome.runtime.lastError) {
-          reject(new Error(chrome.runtime.lastError.message));
-        } else {
-          resolve(response);
-        }
+    // Try content script approach first
+    try {
+      const response = await new Promise((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          reject(new Error('Content script timeout - no response received'));
+        }, 5000); // 5 second timeout
+        
+        chrome.tabs.sendMessage(tabs[0].id, { 
+          action: 'startRecording' 
+        }, (response) => {
+          clearTimeout(timeout);
+          if (chrome.runtime.lastError) {
+            reject(new Error(chrome.runtime.lastError.message));
+          } else {
+            resolve(response);
+          }
+        });
       });
-    });
-    
-    if (response && response.success) {
+      
+      if (response && response.success) {
+        isRecording = true;
+        
+        // Update UI with visual feedback
+        micBtn.classList.add('recording');
+        micBtn.classList.add('active'); // Add blue glow effect
+        micBtn.title = 'Stop recording';
+        
+        // Show audio visualizer
+        showAudioVisualizer();
+        
+        console.log('🎤 Recording started successfully via content script');
+        return;
+      } else {
+        throw new Error(response?.error || 'Recording failed');
+      }
+      
+    } catch (contentScriptError) {
+      console.log('⚠️ Content script recording failed, trying direct approach:', contentScriptError.message);
+      
+      // Fallback: Try direct recording in sidebar
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          sampleRate: 44100
+        } 
+      });
+      
+      mediaRecorder = new MediaRecorder(stream, {
+        mimeType: 'audio/webm;codecs=opus'
+      });
+      
+      audioChunks = [];
+      
+      mediaRecorder.ondataavailable = (event) => {
+        audioChunks.push(event.data);
+      };
+      
+      mediaRecorder.onstop = async () => {
+        console.log('🎤 Recording stopped, processing audio...');
+        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+        await processAudio(audioBlob);
+        
+        // Clean up
+        stream.getTracks().forEach(track => track.stop());
+      };
+      
+      mediaRecorder.start();
       isRecording = true;
       
       // Update UI with visual feedback
@@ -259,9 +349,7 @@ async function startRecording() {
       // Show audio visualizer
       showAudioVisualizer();
       
-      console.log('🎤 Recording started successfully');
-    } else {
-      throw new Error(response?.error || 'Recording failed');
+      console.log('🎤 Recording started successfully via direct access');
     }
     
   } catch (error) {
@@ -275,8 +363,8 @@ async function startRecording() {
       errorMessage += 'No microphone found. Please connect a microphone and try again.';
     } else if (error.message.includes('NotSupportedError')) {
       errorMessage += 'Microphone access is not supported in this browser.';
-    } else if (error.message.includes('Unknown action')) {
-      errorMessage += 'Content script not loaded. Please refresh the page and try again.';
+    } else if (error.message.includes('Content script timeout') || error.message.includes('message port closed')) {
+      errorMessage += 'Content script communication failed. Please:\n1. Refresh the current page\n2. Try clicking the microphone button again\n3. Or check if the extension is properly loaded';
     } else {
       errorMessage += `Error: ${error.message}\n\nPlease try again.`;
     }
@@ -289,13 +377,25 @@ function stopRecording() {
   if (isRecording) {
     console.log('🎤 Stopping recording...');
     
-    // Get the active tab first
+    // Try content script approach first
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       if (tabs.length > 0) {
-        // Send message to content script to stop recording
         chrome.tabs.sendMessage(tabs[0].id, { 
           action: 'stopRecording' 
+        }, (response) => {
+          if (chrome.runtime.lastError) {
+            console.log('⚠️ Content script stop failed, using direct approach');
+            // Fallback: Stop direct recording
+            if (mediaRecorder && mediaRecorder.state === 'recording') {
+              mediaRecorder.stop();
+            }
+          }
         });
+      } else {
+        // Fallback: Stop direct recording
+        if (mediaRecorder && mediaRecorder.state === 'recording') {
+          mediaRecorder.stop();
+        }
       }
     });
     
@@ -474,20 +574,20 @@ chatInput.addEventListener('keydown', (e) => {
 
 if (micBtn) {
   micBtn.addEventListener('click', async () => {
-    if (!recognition) {
-      announceToScreenReader('Speech recognition not supported in this browser', 'assertive');
-      return;
-    }
+  if (!recognition) {
+    announceToScreenReader('Speech recognition not supported in this browser', 'assertive');
+    return;
+  }
     
-    if (isListening) {
-      recognition.stop();
-    } else {
+  if (isListening) {
+    recognition.stop();
+  } else {
       // Check if microphone permission is granted before starting
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         // Permission granted, stop the test stream and start recognition
         stream.getTracks().forEach(track => track.stop());
-        recognition.start();
+    recognition.start();
       } catch (error) {
         const errorName = error.name || 'Unknown error';
         const errorMessage = error.message || '';
@@ -512,40 +612,40 @@ if (micBtn) {
 
 // File input is now handled by the action button
 if (fileInput) {
-  fileInput.addEventListener('change', handleFileSelection);
+fileInput.addEventListener('change', handleFileSelection);
 }
 
 if (stopBtn) {
-  stopBtn.addEventListener('click', stopGeneration);
+stopBtn.addEventListener('click', stopGeneration);
 }
 
 // Close button
 if (closeBtn) {
-  closeBtn.addEventListener('click', () => {
-    window.close();
-  });
+closeBtn.addEventListener('click', () => {
+  window.close();
+});
 }
 
 
 // Action button toggle (handles both file attachments and quick actions)
 if (fabToggle) {
-  fabToggle.addEventListener('click', () => {
-    const isOpen = !fabActions.classList.contains('hidden');
-    if (isOpen) {
-      fabActions.classList.add('hidden');
-      fabToggle.classList.remove('active');
-    } else {
-      fabActions.classList.remove('hidden');
-      fabToggle.classList.add('active');
-    }
-  });
+fabToggle.addEventListener('click', () => {
+  const isOpen = !fabActions.classList.contains('hidden');
+  if (isOpen) {
+    fabActions.classList.add('hidden');
+    fabToggle.classList.remove('active');
+  } else {
+    fabActions.classList.remove('hidden');
+    fabToggle.classList.add('active');
+  }
+});
 }
 
 // Handle file input click when attachment button is clicked
 if (attachBtn) {
   attachBtn.addEventListener('click', () => {
     if (fileInput) {
-      fileInput.click();
+  fileInput.click();
     }
   });
 }
@@ -1038,8 +1138,8 @@ async function sendMessage() {
     // Clear attachments after processing
     attachedFiles = [];
     if (attachmentChips) {
-      attachmentChips.innerHTML = '';
-      attachmentChips.classList.add('hidden');
+    attachmentChips.innerHTML = '';
+    attachmentChips.classList.add('hidden');
     }
     
     // Hide file processing indicator
@@ -1089,7 +1189,7 @@ async function sendMessage() {
     console.log('📨 Response received:', response);
     
     if (response.success) {
-      hideTypingIndicator();
+        hideTypingIndicator();
       promptBox?.classList.remove('loading');
       
       // Show pause button during streaming
@@ -1100,7 +1200,7 @@ async function sendMessage() {
       typewriterEffect(response.response);
       conversationHistory.push({ role: 'assistant', content: response.response });
       return;
-    } else {
+        } else {
       // Show the helpful error message from the background script
       hideTypingIndicator();
       promptBox?.classList.remove('loading');
@@ -1461,7 +1561,7 @@ function handleFabResponse(response) {
       typewriterEffect(translationMessage);
     } else {
       // Handle other responses normally
-      typewriterEffect(response.response);
+    typewriterEffect(response.response);
     }
   } else {
     addMessage('assistant', response?.response || 'Feature coming soon!');
