@@ -474,6 +474,41 @@ body.macos #mic-btn:hover {
   border-color: rgba(255, 68, 68, 0.3);
 }
 
+/* Microphone button container for tooltip positioning */
+.mic-button-container {
+  position: relative;
+  display: inline-block;
+}
+
+/* Microphone tooltip styling */
+.mic-tooltip {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%) translateY(-8px);
+  background: rgba(20, 20, 30, 0.95);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.9);
+  white-space: nowrap;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.2s ease;
+  z-index: 1000;
+  pointer-events: none;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+}
+
+/* Show tooltip on macOS hover */
+body.macos .mic-button-container:hover .mic-tooltip {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(-12px);
+}
+
 /* Microphone button states */
 #mic-btn.recording {
   background: rgba(255, 100, 100, 0.2);
@@ -2070,10 +2105,6 @@ body.macos #mic-btn:hover {
 }
 
 /* ===== PLATFORM-SPECIFIC RULES ===== */
-/* Hide microphone button on macOS */
-body.macos #mic-btn {
-  display: none !important;
-}
 
 /* Alternative CSS-based hiding for macOS */
 @media screen and (-webkit-min-device-pixel-ratio: 0) {
