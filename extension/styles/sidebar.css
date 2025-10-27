@@ -442,6 +442,8 @@ body {
   transform: rotate(-15deg);
   margin-bottom: 15px;
   animation: listening-icon-pulse 2s ease-in-out infinite;
+  position: relative;
+  top: -10px; /* Adjust vertical position */
 }
 
 .listening-timer {
@@ -451,6 +453,8 @@ body {
   font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
   margin-bottom: 20px;
   letter-spacing: 1px;
+  position: relative;
+  top: -5px; /* Adjust vertical position */
 }
 
 .listening-waveform-minimal {
@@ -461,13 +465,16 @@ body {
   margin-bottom: 15px;
   width: 200px;
   height: 30px;
+  position: relative;
+  top: -5px; /* Adjust vertical position */
 }
 
 .waveform-bar-minimal {
   width: 3px;
-  background: #cccccc;
+  background: linear-gradient(to top, #9333ea, #a855f7, #c084fc);
   border-radius: 2px;
   animation: waveform-minimal-pulse 1.5s ease-in-out infinite;
+  box-shadow: 0 0 4px rgba(147, 51, 234, 0.3);
 }
 
 .waveform-bar-minimal:nth-child(1) { height: 6px; animation-delay: 0s; }

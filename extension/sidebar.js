@@ -554,59 +554,101 @@ function startSpeechRecognition() {
   // Check if Speech Recognition is supported
   if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
     console.log('❌ Speech Recognition not supported');
+    addMessage('system', '🎤 **Speech Recognition Not Supported**\n\nYour browser does not support speech recognition. Please use text input instead.');
     return;
   }
   
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   speechRecognition = new SpeechRecognition();
   
-  // Configure speech recognition
+  // Configure speech recognition for better accuracy
   speechRecognition.continuous = true;
   speechRecognition.interimResults = true;
   speechRecognition.lang = 'en-US';
+  speechRecognition.maxAlternatives = 1;
   
   let finalTranscript = '';
+  let interimTranscript = '';
   
   speechRecognition.onstart = () => {
     console.log('🎤 Speech recognition started');
+    finalTranscript = '';
+    interimTranscript = '';
   };
   
   speechRecognition.onresult = (event) => {
-    let interimTranscript = '';
+    interimTranscript = '';
     
     for (let i = event.resultIndex; i < event.results.length; i++) {
       const transcript = event.results[i][0].transcript;
+      const confidence = event.results[i][0].confidence;
       
       if (event.results[i].isFinal) {
         finalTranscript += transcript + ' ';
+        console.log('🎤 Final transcript:', transcript, 'Confidence:', confidence);
       } else {
         interimTranscript += transcript;
+        console.log('🎤 Interim transcript:', transcript);
       }
     }
     
     // Update the chat input with real-time transcription
     if (chatInput) {
-      chatInput.value = finalTranscript + interimTranscript;
+      const displayText = finalTranscript + interimTranscript;
+      chatInput.value = displayText;
       chatInput.focus();
+      
+      // Auto-resize textarea
+      chatInput.style.height = 'auto';
+      chatInput.style.height = Math.min(chatInput.scrollHeight, 120) + 'px';
     }
-    
-    console.log('🎤 Interim:', interimTranscript);
-    console.log('🎤 Final:', finalTranscript);
   };
   
   speechRecognition.onerror = (event) => {
     console.log('❌ Speech recognition error:', event.error);
+    
+    let errorMessage = '';
+    switch (event.error) {
+      case 'no-speech':
+        errorMessage = '🎤 **No Speech Detected**\n\nPlease speak clearly into your microphone.';
+        break;
+      case 'audio-capture':
+        errorMessage = '🎤 **Microphone Error**\n\nCould not access your microphone. Please check your microphone settings.';
+        break;
+      case 'not-allowed':
+        errorMessage = '🎤 **Permission Denied**\n\nMicrophone access was denied. Please allow microphone access and try again.';
+        break;
+      case 'network':
+        errorMessage = '🎤 **Network Error**\n\nSpeech recognition requires an internet connection. Please check your connection.';
+        break;
+      default:
+        errorMessage = `🎤 **Speech Recognition Error**\n\nError: ${event.error}\n\nPlease try again.`;
+    }
+    
+    addMessage('system', errorMessage);
   };
   
   speechRecognition.onend = () => {
     console.log('🎤 Speech recognition ended');
+    
     // Process the final transcript
     if (finalTranscript.trim()) {
       processSpeechTranscript(finalTranscript.trim());
+    } else if (interimTranscript.trim()) {
+      // Use interim transcript if no final transcript
+      processSpeechTranscript(interimTranscript.trim());
+    } else {
+      console.log('🎤 No speech detected');
     }
   };
   
-  speechRecognition.start();
+  try {
+    speechRecognition.start();
+    console.log('🎤 Speech recognition started successfully');
+  } catch (error) {
+    console.log('❌ Failed to start speech recognition:', error);
+    addMessage('system', '🎤 **Speech Recognition Failed**\n\nCould not start speech recognition. Please try again.');
+  }
 }
 
 function stopSpeechRecognition() {
