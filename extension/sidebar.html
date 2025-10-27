@@ -111,7 +111,7 @@
               </button>
               
               <!-- Microphone Button -->
-              <button class="prompt-action-btn" id="mic-btn" title="Voice input">
+              <button class="prompt-action-btn macos-hidden" id="mic-btn" title="Voice input">
                 <svg class="lucide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                   <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
                   <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
@@ -246,5 +246,21 @@
   </div>
 
   <script type="module" src="sidebar.js"></script>
+  
+  <!-- Platform Detection Script -->
+  <script>
+    // Add platform class to body
+    document.addEventListener('DOMContentLoaded', () => {
+      const userAgent = navigator.userAgent.toLowerCase();
+      const isMacOS = userAgent.includes('mac os x') || userAgent.includes('macintosh');
+      
+      if (isMacOS) {
+        document.body.classList.add('macos');
+        console.log('🖥️ macOS detected - microphone button will be hidden');
+      } else {
+        console.log('🖥️ Non-macOS platform detected - microphone button will be available');
+      }
+    });
+  </script>
 </body>
 </html>

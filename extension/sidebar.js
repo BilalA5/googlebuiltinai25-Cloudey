@@ -2,6 +2,18 @@ import { icons, getIconHTML } from './icons.js';
 
 console.log('Cloudey side panel loaded');
 
+// Platform detection
+let isMacOS = false;
+
+function detectPlatform() {
+  const userAgent = navigator.userAgent.toLowerCase();
+  isMacOS = userAgent.includes('mac os x') || userAgent.includes('macintosh');
+  console.log('🖥️ Platform detected:', isMacOS ? 'macOS' : 'Other (Windows/Linux)');
+}
+
+// Call platform detection on load
+detectPlatform();
+
 // Audio recording variables
 let microphonePermission = false;
 let isRecording = false;
@@ -16,7 +28,7 @@ const chatInput = document.getElementById('chat-input');
 const sendBtn = document.getElementById('send-btn');
 const pauseBtn = document.getElementById('pause-btn');
 const stopBtn = document.getElementById('stop-btn');
-const micBtn = document.getElementById('mic-btn');
+const micBtn = isMacOS ? null : document.getElementById('mic-btn');
 const attachBtn = document.getElementById('attach-btn') || document.querySelector('.prompt-action-btn[title="Attach image"]');
 const fileInput = document.getElementById('file-input');
 const messagesContainer = document.getElementById('messages-container');
@@ -91,8 +103,22 @@ document.addEventListener('keydown', (e) => {
   }
 });
 
+// Platform check for microphone availability
+function checkMicrophoneAvailability() {
+  if (isMacOS) {
+    console.log('🎤 Microphone disabled on macOS');
+    return false;
+  }
+  return true;
+}
+
 // Audio recording functions
 async function toggleRecording() {
+  // Check if microphone is available on this platform
+  if (!checkMicrophoneAvailability()) {
+    return;
+  }
+  
   // Prevent rapid clicking
   if (micButtonCooldown) {
     console.log('🎤 Microphone button in cooldown, ignoring click');
@@ -247,6 +273,11 @@ async function requestMicrophonePermission() {
 }
 
 async function startRecording() {
+  // Check if microphone is available on this platform
+  if (!checkMicrophoneAvailability()) {
+    return;
+  }
+  
   console.log('🎤 Starting speech recognition...');
   
   try {
@@ -553,6 +584,12 @@ function handleStopButtonClick() {
 }
 
 function handleMicrophonePermissionError(error) {
+  // Check if this is macOS - show different message
+  if (isMacOS) {
+    addMessage('system', '🎤 **Microphone Not Available**\n\nVoice input is not available on macOS. Please use text input instead.');
+    return;
+  }
+  
   let errorMessage = '';
   let recoverySteps = '';
   
@@ -804,9 +841,12 @@ if (attachBtn) {
 }
 
 // Microphone button event listener
-if (micBtn) {
+// Microphone button event listener (only for non-macOS platforms)
+if (!isMacOS && micBtn) {
   micBtn.addEventListener('click', toggleRecording);
   console.log('🎤 Microphone button event listener added');
+} else if (isMacOS) {
+  console.log('🖥️ Microphone button disabled on macOS');
 } else {
   console.log('❌ Microphone button not found');
 }

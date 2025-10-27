@@ -1961,3 +1961,16 @@ body {
   }
 }
 
+/* ===== PLATFORM-SPECIFIC RULES ===== */
+/* Hide microphone button on macOS */
+body.macos #mic-btn {
+  display: none !important;
+}
+
+/* Alternative CSS-based hiding for macOS */
+@media screen and (-webkit-min-device-pixel-ratio: 0) {
+  .macos-hidden {
+    display: none !important;
+  }
+}
+
