@@ -301,6 +301,9 @@ async function startRecording() {
         // Show audio visualizer
         showAudioVisualizer();
         
+        // Start listening animation
+        startListeningAnimation();
+        
         console.log('🎤 Recording started successfully via content script');
         return;
       } else {
@@ -348,6 +351,9 @@ async function startRecording() {
       
       // Show audio visualizer
       showAudioVisualizer();
+      
+      // Start listening animation
+      startListeningAnimation();
       
       console.log('🎤 Recording started successfully via direct access');
     }
@@ -409,6 +415,9 @@ function stopRecording() {
     
     // Hide audio visualizer
     hideAudioVisualizer();
+    
+    // Stop listening animation
+    stopListeningAnimation();
     
     console.log('🎤 Recording stopped');
   }
@@ -484,13 +493,78 @@ async function callGoogleSpeechAPI(base64Audio) {
   return null;
 }
 
-function blobToBase64(blob) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result);
-    reader.onerror = reject;
-    reader.readAsDataURL(blob);
-  });
+// Listening Animation Controller
+function startListeningAnimation() {
+  const promptBox = document.getElementById('prompt-box');
+  const listeningStatus = document.getElementById('listening-status');
+  const listeningWaveform = document.getElementById('listening-waveform');
+  
+  if (promptBox) {
+    promptBox.classList.add('listening');
+    console.log('🎤 Started listening animation');
+  }
+  
+  if (listeningStatus) {
+    listeningStatus.textContent = '🎤 Listening...';
+  }
+  
+  if (listeningWaveform) {
+    listeningWaveform.style.display = 'block';
+  }
+}
+
+function stopListeningAnimation() {
+  const promptBox = document.getElementById('prompt-box');
+  const listeningStatus = document.getElementById('listening-status');
+  const listeningWaveform = document.getElementById('listening-waveform');
+  
+  if (promptBox) {
+    promptBox.classList.remove('listening');
+    console.log('🎤 Stopped listening animation');
+  }
+  
+  if (listeningStatus) {
+    listeningStatus.textContent = '🎤 Processing...';
+    
+    // Change to processing state briefly
+    setTimeout(() => {
+      if (listeningStatus) {
+        listeningStatus.textContent = '✅ Complete';
+        setTimeout(() => {
+          if (listeningStatus) {
+            listeningStatus.style.opacity = '0';
+          }
+        }, 1000);
+      }
+    }, 500);
+  }
+  
+  if (listeningWaveform) {
+    setTimeout(() => {
+      if (listeningWaveform) {
+        listeningWaveform.style.display = 'none';
+      }
+    }, 1000);
+  }
+}
+
+function resetListeningAnimation() {
+  const promptBox = document.getElementById('prompt-box');
+  const listeningStatus = document.getElementById('listening-status');
+  const listeningWaveform = document.getElementById('listening-waveform');
+  
+  if (promptBox) {
+    promptBox.classList.remove('listening');
+  }
+  
+  if (listeningStatus) {
+    listeningStatus.style.opacity = '0';
+    listeningStatus.textContent = '🎤 Listening...';
+  }
+  
+  if (listeningWaveform) {
+    listeningWaveform.style.display = 'none';
+  }
 }
 
 function getFileIcon(fileName) {
@@ -526,6 +600,9 @@ function handleAudioTranscriptionResult(transcript) {
   // Update UI
   micBtn.classList.remove('processing');
   micBtn.title = 'Voice input';
+  
+  // Reset listening animation
+  resetListeningAnimation();
   
   // Add transcript to message input
   const messageInput = document.getElementById('message-input');
