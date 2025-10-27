@@ -10,11 +10,7 @@
     "storage",
     "sidePanel",
     "scripting",
-    "tabs",
-    "i18n"
-  ],
-  "optional_permissions": [
-    "aiLanguageModelOriginTrial"
+    "tabs"
   ],
   "host_permissions": [
     "https://*/*",
