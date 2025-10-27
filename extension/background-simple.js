@@ -5,6 +5,56 @@ console.log('Cloudey background script loaded');
 let currentActiveTabId = null;
 let isAgentModeActive = false;
 
+// Handle audio transcription
+async function handleAudioTranscription(audioData, sender, sendResponse) {
+  try {
+    console.log('🎤 Processing audio transcription...');
+    
+    const speechResponse = await fetch('https://speech.googleapis.com/v1/speech:recognize', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${GEMINI_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        config: {
+          encoding: 'WEBM_OPUS',
+          sampleRateHertz: 44100,
+          languageCode: 'en-US',
+          alternativeLanguageCodes: ['es', 'fr', 'de', 'it', 'pt'],
+          enableAutomaticPunctuation: true,
+          model: 'latest_long'
+        },
+        audio: {
+          content: audioData.split(',')[1] // Remove data:audio/webm;base64, prefix
+        }
+      })
+    });
+    
+    const result = await speechResponse.json();
+    
+    if (result.results && result.results.length > 0) {
+      const transcript = result.results[0].alternatives[0].transcript;
+      console.log('✅ Audio transcribed:', transcript);
+      
+      // Send transcript to sidebar
+      chrome.runtime.sendMessage({
+        action: 'audioTranscriptionResult',
+        transcript: transcript
+      });
+      
+      sendResponse({ success: true, transcript: transcript });
+    } else {
+      console.log('❌ No speech detected');
+      sendResponse({ success: false, error: 'No speech detected' });
+    }
+    
+  } catch (error) {
+    console.log('❌ Audio transcription failed:', error);
+    sendResponse({ success: false, error: error.message });
+  }
+}
+
 // Listen for tab activation to move agent border
 chrome.tabs.onActivated.addListener(async (activeInfo) => {
   if (isAgentModeActive) {
@@ -114,9 +164,13 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         sendResponse({ success: true });
         break;
         
-      case 'getApiKey':
-        sendResponse({ apiKey: GEMINI_API_KEY });
-        break;
+    case 'getApiKey':
+      sendResponse({ apiKey: GEMINI_API_KEY });
+      break;
+      
+    case 'audioTranscription':
+      handleAudioTranscription(request.audioData, sender, sendResponse);
+      return true; // Keep message channel open for async response
         
       default:
         sendResponse({ error: 'Unknown action' });

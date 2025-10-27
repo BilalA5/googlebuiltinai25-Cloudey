@@ -159,36 +159,35 @@ async function toggleRecording() {
 
 async function requestMicrophonePermission() {
   try {
-    console.log('🎤 Requesting microphone permission...');
+    console.log('🎤 Requesting microphone permission via content script...');
     
-    const stream = await navigator.mediaDevices.getUserMedia({ 
-      audio: {
-        echoCancellation: true,
-        noiseSuppression: true,
-        sampleRate: 44100
-      } 
+    // Send message to content script to request microphone permission
+    const response = await chrome.runtime.sendMessage({ 
+      action: 'requestMicrophonePermission' 
     });
     
-    // Stop the stream immediately - we just needed permission
-    stream.getTracks().forEach(track => track.stop());
+    if (response.success) {
+      microphonePermission = true;
+      console.log('✅ Microphone permission granted');
+      
+      // Show success message
+      addMessage('system', '🎤 **Microphone Access Granted!**\n\nYou can now use voice input. Click the microphone button to start recording.');
+      
+      return true;
+    } else {
+      throw new Error(response.error || 'Permission denied');
+    }
     
-    microphonePermission = true;
-    console.log('✅ Microphone permission granted');
-    
-    // Show success message
-    addMessage('system', '🎤 **Microphone Access Granted!**\n\nYou can now use voice input. Click the microphone button to start recording.');
-    
-    return true;
   } catch (error) {
     console.log('❌ Microphone permission denied:', error);
     
     let errorMessage = '🎤 **Microphone Access Denied**\n\n';
     
-    if (error.name === 'NotAllowedError') {
+    if (error.message.includes('NotAllowedError')) {
       errorMessage += 'To enable voice input:\n1. Click the microphone button again\n2. Click "Allow" when Chrome asks for microphone access\n3. Or check Chrome settings: chrome://settings/content/microphone';
-    } else if (error.name === 'NotFoundError') {
+    } else if (error.message.includes('NotFoundError')) {
       errorMessage += 'No microphone found. Please connect a microphone and try again.';
-    } else if (error.name === 'NotSupportedError') {
+    } else if (error.message.includes('NotSupportedError')) {
       errorMessage += 'Microphone access is not supported in this browser.';
     } else {
       errorMessage += `Error: ${error.message}\n\nPlease try clicking the microphone button again.`;
@@ -212,58 +211,38 @@ async function startRecording() {
   }
   
   try {
-    console.log('🎤 Getting media stream...');
-    const stream = await navigator.mediaDevices.getUserMedia({ 
-      audio: {
-        echoCancellation: true,
-        noiseSuppression: true,
-        sampleRate: 44100
-      } 
+    console.log('🎤 Starting recording via content script...');
+    
+    // Send message to content script to start recording
+    const response = await chrome.runtime.sendMessage({ 
+      action: 'startRecording' 
     });
     
-    console.log('🎤 Media stream obtained, setting up recorder...');
-    
-    mediaRecorder = new MediaRecorder(stream, {
-      mimeType: 'audio/webm;codecs=opus'
-    });
-    
-    audioChunks = [];
-    
-    mediaRecorder.ondataavailable = (event) => {
-      audioChunks.push(event.data);
-    };
-    
-    mediaRecorder.onstop = async () => {
-      console.log('🎤 Recording stopped, processing audio...');
-      const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-      await processAudio(audioBlob);
+    if (response.success) {
+      isRecording = true;
       
-      // Clean up
-      stream.getTracks().forEach(track => track.stop());
-    };
-    
-    mediaRecorder.start();
-    isRecording = true;
-    
-    // Update UI
-    micBtn.classList.add('recording');
-    micBtn.title = 'Stop recording';
-    
-    // Show audio visualizer
-    showAudioVisualizer();
-    
-    console.log('🎤 Recording started successfully');
+      // Update UI
+      micBtn.classList.add('recording');
+      micBtn.title = 'Stop recording';
+      
+      // Show audio visualizer
+      showAudioVisualizer();
+      
+      console.log('🎤 Recording started successfully');
+    } else {
+      throw new Error(response.error || 'Recording failed');
+    }
     
   } catch (error) {
     console.log('❌ Recording failed:', error);
     
     let errorMessage = '❌ **Recording Failed**\n\n';
     
-    if (error.name === 'NotAllowedError') {
+    if (error.message.includes('NotAllowedError')) {
       errorMessage += 'Microphone access was denied. Please:\n1. Click the microphone button again\n2. Click "Allow" when Chrome asks for permission\n3. Or check Chrome settings: chrome://settings/content/microphone';
-    } else if (error.name === 'NotFoundError') {
+    } else if (error.message.includes('NotFoundError')) {
       errorMessage += 'No microphone found. Please connect a microphone and try again.';
-    } else if (error.name === 'NotSupportedError') {
+    } else if (error.message.includes('NotSupportedError')) {
       errorMessage += 'Microphone access is not supported in this browser.';
     } else {
       errorMessage += `Error: ${error.message}\n\nPlease try again.`;
@@ -274,8 +253,14 @@ async function startRecording() {
 }
 
 function stopRecording() {
-  if (mediaRecorder && isRecording) {
-    mediaRecorder.stop();
+  if (isRecording) {
+    console.log('🎤 Stopping recording...');
+    
+    // Send message to content script to stop recording
+    chrome.runtime.sendMessage({ 
+      action: 'stopRecording' 
+    });
+    
     isRecording = false;
     
     // Update UI
@@ -283,9 +268,10 @@ function stopRecording() {
     micBtn.classList.add('processing');
     micBtn.title = 'Processing...';
     
+    // Hide audio visualizer
     hideAudioVisualizer();
     
-    console.log('🎤 Recording stopped, processing...');
+    console.log('🎤 Recording stopped');
   }
 }
 
@@ -366,6 +352,24 @@ function blobToBase64(blob) {
     reader.onerror = reject;
     reader.readAsDataURL(blob);
   });
+}
+
+function handleAudioTranscriptionResult(transcript) {
+  console.log('🎤 Audio transcription result:', transcript);
+  
+  // Update UI
+  micBtn.classList.remove('processing');
+  micBtn.title = 'Voice input';
+  
+  // Add transcript to message input
+  const messageInput = document.getElementById('message-input');
+  if (messageInput && transcript) {
+    messageInput.value = transcript;
+    messageInput.focus();
+    
+    // Show success message
+    addMessage('system', `🎤 **Voice Input Received**\n\n"${transcript}"\n\nClick send to process your voice message.`);
+  }
 }
 
 function showAudioVisualizer() {
@@ -739,6 +743,10 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         hideTypingIndicator();
       }, 1000);
     }
+  }
+  
+  if (request.action === 'audioTranscriptionResult') {
+    handleAudioTranscriptionResult(request.transcript);
   }
 });
 

@@ -4,6 +4,108 @@ console.log('Cloudey side panel indicator loaded');
 let aiCursor = null;
 let aiTrail = [];
 
+// Microphone handling
+let mediaRecorder = null;
+let audioChunks = [];
+let isRecording = false;
+
+async function requestMicrophonePermission() {
+  try {
+    console.log('🎤 Content script: Requesting microphone permission...');
+    
+    const stream = await navigator.mediaDevices.getUserMedia({ 
+      audio: {
+        echoCancellation: true,
+        noiseSuppression: true,
+        sampleRate: 44100
+      } 
+    });
+    
+    // Stop the stream immediately - we just needed permission
+    stream.getTracks().forEach(track => track.stop());
+    
+    console.log('✅ Content script: Microphone permission granted');
+    return { success: true };
+    
+  } catch (error) {
+    console.log('❌ Content script: Microphone permission denied:', error);
+    return { 
+      success: false, 
+      error: `${error.name}: ${error.message}` 
+    };
+  }
+}
+
+async function startRecording() {
+  try {
+    console.log('🎤 Content script: Starting recording...');
+    
+    const stream = await navigator.mediaDevices.getUserMedia({ 
+      audio: {
+        echoCancellation: true,
+        noiseSuppression: true,
+        sampleRate: 44100
+      } 
+    });
+    
+    mediaRecorder = new MediaRecorder(stream, {
+      mimeType: 'audio/webm;codecs=opus'
+    });
+    
+    audioChunks = [];
+    
+    mediaRecorder.ondataavailable = (event) => {
+      audioChunks.push(event.data);
+    };
+    
+    mediaRecorder.onstop = async () => {
+      console.log('🎤 Content script: Recording stopped, processing audio...');
+      const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+      
+      // Convert to base64 and send to sidebar
+      const base64Audio = await blobToBase64(audioBlob);
+      
+      chrome.runtime.sendMessage({
+        action: 'audioTranscription',
+        audioData: base64Audio
+      });
+      
+      // Clean up
+      stream.getTracks().forEach(track => track.stop());
+    };
+    
+    mediaRecorder.start();
+    isRecording = true;
+    
+    console.log('✅ Content script: Recording started successfully');
+    return { success: true };
+    
+  } catch (error) {
+    console.log('❌ Content script: Recording failed:', error);
+    return { 
+      success: false, 
+      error: `${error.name}: ${error.message}` 
+    };
+  }
+}
+
+function stopRecording() {
+  if (mediaRecorder && isRecording) {
+    console.log('🎤 Content script: Stopping recording...');
+    mediaRecorder.stop();
+    isRecording = false;
+  }
+}
+
+function blobToBase64(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
+
 function createAICursor() {
   if (aiCursor) return aiCursor;
   
@@ -225,7 +327,7 @@ window.addEventListener('beforeunload', async () => {
 });
 
 // listen for messages from background
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
   try {
     if (typeof chrome === 'undefined' || !chrome.runtime || !chrome.runtime.id) {
       console.log('Extension context invalidated in message listener');
@@ -239,8 +341,28 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         indicator.classList.add('visible');
       }
     }
+    
+    // Microphone handling
+    if (request.action === 'requestMicrophonePermission') {
+      const result = await requestMicrophonePermission();
+      sendResponse(result);
+      return true; // Keep message channel open for async response
+    }
+    
+    if (request.action === 'startRecording') {
+      const result = await startRecording();
+      sendResponse(result);
+      return true; // Keep message channel open for async response
+    }
+    
+    if (request.action === 'stopRecording') {
+      stopRecording();
+      sendResponse({ success: true });
+    }
+    
   } catch (error) {
     console.log('Error in message listener:', error);
+    sendResponse({ success: false, error: error.message });
   }
 });
 
