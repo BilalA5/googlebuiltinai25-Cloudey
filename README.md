@@ -20,7 +20,7 @@
 3. **Click "Relaunch"** and wait for Chrome to fully restart
 4. **Verify Chrome version 138+** at `chrome://version/`
 
-**Without these flags enabled, Cloudey will not work properly.**
+**These flags enable Chrome APIs that Gemini orchestrates for page interaction and context awareness.**
 
 ---
 
@@ -28,9 +28,9 @@
 
 ### 🤖 **AI Chat Assistant**
 - **Context-aware conversations** - Understands current webpage content
-- **Gemini-powered responses** - Uses Google's on-device AI model
-- **Privacy-first** - All processing happens locally on your device
-- **No API keys required** - Uses Chrome's built-in Prompt API
+- **Gemini-powered responses** - Uses Google's Gemini API
+- **Chrome API orchestration** - Gemini controls Chrome APIs for page interaction
+- **Pre-configured API** - Uses integrated Gemini API access
 
 ### 🎤 **Voice Input** 
 - **Speech-to-text** - Speak your questions naturally
@@ -69,7 +69,7 @@
 ### Prerequisites
 - **Chrome Browser** version 138 or newer
 - **Chrome AI flags** enabled (see setup requirements above)
-- **Sufficient storage** (~40MB for Gemini Nano model)
+- **Internet connection** - Required for Gemini API access
 
 ### Setup Steps
 
@@ -84,10 +84,10 @@
    - Click "Load unpacked" → Select the `extension` folder
    - Cloudey icon will appear in your toolbar
 
-3. **First Use**
+3. **Start Using Cloudey**
    - Click the Cloudey icon or look for the ⇄ arrow on web pages
-   - Gemini Nano model will download automatically (~40MB)
-   - Start chatting with the AI!
+   - Start chatting with the AI immediately
+   - No additional configuration needed
 
 ---
 
@@ -130,22 +130,22 @@
 
 ### Architecture
 - **Extension Context**: Works in sidebar window context
-- **Prompt API**: Uses Chrome's built-in `navigator.languageModel`
-- **Gemini Nano**: Google's on-device AI model (~40MB)
-- **Local Processing**: All AI inference happens on-device
-- **No Network Calls**: After initial model download, works offline
+- **Gemini API**: Uses Google's Gemini API for AI responses
+- **Chrome APIs**: Gemini orchestrates Chrome extension APIs for page interaction
+- **Cloud Processing**: AI inference happens via Google's servers
+- **API Communication**: Real-time communication with Gemini API
 
 ### Model Information
-- **Model**: Gemini Nano (Google's on-device model)
-- **Size**: ~40MB download on first use
-- **Precision**: Optimized for mobile and desktop inference
-- **Availability**: Automatically handled by Chrome's Prompt API
+- **Model**: Google Gemini API
+- **API Access**: Via Google AI Studio
+- **Processing**: Cloud-based inference
+- **Availability**: Requires internet connection
 
 ### Security & Privacy
-- **100% Local Processing**: Data never leaves your device
-- **No API Keys**: Uses Chrome's built-in AI capabilities
-- **No External Servers**: All processing happens on-device
-- **Secure Context**: Runs in Chrome's secure extension environment
+- **Cloud Processing**: AI inference happens on Google's servers
+- **Pre-configured Access**: Uses integrated Gemini API access
+- **Data Transmission**: Conversations sent to Gemini API
+- **Secure Communication**: HTTPS communication with Google's servers
 
 ---
 
@@ -182,23 +182,23 @@
 
 ### Common Issues
 
-#### "Prompt API not available" Error
-- ✅ Verify Chrome version 138+ at `chrome://version/`
-- ✅ Enable all three flags in `chrome://flags/`
-- ✅ Restart Chrome completely after enabling flags
-- ✅ Reload the extension after restarting Chrome
+#### "API Access Error"
+- ✅ Check your internet connection
+- ✅ Ensure Chrome flags are enabled for page interaction
+- ✅ Try refreshing the page and extension
+- ✅ Contact support if issues persist
 
 #### AI Responses Are Slow
-- ✅ First use downloads Gemini Nano model (~40MB)
-- ✅ Subsequent responses are fast
-- ✅ Check internet connection for initial download
-- ✅ Monitor download progress in chat interface
+- ✅ Check your internet connection
+- ✅ Gemini API may be experiencing high load
+- ✅ Try refreshing the page and extension
+- ✅ Contact support if issues persist
 
 #### Model Unavailable
-- ✅ Ensure all flags are enabled and Chrome restarted
-- ✅ Check sufficient storage space (~40MB)
-- ✅ Some hardware may not support on-device AI
-- ✅ Try disabling and re-enabling flags
+- ✅ Check your internet connection
+- ✅ Verify Chrome flags are enabled for page interaction
+- ✅ Some features require Chrome 138+ and enabled flags
+- ✅ Contact support if issues persist
 
 #### Voice Input Not Working
 - ✅ **macOS Users**: Voice input is not supported on macOS
@@ -239,9 +239,10 @@ extension/
 - **Background Service**: Handles extension lifecycle and messaging
 
 ### API Integration
-- **Chrome Prompt API**: `navigator.languageModel` for AI inference
+- **Google Gemini API**: Primary AI inference via Google AI Studio
 - **Chrome Extensions API**: Sidebar, tabs, scripting, storage
 - **Web APIs**: Speech recognition, file upload, image processing
+- **Chrome Flags**: Enable page interaction capabilities
 
 ---
 
