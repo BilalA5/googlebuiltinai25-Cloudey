@@ -499,10 +499,19 @@ async function callGoogleSpeechAPI(base64Audio) {
 function startMinimalListeningUI() {
   const listeningOverlay = document.getElementById('listening-overlay');
   const listeningTimerElement = document.getElementById('listening-timer');
+  const listeningStopBtn = document.getElementById('listening-stop-btn');
   
   if (listeningOverlay) {
     listeningOverlay.classList.add('active');
     console.log('🎤 Started minimal listening UI');
+  }
+  
+  // Add stop button event listener
+  if (listeningStopBtn) {
+    listeningStopBtn.addEventListener('click', () => {
+      console.log('🛑 Stop button clicked');
+      stopRecording();
+    });
   }
   
   // Start timer

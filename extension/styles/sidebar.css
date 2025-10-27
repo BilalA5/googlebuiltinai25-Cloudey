@@ -410,15 +410,15 @@ body {
   50% { transform: scale(1.1); }
 }
 
-/* Minimal Full-Screen Listening UI */
+/* Minimal Chat Input Listening UI */
 .listening-overlay {
-  position: fixed;
+  position: absolute;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
   background: #000000;
-  z-index: 9999;
+  z-index: 1000;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -426,6 +426,7 @@ body {
   opacity: 0;
   visibility: hidden;
   transition: all 0.3s ease;
+  border-radius: inherit;
 }
 
 .listening-overlay.active {
@@ -434,21 +435,21 @@ body {
 }
 
 .listening-icon {
-  width: 60px;
-  height: 60px;
+  width: 40px;
+  height: 40px;
   background: #ffffff;
-  border-radius: 12px;
+  border-radius: 8px;
   transform: rotate(-15deg);
-  margin-bottom: 20px;
+  margin-bottom: 15px;
   animation: listening-icon-pulse 2s ease-in-out infinite;
 }
 
 .listening-timer {
-  font-size: 24px;
+  font-size: 18px;
   font-weight: 300;
   color: #cccccc;
   font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
-  margin-bottom: 30px;
+  margin-bottom: 20px;
   letter-spacing: 1px;
 }
 
@@ -456,45 +457,64 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 3px;
-  margin-bottom: 20px;
-  width: 300px;
-  height: 40px;
+  gap: 2px;
+  margin-bottom: 15px;
+  width: 200px;
+  height: 30px;
 }
 
 .waveform-bar-minimal {
-  width: 4px;
+  width: 3px;
   background: #cccccc;
   border-radius: 2px;
   animation: waveform-minimal-pulse 1.5s ease-in-out infinite;
 }
 
-.waveform-bar-minimal:nth-child(1) { height: 8px; animation-delay: 0s; }
-.waveform-bar-minimal:nth-child(2) { height: 12px; animation-delay: 0.1s; }
-.waveform-bar-minimal:nth-child(3) { height: 16px; animation-delay: 0.2s; }
-.waveform-bar-minimal:nth-child(4) { height: 20px; animation-delay: 0.3s; }
-.waveform-bar-minimal:nth-child(5) { height: 24px; animation-delay: 0.4s; }
-.waveform-bar-minimal:nth-child(6) { height: 28px; animation-delay: 0.5s; }
-.waveform-bar-minimal:nth-child(7) { height: 32px; animation-delay: 0.6s; }
-.waveform-bar-minimal:nth-child(8) { height: 28px; animation-delay: 0.7s; }
-.waveform-bar-minimal:nth-child(9) { height: 24px; animation-delay: 0.8s; }
-.waveform-bar-minimal:nth-child(10) { height: 20px; animation-delay: 0.9s; }
-.waveform-bar-minimal:nth-child(11) { height: 16px; animation-delay: 1s; }
-.waveform-bar-minimal:nth-child(12) { height: 12px; animation-delay: 1.1s; }
-.waveform-bar-minimal:nth-child(13) { height: 16px; animation-delay: 1.2s; }
-.waveform-bar-minimal:nth-child(14) { height: 20px; animation-delay: 1.3s; }
-.waveform-bar-minimal:nth-child(15) { height: 24px; animation-delay: 1.4s; }
-.waveform-bar-minimal:nth-child(16) { height: 28px; animation-delay: 1.5s; }
-.waveform-bar-minimal:nth-child(17) { height: 32px; animation-delay: 1.6s; }
-.waveform-bar-minimal:nth-child(18) { height: 28px; animation-delay: 1.7s; }
-.waveform-bar-minimal:nth-child(19) { height: 24px; animation-delay: 1.8s; }
-.waveform-bar-minimal:nth-child(20) { height: 20px; animation-delay: 1.9s; }
+.waveform-bar-minimal:nth-child(1) { height: 6px; animation-delay: 0s; }
+.waveform-bar-minimal:nth-child(2) { height: 8px; animation-delay: 0.1s; }
+.waveform-bar-minimal:nth-child(3) { height: 10px; animation-delay: 0.2s; }
+.waveform-bar-minimal:nth-child(4) { height: 12px; animation-delay: 0.3s; }
+.waveform-bar-minimal:nth-child(5) { height: 14px; animation-delay: 0.4s; }
+.waveform-bar-minimal:nth-child(6) { height: 16px; animation-delay: 0.5s; }
+.waveform-bar-minimal:nth-child(7) { height: 18px; animation-delay: 0.6s; }
+.waveform-bar-minimal:nth-child(8) { height: 16px; animation-delay: 0.7s; }
+.waveform-bar-minimal:nth-child(9) { height: 14px; animation-delay: 0.8s; }
+.waveform-bar-minimal:nth-child(10) { height: 12px; animation-delay: 0.9s; }
+.waveform-bar-minimal:nth-child(11) { height: 10px; animation-delay: 1s; }
+.waveform-bar-minimal:nth-child(12) { height: 8px; animation-delay: 1.1s; }
+.waveform-bar-minimal:nth-child(13) { height: 10px; animation-delay: 1.2s; }
+.waveform-bar-minimal:nth-child(14) { height: 12px; animation-delay: 1.3s; }
+.waveform-bar-minimal:nth-child(15) { height: 14px; animation-delay: 1.4s; }
+.waveform-bar-minimal:nth-child(16) { height: 16px; animation-delay: 1.5s; }
+.waveform-bar-minimal:nth-child(17) { height: 18px; animation-delay: 1.6s; }
+.waveform-bar-minimal:nth-child(18) { height: 16px; animation-delay: 1.7s; }
+.waveform-bar-minimal:nth-child(19) { height: 14px; animation-delay: 1.8s; }
+.waveform-bar-minimal:nth-child(20) { height: 12px; animation-delay: 1.9s; }
 
-.listening-text {
-  font-size: 16px;
-  font-weight: 300;
-  color: #cccccc;
-  letter-spacing: 0.5px;
+.listening-stop-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 32px;
+  height: 32px;
+  background: #ff4444;
+  border: none;
+  border-radius: 50%;
+  color: white;
+  font-size: 14px;
+  font-weight: bold;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(255, 68, 68, 0.3);
+}
+
+.listening-stop-btn:hover {
+  background: #ff3333;
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(255, 68, 68, 0.4);
 }
 
 @keyframes listening-icon-pulse {
