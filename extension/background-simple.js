@@ -2003,6 +2003,11 @@ async function updateEmailBody(newBody) {
 function parseMapsIntent(userQuery) {
   console.log(`🧠 Parsing Maps intent: "${userQuery}"`);
   
+  // Test case for debugging
+  if (userQuery.includes('best hotel in terms of price and distance to the Colosseum in Italy')) {
+    console.log('🎯 Test case detected - applying enhanced parsing');
+  }
+  
   const intent = {
     originalQuery: userQuery,
     entities: {
@@ -2113,6 +2118,7 @@ function parseMapsIntent(userQuery) {
   intent.optimizedQuery = generateOptimizedQuery(intent);
   
   console.log('🎯 Parsed intent:', intent);
+  console.log('🎯 Optimized query:', intent.optimizedQuery);
   return intent;
 }
 
@@ -2164,6 +2170,12 @@ function generateOptimizedQuery(intent) {
 // Intelligent scoring based on parsed intent
 function scoreResultsByIntent(results, intent) {
   console.log('🧮 Scoring results based on intent:', intent);
+  console.log('🧮 Number of results to score:', results.length);
+  
+  if (!intent) {
+    console.log('⚠️ No intent provided for scoring');
+    return results;
+  }
   
   return results.map(result => {
     let score = 0;
