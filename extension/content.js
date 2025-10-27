@@ -1,5 +1,138 @@
 console.log('Cloudey side panel indicator loaded');
 
+// AI Action Cursor/Trail System
+let aiCursor = null;
+let aiTrail = [];
+
+function createAICursor() {
+  if (aiCursor) return aiCursor;
+  
+  aiCursor = document.createElement('div');
+  aiCursor.id = 'cloudey-ai-cursor';
+  aiCursor.style.cssText = `
+    position: fixed;
+    width: 20px;
+    height: 20px;
+    background: radial-gradient(circle, rgba(147, 51, 234, 0.9) 0%, rgba(147, 51, 234, 0.3) 70%, transparent 100%);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 999999;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 0 20px rgba(147, 51, 234, 0.6);
+    animation: cloudey-cursor-pulse 2s infinite;
+  `;
+  
+  document.body.appendChild(aiCursor);
+  
+  // Add cursor styles
+  if (!document.getElementById('cloudey-cursor-styles')) {
+    const style = document.createElement('style');
+    style.id = 'cloudey-cursor-styles';
+    style.textContent = `
+      @keyframes cloudey-cursor-pulse {
+        0%, 100% {
+          transform: scale(1);
+          opacity: 0.9;
+        }
+        50% {
+          transform: scale(1.3);
+          opacity: 0.6;
+        }
+      }
+      
+      @keyframes cloudey-trail-fade {
+        0% {
+          opacity: 0.8;
+          transform: scale(1);
+        }
+        100% {
+          opacity: 0;
+          transform: scale(0.3);
+        }
+      }
+      
+      .cloudey-trail-dot {
+        position: fixed;
+        width: 8px;
+        height: 8px;
+        background: rgba(147, 51, 234, 0.7);
+        border-radius: 50%;
+        pointer-events: none;
+        z-index: 999998;
+        animation: cloudey-trail-fade 2s ease-out forwards;
+      }
+    `;
+    document.head.appendChild(style);
+  }
+  
+  return aiCursor;
+}
+
+function moveAICursor(x, y, action = '') {
+  const cursor = createAICursor();
+  
+  // Add trail dot
+  const trailDot = document.createElement('div');
+  trailDot.className = 'cloudey-trail-dot';
+  trailDot.style.left = (x - 4) + 'px';
+  trailDot.style.top = (y - 4) + 'px';
+  document.body.appendChild(trailDot);
+  
+  // Move cursor
+  cursor.style.left = (x - 10) + 'px';
+  cursor.style.top = (y - 10) + 'px';
+  
+  // Add action indicator
+  if (action) {
+    const actionIndicator = document.createElement('div');
+    actionIndicator.textContent = action;
+    actionIndicator.style.cssText = `
+      position: fixed;
+      left: ${x + 15}px;
+      top: ${y - 10}px;
+      background: rgba(20, 10, 25, 0.9);
+      color: rgba(147, 51, 234, 1);
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 500;
+      pointer-events: none;
+      z-index: 999999;
+      border: 1px solid rgba(147, 51, 234, 0.5);
+      animation: cloudey-trail-fade 3s ease-out forwards;
+    `;
+    document.body.appendChild(actionIndicator);
+    
+    setTimeout(() => {
+      if (actionIndicator.parentNode) {
+        actionIndicator.parentNode.removeChild(actionIndicator);
+      }
+    }, 3000);
+  }
+  
+  // Clean up old trail dots
+  setTimeout(() => {
+    if (trailDot.parentNode) {
+      trailDot.parentNode.removeChild(trailDot);
+    }
+  }, 2000);
+}
+
+function hideAICursor() {
+  if (aiCursor && aiCursor.parentNode) {
+    aiCursor.parentNode.removeChild(aiCursor);
+    aiCursor = null;
+  }
+  
+  // Clear trail
+  const trailDots = document.querySelectorAll('.cloudey-trail-dot');
+  trailDots.forEach(dot => {
+    if (dot.parentNode) {
+      dot.parentNode.removeChild(dot);
+    }
+  });
+}
+
 // Check if extension context is valid before proceeding
 if (typeof chrome === 'undefined' || !chrome.runtime || !chrome.runtime.id) {
   console.log('Extension context not available, skipping indicator creation');
@@ -407,6 +540,12 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     sendResponse({ success: true });
   } else if (request.action === 'mapClear') {
     clearMapDrawings();
+    sendResponse({ success: true });
+  } else if (request.action === 'aiCursorMove') {
+    moveAICursor(request.x, request.y, request.action);
+    sendResponse({ success: true });
+  } else if (request.action === 'aiCursorHide') {
+    hideAICursor();
     sendResponse({ success: true });
   }
 });

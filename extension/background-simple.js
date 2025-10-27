@@ -2461,6 +2461,30 @@ async function analyzeMapsResults(tabId, query, retryCount = 0, maxRetries = 3, 
               const resultsList = document.querySelectorAll(resultSelectors.join(','));
               console.log(`Found ${resultsList.length} potential results`);
               
+              // Debug: Check what's actually on the page
+              console.log('Page title:', document.title);
+              console.log('Current URL:', window.location.href);
+              console.log('Search box value:', document.querySelector('input#searchboxinput')?.value);
+              
+              // Try alternative selectors
+              const altSelectors = [
+                'div[data-result-index]',
+                'div[jsaction*="click"]',
+                'div[role="button"]',
+                'div[tabindex="0"]',
+                'div[aria-label*="result"]',
+                'div[data-value]',
+                'div.g',
+                'div[jsaction*="mouseover"]'
+              ];
+              
+              altSelectors.forEach(selector => {
+                const elements = document.querySelectorAll(selector);
+                if (elements.length > 0) {
+                  console.log(`Selector "${selector}" found ${elements.length} elements`);
+                }
+              });
+              
               resultsList.forEach((result, index) => {
                 if (results.length >= 25) return; // Increased limit
                 
