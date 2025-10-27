@@ -1999,8 +1999,314 @@ async function updateEmailBody(newBody) {
   });
 }
 
+// Intent parsing and query optimization
+function parseMapsIntent(userQuery) {
+  console.log(`🧠 Parsing Maps intent: "${userQuery}"`);
+  
+  const intent = {
+    originalQuery: userQuery,
+    entities: {
+      destination: null,
+      category: null,
+      location: null,
+      referencePoint: null
+    },
+    criteria: {
+      price: null,
+      distance: null,
+      rating: null,
+      availability: null,
+      features: []
+    },
+    modifiers: {
+      sortBy: null,
+      filters: [],
+      qualifiers: []
+    },
+    optimizedQuery: null
+  };
+  
+  const queryLower = userQuery.toLowerCase();
+  
+  // Extract destination/landmark entities
+  const landmarks = [
+    'colosseum', 'coliseum', 'vatican', 'trevi fountain', 'pantheon', 'roman forum',
+    'eiffel tower', 'louvre', 'notre dame', 'times square', 'central park',
+    'golden gate bridge', 'statue of liberty', 'big ben', 'london eye'
+  ];
+  
+  for (const landmark of landmarks) {
+    if (queryLower.includes(landmark)) {
+      intent.entities.destination = landmark;
+      intent.entities.referencePoint = landmark;
+      break;
+    }
+  }
+  
+  // Extract location entities
+  const locations = [
+    'rome', 'italy', 'paris', 'france', 'london', 'england', 'new york', 'manhattan',
+    'san francisco', 'california', 'tokyo', 'japan', 'berlin', 'germany'
+  ];
+  
+  for (const location of locations) {
+    if (queryLower.includes(location)) {
+      intent.entities.location = location;
+      break;
+    }
+  }
+  
+  // Extract category entities
+  const categories = [
+    'hotel', 'restaurant', 'cafe', 'parking', 'gas station', 'pharmacy',
+    'hospital', 'clinic', 'bank', 'atm', 'grocery', 'supermarket',
+    'shopping mall', 'museum', 'attraction', 'tourist spot'
+  ];
+  
+  for (const category of categories) {
+    if (queryLower.includes(category)) {
+      intent.entities.category = category;
+      break;
+    }
+  }
+  
+  // Extract criteria
+  if (queryLower.includes('price') || queryLower.includes('cheap') || queryLower.includes('budget') || queryLower.includes('affordable')) {
+    intent.criteria.price = 'low';
+    intent.modifiers.qualifiers.push('budget');
+  }
+  
+  if (queryLower.includes('expensive') || queryLower.includes('luxury') || queryLower.includes('premium')) {
+    intent.criteria.price = 'high';
+    intent.modifiers.qualifiers.push('luxury');
+  }
+  
+  if (queryLower.includes('distance') || queryLower.includes('near') || queryLower.includes('closest') || queryLower.includes('nearest')) {
+    intent.criteria.distance = 'minimize';
+    intent.modifiers.sortBy = 'distance';
+  }
+  
+  if (queryLower.includes('best') || queryLower.includes('highest') || queryLower.includes('top rated')) {
+    intent.criteria.rating = 'high';
+    intent.modifiers.sortBy = 'rating';
+  }
+  
+  if (queryLower.includes('free') || queryLower.includes('no charge')) {
+    intent.criteria.price = 'free';
+    intent.modifiers.filters.push('free');
+  }
+  
+  if (queryLower.includes('open') || queryLower.includes('available now')) {
+    intent.criteria.availability = 'now';
+    intent.modifiers.filters.push('open now');
+  }
+  
+  // Extract features
+  const features = ['wifi', 'parking', 'pool', 'gym', 'spa', 'restaurant', 'bar', 'breakfast'];
+  for (const feature of features) {
+    if (queryLower.includes(feature)) {
+      intent.criteria.features.push(feature);
+    }
+  }
+  
+  // Generate optimized query
+  intent.optimizedQuery = generateOptimizedQuery(intent);
+  
+  console.log('🎯 Parsed intent:', intent);
+  return intent;
+}
+
+function generateOptimizedQuery(intent) {
+  let optimizedQuery = '';
+  
+  // Build the base query
+  if (intent.entities.category) {
+    optimizedQuery += intent.entities.category;
+  }
+  
+  // Add location context
+  if (intent.entities.destination) {
+    optimizedQuery += ` near ${intent.entities.destination}`;
+  } else if (intent.entities.location) {
+    optimizedQuery += ` in ${intent.entities.location}`;
+  }
+  
+  // Add qualifiers
+  if (intent.modifiers.qualifiers.includes('budget')) {
+    optimizedQuery += ' budget';
+  } else if (intent.modifiers.qualifiers.includes('luxury')) {
+    optimizedQuery += ' luxury';
+  }
+  
+  // Add filters
+  if (intent.modifiers.filters.includes('free')) {
+    optimizedQuery += ' free';
+  }
+  
+  if (intent.modifiers.filters.includes('open now')) {
+    optimizedQuery += ' open now';
+  }
+  
+  // Add features
+  if (intent.criteria.features.length > 0) {
+    optimizedQuery += ` with ${intent.criteria.features.join(' and ')}`;
+  }
+  
+  // Fallback to original if optimization failed
+  if (!optimizedQuery.trim()) {
+    optimizedQuery = intent.originalQuery;
+  }
+  
+  console.log(`🔧 Optimized query: "${optimizedQuery}"`);
+  return optimizedQuery.trim();
+}
+
+// Intelligent scoring based on parsed intent
+function scoreResultsByIntent(results, intent) {
+  console.log('🧮 Scoring results based on intent:', intent);
+  
+  return results.map(result => {
+    let score = 0;
+    let reasons = [];
+    
+    // Distance scoring (0-40 points)
+    if (intent.criteria.distance === 'minimize' && result.distance) {
+      const distanceValue = parseDistance(result.distance);
+      if (distanceValue !== null) {
+        // Closer = higher score (inverse relationship)
+        const distanceScore = Math.max(0, 40 - (distanceValue * 2));
+        score += distanceScore;
+        reasons.push(`Distance: ${result.distance} (${distanceScore.toFixed(1)} pts)`);
+      }
+    }
+    
+    // Price scoring (0-30 points)
+    if (intent.criteria.price === 'low' && result.price) {
+      const priceValue = parsePrice(result.price);
+      if (priceValue !== null) {
+        // Lower price = higher score
+        const priceScore = Math.max(0, 30 - (priceValue * 3));
+        score += priceScore;
+        reasons.push(`Price: ${result.price} (${priceScore.toFixed(1)} pts)`);
+      }
+    } else if (intent.criteria.price === 'high' && result.price) {
+      const priceValue = parsePrice(result.price);
+      if (priceValue !== null) {
+        // Higher price = higher score
+        const priceScore = Math.min(30, priceValue * 3);
+        score += priceScore;
+        reasons.push(`Price: ${result.price} (${priceScore.toFixed(1)} pts)`);
+      }
+    }
+    
+    // Rating scoring (0-25 points)
+    if (intent.criteria.rating === 'high' && result.rating) {
+      const ratingValue = parseRating(result.rating);
+      if (ratingValue !== null) {
+        const ratingScore = ratingValue * 5; // 5 points per star
+        score += ratingScore;
+        reasons.push(`Rating: ${result.rating} (${ratingScore.toFixed(1)} pts)`);
+      }
+    }
+    
+    // Feature matching (0-15 points)
+    if (intent.criteria.features.length > 0) {
+      let featureScore = 0;
+      for (const feature of intent.criteria.features) {
+        if (result.description.toLowerCase().includes(feature) || 
+            result.title.toLowerCase().includes(feature)) {
+          featureScore += 5;
+        }
+      }
+      score += featureScore;
+      if (featureScore > 0) {
+        reasons.push(`Features: ${featureScore} pts`);
+      }
+    }
+    
+    // Keyword bonuses (0-10 points)
+    if (intent.modifiers.filters.includes('free') && result.keywords?.isFree) {
+      score += 10;
+      reasons.push('Free: +10 pts');
+    }
+    
+    if (intent.modifiers.filters.includes('open now') && result.keywords?.isOpenNow) {
+      score += 5;
+      reasons.push('Open now: +5 pts');
+    }
+    
+    // Review count bonus (0-5 points)
+    if (result.reviewCount) {
+      const reviewCount = parseInt(result.reviewCount.replace(/,/g, ''));
+      if (reviewCount > 100) {
+        score += 5;
+        reasons.push('High reviews: +5 pts');
+      }
+    }
+    
+    return {
+      ...result,
+      intentScore: Math.round(score * 100) / 100,
+      scoreReasons: reasons
+    };
+  }).sort((a, b) => b.intentScore - a.intentScore); // Sort by score descending
+}
+
+// Helper functions for parsing values
+function parseDistance(distanceStr) {
+  if (!distanceStr) return null;
+  
+  const match = distanceStr.match(/(\d+(?:\.\d+)?)\s*(km|mi|m|meters?)/i);
+  if (match) {
+    let value = parseFloat(match[1]);
+    const unit = match[2].toLowerCase();
+    
+    // Convert to km
+    if (unit.includes('mi')) {
+      value *= 1.60934;
+    } else if (unit.includes('m') && !unit.includes('km')) {
+      value /= 1000;
+    }
+    
+    return value;
+  }
+  return null;
+}
+
+function parsePrice(priceStr) {
+  if (!priceStr) return null;
+  
+  // Look for dollar signs or price indicators
+  const match = priceStr.match(/\$(\d+(?:\.\d+)?)/);
+  if (match) {
+    return parseFloat(match[1]);
+  }
+  
+  // Look for price level indicators ($$, $$$, etc.)
+  const dollarCount = (priceStr.match(/\$/g) || []).length;
+  if (dollarCount > 0) {
+    return dollarCount * 50; // Rough estimate: $ = $50, $$ = $100, etc.
+  }
+  
+  return null;
+}
+
+function parseRating(ratingStr) {
+  if (!ratingStr) return null;
+  
+  const match = ratingStr.match(/(\d+(?:\.\d+)?)/);
+  if (match) {
+    return parseFloat(match[1]);
+  }
+  return null;
+}
+
 async function searchGoogleMaps(query) {
   console.log(`🗺️ Searching Google Maps: ${query}`);
+  
+  // Parse user intent first
+  const intent = parseMapsIntent(query);
+  const optimizedQuery = intent.optimizedQuery;
   
   try {
     // Check if we're on Google Maps
@@ -2013,15 +2319,15 @@ async function searchGoogleMaps(query) {
     const isMaps = activeTab.url.includes('google.com/maps') || activeTab.url.includes('maps.google.com');
     
     if (!isMaps) {
-      // Open Google Maps in a new tab with the search query
-      const mapsUrl = `https://www.google.com/maps/search/${encodeURIComponent(query)}`;
+      // Open Google Maps in a new tab with the optimized search query
+      const mapsUrl = `https://www.google.com/maps/search/${encodeURIComponent(optimizedQuery)}`;
       const newTab = await chrome.tabs.create({ url: mapsUrl });
       
       // Wait for the page to load
       await new Promise(resolve => setTimeout(resolve, 3000));
       
-      // Now perform the enhanced search and analysis
-      return await analyzeMapsResults(newTab.id, query);
+      // Now perform the enhanced search and analysis with intent
+      return await analyzeMapsResults(newTab.id, optimizedQuery, 0, 3, intent);
     }
     
     // If already on Maps, perform the search
@@ -2081,7 +2387,7 @@ async function searchGoogleMaps(query) {
             }
           });
         },
-        args: [query]
+        args: [optimizedQuery]
       }, async (results) => {
         if (chrome.runtime.lastError) {
           resolve({ success: false, error: chrome.runtime.lastError.message });
@@ -2089,8 +2395,8 @@ async function searchGoogleMaps(query) {
           // Wait for results to load
           await new Promise(r => setTimeout(r, 4000));
           
-          // Analyze the results
-          const analysis = await analyzeMapsResults(activeTab.id, query);
+          // Analyze the results with intent
+          const analysis = await analyzeMapsResults(activeTab.id, optimizedQuery, 0, 3, intent);
           resolve(analysis);
         } else {
           resolve(results[0]?.result || { success: false, error: 'Unknown error' });
@@ -2104,7 +2410,7 @@ async function searchGoogleMaps(query) {
   }
 }
 
-async function analyzeMapsResults(tabId, query, retryCount = 0, maxRetries = 3) {
+async function analyzeMapsResults(tabId, query, retryCount = 0, maxRetries = 3, intent = null) {
   console.log(`🔍 Analyzing Google Maps results for: ${query} (attempt ${retryCount + 1}/${maxRetries + 1})`);
   
   return new Promise((resolve) => {
@@ -2373,10 +2679,35 @@ async function analyzeMapsResults(tabId, query, retryCount = 0, maxRetries = 3) 
         
                  // Check if we have results - if not, retry recursively
         if (analysis.success && analysis.results && analysis.results.length > 0) {
-           // Enhanced Gemini ranking prompt for better analysis
+           // Apply intelligent scoring based on parsed intent
+           if (intent) {
+             analysis.results = scoreResultsByIntent(analysis.results, intent);
+             console.log('🎯 Results scored by intent:', analysis.results.slice(0, 3).map(r => ({
+               title: r.title,
+               score: r.intentScore,
+               distance: r.distance,
+               rating: r.rating,
+               price: r.price
+             })));
+           }
+           // Enhanced Gemini ranking prompt with intent-aware analysis
            const rankingPrompt = `You are an expert location analyst helping a user find the PERFECT match from Google Maps search results.
 
-USER'S REQUEST: "${analysis.query}"
+USER'S ORIGINAL REQUEST: "${intent ? intent.originalQuery : analysis.query}"
+OPTIMIZED SEARCH QUERY: "${analysis.query}"
+
+🎯 PARSED USER INTENT:
+${intent ? `
+- Category: ${intent.entities.category || 'Not specified'}
+- Destination/Landmark: ${intent.entities.destination || 'Not specified'}
+- Location: ${intent.entities.location || 'Not specified'}
+- Price Preference: ${intent.criteria.price || 'Not specified'}
+- Distance Priority: ${intent.criteria.distance || 'Not specified'}
+- Rating Priority: ${intent.criteria.rating || 'Not specified'}
+- Required Features: ${intent.criteria.features.join(', ') || 'None'}
+- Sort By: ${intent.modifiers.sortBy || 'Relevance'}
+- Filters: ${intent.modifiers.filters.join(', ') || 'None'}
+` : 'Intent parsing not available - using basic analysis'}
 
 🎯 ANALYSIS FRAMEWORK:
 1. CRITERIA EXTRACTION: Parse the user's request to identify ALL requirements:
@@ -2400,9 +2731,9 @@ USER'S REQUEST: "${analysis.query}"
    - Price = Higher weight for "cheapest" requests
    - Availability = Bonus points for "open now"
 
-📊 DETAILED RESULTS DATA:
+📊 DETAILED RESULTS DATA (SCORED BY INTENT):
 ${analysis.results.map((r, i) => `
-${i + 1}. ${r.title}
+${i + 1}. ${r.title} 🎯 Score: ${r.intentScore || 'N/A'}
    📍 Address: ${r.address || 'N/A'}
    📏 Distance: ${r.distance || 'N/A'}
    ⭐ Rating: ${r.rating || 'N/A'} (${r.reviewCount || 'N/A'} reviews)
@@ -2412,6 +2743,7 @@ ${i + 1}. ${r.title}
    🔍 Keywords: FREE=${r.keywords?.isFree || false}, OPEN_NOW=${r.keywords?.isOpenNow || false}, PARKING=${r.keywords?.hasParking || false}, DELIVERY=${r.keywords?.hasDelivery || false}, RESERVATIONS=${r.keywords?.hasReservations || false}
    📸 Has Photos: ${r.hasPhotos || false}
    💼 Sponsored: ${r.isSponsored || false}
+   🧮 Score Reasons: ${r.scoreReasons ? r.scoreReasons.join(', ') : 'No scoring applied'}
 `).join('\n')}
 
 🧠 THINKING PROCESS:
@@ -2622,7 +2954,7 @@ CRITICAL: You MUST include actual distance numbers, ratings, and specific compar
              
              resolve({
                success: true,
-               message: `🔍 Analyzed ${analysis.totalResults} results for "${analysis.query}":\n\n${rankingText}\n\n🗺️ Top results visualized on map!`
+               message: `🧠 **Intent Analysis Complete**\n\n**Original Query:** "${intent ? intent.originalQuery : analysis.query}"\n**Optimized Search:** "${analysis.query}"\n\n${intent ? `**Parsed Intent:**\n- Category: ${intent.entities.category || 'Not specified'}\n- Destination: ${intent.entities.destination || 'Not specified'}\n- Location: ${intent.entities.location || 'Not specified'}\n- Price Preference: ${intent.criteria.price || 'Not specified'}\n- Distance Priority: ${intent.criteria.distance || 'Not specified'}\n- Rating Priority: ${intent.criteria.rating || 'Not specified'}\n\n` : ''}🔍 **Analysis Results:**\n\n${rankingText}\n\n🗺️ **Top results highlighted and visualized on map!**`
              });
            } catch (error) {
              // Fallback to showing all results if ranking fails
