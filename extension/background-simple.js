@@ -2308,6 +2308,14 @@ async function searchGoogleMaps(query) {
   const intent = parseMapsIntent(query);
   const optimizedQuery = intent.optimizedQuery;
   
+  console.log('🔍 Intent parsing result:', {
+    originalQuery: query,
+    optimizedQuery: optimizedQuery,
+    entities: intent.entities,
+    criteria: intent.criteria,
+    modifiers: intent.modifiers
+  });
+  
   try {
     // Check if we're on Google Maps
     const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -2681,14 +2689,18 @@ async function analyzeMapsResults(tabId, query, retryCount = 0, maxRetries = 3, 
         if (analysis.success && analysis.results && analysis.results.length > 0) {
            // Apply intelligent scoring based on parsed intent
            if (intent) {
+             console.log('🧠 Intent received for scoring:', intent);
              analysis.results = scoreResultsByIntent(analysis.results, intent);
              console.log('🎯 Results scored by intent:', analysis.results.slice(0, 3).map(r => ({
                title: r.title,
                score: r.intentScore,
                distance: r.distance,
                rating: r.rating,
-               price: r.price
+               price: r.price,
+               reasons: r.scoreReasons
              })));
+           } else {
+             console.log('⚠️ No intent provided for scoring');
            }
            // Enhanced Gemini ranking prompt with intent-aware analysis
            const rankingPrompt = `You are an expert location analyst helping a user find the PERFECT match from Google Maps search results.
@@ -2957,19 +2969,37 @@ CRITICAL: You MUST include actual distance numbers, ratings, and specific compar
                message: `🧠 **Intent Analysis Complete**\n\n**Original Query:** "${intent ? intent.originalQuery : analysis.query}"\n**Optimized Search:** "${analysis.query}"\n\n${intent ? `**Parsed Intent:**\n- Category: ${intent.entities.category || 'Not specified'}\n- Destination: ${intent.entities.destination || 'Not specified'}\n- Location: ${intent.entities.location || 'Not specified'}\n- Price Preference: ${intent.criteria.price || 'Not specified'}\n- Distance Priority: ${intent.criteria.distance || 'Not specified'}\n- Rating Priority: ${intent.criteria.rating || 'Not specified'}\n\n` : ''}🔍 **Analysis Results:**\n\n${rankingText}\n\n🗺️ **Top results highlighted and visualized on map!**`
              });
            } catch (error) {
-             // Fallback to showing all results if ranking fails
-             const formattedResults = analysis.results.slice(0, 5).map(r => {
-               let result = `• ${r.title}`;
-               if (r.address) result += `\n  📍 ${r.address}`;
-               if (r.distance) result += `\n  📏 ${r.distance}`;
-               if (r.rating) result += `\n  ⭐ ${r.rating}`;
-               if (r.price) result += `\n  💰 ${r.price}`;
+             console.log('❌ Gemini analysis failed, using fallback:', error.message);
+             // Enhanced fallback with intent analysis
+             const formattedResults = analysis.results.slice(0, 5).map((r, i) => {
+               let result = `${i + 1}. ${r.title}`;
+               if (r.intentScore !== undefined) {
+                 result += ` 🎯 Score: ${r.intentScore}`;
+               }
+               if (r.address) result += `\n   📍 ${r.address}`;
+               if (r.distance) result += `\n   📏 ${r.distance}`;
+               if (r.rating) result += `\n   ⭐ ${r.rating}`;
+               if (r.price) result += `\n   💰 ${r.price}`;
+               if (r.scoreReasons && r.scoreReasons.length > 0) {
+                 result += `\n   🧮 ${r.scoreReasons.join(', ')}`;
+               }
                return result;
              }).join('\n\n');
              
+             const intentInfo = intent ? `
+🧠 **Intent Analysis:**
+- Category: ${intent.entities.category || 'Not specified'}
+- Destination: ${intent.entities.destination || 'Not specified'}
+- Location: ${intent.entities.location || 'Not specified'}
+- Price Preference: ${intent.criteria.price || 'Not specified'}
+- Distance Priority: ${intent.criteria.distance || 'Not specified'}
+- Rating Priority: ${intent.criteria.rating || 'Not specified'}
+
+` : '';
+             
              resolve({
                success: true,
-               message: `Found ${analysis.totalResults} results (Top 5 shown):\n\n${formattedResults}`
+               message: `${intentInfo}🔍 **Search Results** (${analysis.totalResults} found):\n\n${formattedResults}\n\n🗺️ Results highlighted on map!`
              });
            }
         } else if (retryCount < maxRetries) {
@@ -2978,7 +3008,7 @@ CRITICAL: You MUST include actual distance numbers, ratings, and specific compar
           await new Promise(r => setTimeout(r, 2000));
           
           // Try scrolling more and extracting results
-          const retryResult = await analyzeMapsResults(tabId, query, retryCount + 1, maxRetries);
+          const retryResult = await analyzeMapsResults(tabId, query, retryCount + 1, maxRetries, intent);
           resolve(retryResult);
         } else {
           resolve({ success: true, message: 'Search completed but no detailed results found after multiple attempts' });
@@ -2988,7 +3018,7 @@ CRITICAL: You MUST include actual distance numbers, ratings, and specific compar
         if (retryCount < maxRetries) {
           console.log(`⚠️ Unknown error (attempt ${retryCount + 1}/${maxRetries + 1}), retrying...`);
           await new Promise(r => setTimeout(r, 2000));
-          const retryResult = await analyzeMapsResults(tabId, query, retryCount + 1, maxRetries);
+          const retryResult = await analyzeMapsResults(tabId, query, retryCount + 1, maxRetries, intent);
           resolve(retryResult);
         } else {
           resolve({ success: false, error: 'Unknown error after multiple retry attempts' });
