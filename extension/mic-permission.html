@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Microphone Permission - Cloudey</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #1a0b2e 0%, #2d1b69 100%);
+      color: white;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .container {
+      text-align: center;
+      max-width: 360px;
+    }
+
+    .icon {
+      width: 80px;
+      height: 80px;
+      background: rgba(238, 130, 238, 0.2);
+      border: 2px solid rgba(238, 130, 238, 0.5);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 24px;
+      font-size: 32px;
+    }
+
+    h1 {
+      font-size: 24px;
+      font-weight: 600;
+      margin-bottom: 12px;
+      color: rgba(255, 255, 255, 0.95);
+    }
+
+    .description {
+      font-size: 14px;
+      line-height: 1.5;
+      color: rgba(255, 255, 255, 0.75);
+      margin-bottom: 32px;
+    }
+
+    .enable-btn {
+      background: linear-gradient(135deg, #EE82EE 0%, #DA70D6 100%);
+      border: none;
+      border-radius: 12px;
+      color: white;
+      font-size: 16px;
+      font-weight: 600;
+      padding: 16px 32px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      box-shadow: 0 4px 12px rgba(238, 130, 238, 0.3);
+      margin-bottom: 16px;
+      width: 100%;
+    }
+
+    .enable-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(238, 130, 238, 0.4);
+    }
+
+    .enable-btn:active {
+      transform: translateY(0);
+    }
+
+    .enable-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .status {
+      font-size: 13px;
+      color: rgba(255, 255, 255, 0.6);
+      margin-top: 16px;
+    }
+
+    .success {
+      color: #4ade80;
+    }
+
+    .error {
+      color: #f87171;
+    }
+
+    .close-btn {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      background: rgba(255, 255, 255, 0.1);
+      border: none;
+      border-radius: 8px;
+      color: rgba(255, 255, 255, 0.7);
+      width: 32px;
+      height: 32px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      transition: all 0.2s ease;
+    }
+
+    .close-btn:hover {
+      background: rgba(255, 255, 255, 0.2);
+      color: white;
+    }
+  </style>
+</head>
+<body>
+  <button class="close-btn" id="close-btn" title="Close">×</button>
+  
+  <div class="container">
+    <div class="icon">🎤</div>
+    
+    <h1>Enable Microphone</h1>
+    
+    <p class="description">
+      Cloudey needs microphone access to provide voice input features. 
+      Click the button below to grant permission.
+    </p>
+    
+    <button class="enable-btn" id="enable-btn">
+      Enable Microphone
+    </button>
+    
+    <div class="status" id="status"></div>
+  </div>
+
+  <script src="mic-permission.js"></script>
+</body>
+</html>

@@ -121,6 +121,26 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       sendResponse({ apiKey: GEMINI_API_KEY });
       break;
       
+    case 'micPermissionGranted':
+      console.log('✅ Microphone permission granted via trusted window');
+      // Forward the message to all sidebars
+      chrome.runtime.sendMessage({
+        action: 'micPermissionGranted',
+        source: 'background'
+      });
+      sendResponse({ success: true });
+      break;
+      
+    case 'micPermissionCancelled':
+      console.log('❌ Microphone permission cancelled');
+      // Forward the message to all sidebars
+      chrome.runtime.sendMessage({
+        action: 'micPermissionCancelled',
+        source: 'background'
+      });
+      sendResponse({ success: true });
+      break;
+      
       // audioTranscription case removed - now handled by Web Speech API in sidebar.js
         
       default:
