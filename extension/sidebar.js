@@ -159,6 +159,8 @@ async function toggleRecording() {
 
 async function requestMicrophonePermission() {
   try {
+    console.log('🎤 Requesting microphone permission...');
+    
     const stream = await navigator.mediaDevices.getUserMedia({ 
       audio: {
         echoCancellation: true,
@@ -172,21 +174,45 @@ async function requestMicrophonePermission() {
     
     microphonePermission = true;
     console.log('✅ Microphone permission granted');
+    
+    // Show success message
+    addMessage('system', '🎤 **Microphone Access Granted!**\n\nYou can now use voice input. Click the microphone button to start recording.');
+    
     return true;
   } catch (error) {
     console.log('❌ Microphone permission denied:', error);
-    addMessage('system', '🎤 **Microphone Access Required**\n\nTo use voice input, please:\n1. Click the microphone button\n2. Allow microphone access when prompted\n3. Try again!');
+    
+    let errorMessage = '🎤 **Microphone Access Denied**\n\n';
+    
+    if (error.name === 'NotAllowedError') {
+      errorMessage += 'To enable voice input:\n1. Click the microphone button again\n2. Click "Allow" when Chrome asks for microphone access\n3. Or check Chrome settings: chrome://settings/content/microphone';
+    } else if (error.name === 'NotFoundError') {
+      errorMessage += 'No microphone found. Please connect a microphone and try again.';
+    } else if (error.name === 'NotSupportedError') {
+      errorMessage += 'Microphone access is not supported in this browser.';
+    } else {
+      errorMessage += `Error: ${error.message}\n\nPlease try clicking the microphone button again.`;
+    }
+    
+    addMessage('system', errorMessage);
     return false;
   }
 }
 
 async function startRecording() {
+  console.log('🎤 Starting recording process...');
+  
   if (!microphonePermission) {
+    console.log('🎤 No permission yet, requesting...');
     const hasPermission = await requestMicrophonePermission();
-    if (!hasPermission) return;
+    if (!hasPermission) {
+      console.log('❌ Permission denied, cannot start recording');
+      return;
+    }
   }
   
   try {
+    console.log('🎤 Getting media stream...');
     const stream = await navigator.mediaDevices.getUserMedia({ 
       audio: {
         echoCancellation: true,
@@ -194,6 +220,8 @@ async function startRecording() {
         sampleRate: 44100
       } 
     });
+    
+    console.log('🎤 Media stream obtained, setting up recorder...');
     
     mediaRecorder = new MediaRecorder(stream, {
       mimeType: 'audio/webm;codecs=opus'
@@ -206,6 +234,7 @@ async function startRecording() {
     };
     
     mediaRecorder.onstop = async () => {
+      console.log('🎤 Recording stopped, processing audio...');
       const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
       await processAudio(audioBlob);
       
@@ -223,11 +252,24 @@ async function startRecording() {
     // Show audio visualizer
     showAudioVisualizer();
     
-    console.log('🎤 Recording started');
+    console.log('🎤 Recording started successfully');
     
   } catch (error) {
     console.log('❌ Recording failed:', error);
-    addMessage('system', '❌ **Recording Failed**\n\nUnable to access microphone. Please check your permissions and try again.');
+    
+    let errorMessage = '❌ **Recording Failed**\n\n';
+    
+    if (error.name === 'NotAllowedError') {
+      errorMessage += 'Microphone access was denied. Please:\n1. Click the microphone button again\n2. Click "Allow" when Chrome asks for permission\n3. Or check Chrome settings: chrome://settings/content/microphone';
+    } else if (error.name === 'NotFoundError') {
+      errorMessage += 'No microphone found. Please connect a microphone and try again.';
+    } else if (error.name === 'NotSupportedError') {
+      errorMessage += 'Microphone access is not supported in this browser.';
+    } else {
+      errorMessage += `Error: ${error.message}\n\nPlease try again.`;
+    }
+    
+    addMessage('system', errorMessage);
   }
 }
 
@@ -441,6 +483,9 @@ if (attachBtn) {
 // Microphone button event listener
 if (micBtn) {
   micBtn.addEventListener('click', toggleRecording);
+  console.log('🎤 Microphone button event listener added');
+} else {
+  console.log('❌ Microphone button not found');
 }
 
 // FAB actions
