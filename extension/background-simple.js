@@ -2396,7 +2396,7 @@ async function searchWithFallbacks(tabId, primaryQuery, intent) {
         success: true,
         results: visibleResults,
         totalResults: visibleResults.length,
-        message: `🔍 **Found Visible Results**\n\nExtracted ${visibleResults.length} hotels from the current page view. These may not be exactly what you're looking for, but here are the available options:`,
+        message: `🔍 **Found Visible Results**\n\nExtracted ${visibleResults.length} hotels from the current page view. Here's my analysis:\n\n${visibleResults.map((r, i) => `${i + 1}. **${r.title}**\n   📍 ${r.address}\n   ⭐ ${r.rating}\n   💰 ${r.price}`).join('\n\n')}\n\n⚠️ Note: These are visible results from the current page view, not a complete search.`,
         fallback: true
       };
     }
@@ -2473,7 +2473,7 @@ async function extractVisibleResults(tabId, intent) {
             
             const results = [];
             
-            // Look for any visible hotel/place cards
+            // Look for any visible hotel/place cards and POI
             const selectors = [
               'div[role="article"]',
               'div[jsaction*="click"]',
@@ -2482,7 +2482,15 @@ async function extractVisibleResults(tabId, intent) {
               'div.g',
               'div[jsaction*="mouseover"]',
               'div[role="button"]',
-              'div[tabindex="0"]'
+              'div[tabindex="0"]',
+              'div[data-value]',
+              'div[aria-label*="hotel"]',
+              'div[aria-label*="restaurant"]',
+              'div[aria-label*="attraction"]',
+              'div[aria-label*="place"]',
+              'div[data-result-index]',
+              'div[jsaction*="pane"]',
+              'div[jsaction*="result"]'
             ];
             
             const allElements = document.querySelectorAll(selectors.join(','));
@@ -2493,17 +2501,30 @@ async function extractVisibleResults(tabId, intent) {
               
               const text = element.textContent || '';
               
-              // Look for hotel-related content
+              // Look for hotel-related content and other POI
               if (text.toLowerCase().includes('hotel') || 
                   text.toLowerCase().includes('inn') || 
                   text.toLowerCase().includes('resort') ||
                   text.toLowerCase().includes('suite') ||
-                  text.toLowerCase().includes('lodge')) {
+                  text.toLowerCase().includes('lodge') ||
+                  text.toLowerCase().includes('hostel') ||
+                  text.toLowerCase().includes('motel') ||
+                  text.toLowerCase().includes('accommodation') ||
+                  text.toLowerCase().includes('bed') ||
+                  text.toLowerCase().includes('room') ||
+                  text.toLowerCase().includes('stay') ||
+                  text.toLowerCase().includes('booking') ||
+                  text.toLowerCase().includes('tower') ||
+                  text.toLowerCase().includes('pisa') ||
+                  text.toLowerCase().includes('colosseum') ||
+                  text.toLowerCase().includes('attraction') ||
+                  text.toLowerCase().includes('monument') ||
+                  text.toLowerCase().includes('landmark')) {
                 
                 // Extract basic info
                 const title = element.querySelector('h3, h2, h1, [role="heading"]')?.textContent?.trim() || 
                              text.split('\n')[0]?.trim() || 
-                             'Unknown Hotel';
+                             'Unknown Place';
                 
                 const address = element.querySelector('[aria-label*="Address"], [aria-label*="address"]')?.textContent?.trim() ||
                                text.split('\n')[1]?.trim() || 
@@ -2517,7 +2538,7 @@ async function extractVisibleResults(tabId, intent) {
                              text.match(/\$\d+/)?.[0] ||
                              'Price not available';
                 
-                if (title && title !== 'Unknown Hotel') {
+                if (title && title !== 'Unknown Place' && title.length > 2) {
                   results.push({
                     title: title,
                     address: address,
