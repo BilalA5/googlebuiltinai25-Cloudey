@@ -38,11 +38,11 @@
 - **Hands-free interaction** - Perfect for accessibility
 - **⚠️ macOS Limitation**: Voice input is currently not supported on macOS. A tooltip will appear explaining this limitation.
 
-### 🔧 **Quick Actions**
-- **Summarize** - Extract key points from any webpage
-- **Translate** - Translate selected text or entire pages
-- **Improve** - Enhance and rewrite text content
-- **Rewrite** - Rephrase content in different styles
+### 🔧 **Action Buttons**
+- **Image Attachment** - Upload images for AI analysis
+- **Voice Input** - Speak your questions naturally (🎤 button)
+- **Translate** - Translate selected text on web pages
+- **Agent Mode** - AI can interact with web pages automatically
 
 ### 🖼️ **Multimodal Input**
 - **Image attachments** - Upload images for AI analysis
@@ -105,10 +105,11 @@
 - **AI transcribes** and responds
 - **⚠️ Not available on macOS** - tooltip explains limitation
 
-### Quick Actions
-- **Select text** on any webpage
-- **Click Translate button** to translate selected text
-- **Use Agent mode** for automated page interactions
+### Action Buttons
+- **Image Attachment** - Click 📎 button to upload images for AI analysis
+- **Voice Input** - Click 🎤 button to speak your questions (not available on macOS)
+- **Translate** - Click Translate button to translate selected text on web pages
+- **Agent Mode** - Toggle Agent mode for automated page interactions
 
 ### Agent Mode
 - **Enable Agent toggle** in sidebar
@@ -290,5 +291,4 @@ If you encounter any issues or have questions:
 
 <div align="center">
   <p><strong>Cloudey</strong> - Making the web more intelligent, one conversation at a time.</p>
-  <p>Built with ❤️ using Google's Gemini AI</p>
 </div>
