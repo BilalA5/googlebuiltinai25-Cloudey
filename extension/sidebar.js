@@ -8,6 +8,7 @@ let isRecording = false;
 let mediaRecorder = null;
 let audioChunks = [];
 let isUserInitiated = false; // Flag to ensure user-initiated microphone access
+let micButtonCooldown = false; // Prevent rapid clicking
 
 // DOM elements
 const chatInput = document.getElementById('chat-input');
@@ -151,11 +152,24 @@ document.addEventListener('keydown', (e) => {
 
 // Audio recording functions
 async function toggleRecording() {
+  // Prevent rapid clicking
+  if (micButtonCooldown) {
+    console.log('🎤 Microphone button in cooldown, ignoring click');
+    return;
+  }
+  
   if (isRecording) {
     stopRecording();
   } else {
     // Set user-initiated flag before requesting microphone access
     isUserInitiated = true;
+    
+    // Set cooldown to prevent rapid clicking
+    micButtonCooldown = true;
+    setTimeout(() => {
+      micButtonCooldown = false;
+    }, 2000); // 2 second cooldown
+    
     await startRecording();
   }
 }
@@ -251,6 +265,8 @@ async function startRecording() {
     const hasPermission = await requestMicrophonePermission();
     if (!hasPermission) {
       console.log('❌ Permission denied, cannot start recording');
+      // Reset UI state when permission is denied
+      resetMicrophoneUI();
       return;
     }
   }
@@ -354,21 +370,11 @@ async function startRecording() {
   } catch (error) {
     console.log('❌ Recording failed:', error);
     
-    let errorMessage = '❌ **Recording Failed**\n\n';
+    // Reset UI state on any error
+    resetMicrophoneUI();
     
-    if (error.message.includes('NotAllowedError')) {
-      errorMessage += 'Microphone access was denied. Please:\n1. Click the microphone button again\n2. Click "Allow" when Chrome asks for permission\n3. Or check Chrome settings: chrome://settings/content/microphone';
-    } else if (error.message.includes('NotFoundError')) {
-      errorMessage += 'No microphone found. Please connect a microphone and try again.';
-    } else if (error.message.includes('NotSupportedError')) {
-      errorMessage += 'Microphone access is not supported in this browser.';
-    } else if (error.message.includes('Content script timeout') || error.message.includes('message port closed')) {
-      errorMessage += 'Content script communication failed. Please:\n1. Refresh the current page\n2. Try clicking the microphone button again\n3. Or check if the extension is properly loaded';
-    } else {
-      errorMessage += `Error: ${error.message}\n\nPlease try again.`;
-    }
-    
-    addMessage('system', errorMessage);
+    // Handle the error with proper messaging
+    handleMicrophonePermissionError(error);
   }
 }
 
@@ -650,8 +656,10 @@ function handleMicrophonePermissionError(error) {
   // Reset listening animation
   resetListeningAnimation();
   
-  // Show microphone status indicator
-  showMicrophoneStatusIndicator();
+  // Show microphone status indicator only for certain errors (not permission dismissed)
+  if (!error.message.includes('Permission dismissed')) {
+    showMicrophoneStatusIndicator();
+  }
 }
 
 function showMicrophoneStatusIndicator() {
@@ -678,6 +686,32 @@ function hideMicrophoneStatusIndicator() {
   if (micStatusIndicator) {
     micStatusIndicator.classList.add('hidden');
   }
+}
+
+function resetMicrophoneUI() {
+  console.log('🔄 Resetting microphone UI state...');
+  
+  // Reset microphone button state
+  if (micBtn) {
+    micBtn.classList.remove('recording', 'processing', 'active');
+    micBtn.title = 'Voice input';
+  }
+  
+  // Reset recording state
+  isRecording = false;
+  microphonePermission = false;
+  micButtonCooldown = false; // Reset cooldown
+  
+  // Hide audio visualizer
+  hideAudioVisualizer();
+  
+  // Reset listening animation
+  resetListeningAnimation();
+  
+  // Hide microphone status indicator
+  hideMicrophoneStatusIndicator();
+  
+  console.log('✅ Microphone UI state reset complete');
 }
 
 function getFileIcon(fileName) {
