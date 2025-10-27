@@ -2037,7 +2037,10 @@ function parseMapsIntent(userQuery) {
   const landmarks = [
     'colosseum', 'coliseum', 'vatican', 'trevi fountain', 'pantheon', 'roman forum',
     'eiffel tower', 'louvre', 'notre dame', 'times square', 'central park',
-    'golden gate bridge', 'statue of liberty', 'big ben', 'london eye'
+    'golden gate bridge', 'statue of liberty', 'big ben', 'london eye',
+    'leaning tower of pisa', 'pisa tower', 'tower of pisa', 'pisa',
+    'machu picchu', 'taj mahal', 'great wall', 'christ the redeemer',
+    'sydney opera house', 'petra', 'chichen itza', 'mount fuji'
   ];
   
   for (const landmark of landmarks) {
@@ -2050,8 +2053,10 @@ function parseMapsIntent(userQuery) {
   
   // Extract location entities
   const locations = [
-    'rome', 'italy', 'paris', 'france', 'london', 'england', 'new york', 'manhattan',
-    'san francisco', 'california', 'tokyo', 'japan', 'berlin', 'germany'
+    'rome', 'italy', 'pisa', 'florence', 'venice', 'milan', 'naples', 'turin',
+    'paris', 'france', 'london', 'england', 'new york', 'manhattan',
+    'san francisco', 'california', 'tokyo', 'japan', 'berlin', 'germany',
+    'calgary', 'canada', 'vancouver', 'toronto', 'montreal'
   ];
   
   for (const location of locations) {
@@ -2313,6 +2318,239 @@ function parseRating(ratingStr) {
   return null;
 }
 
+// Generate fallback search queries
+function generateFallbackQueries(intent) {
+  const fallbacks = [];
+  
+  // If we have a landmark but no location, add location context
+  if (intent.entities.destination && !intent.entities.location) {
+    if (intent.entities.destination.includes('pisa')) {
+      fallbacks.push(`hotel near ${intent.entities.destination} italy`);
+      fallbacks.push(`hotel near ${intent.entities.destination} pisa italy`);
+    } else if (intent.entities.destination.includes('colosseum')) {
+      fallbacks.push(`hotel near ${intent.entities.destination} rome italy`);
+    } else if (intent.entities.destination.includes('eiffel')) {
+      fallbacks.push(`hotel near ${intent.entities.destination} paris france`);
+    }
+  }
+  
+  // Broader search without specific landmark
+  if (intent.entities.location) {
+    fallbacks.push(`hotel ${intent.entities.location}`);
+    if (intent.criteria.price === 'low') {
+      fallbacks.push(`cheap hotel ${intent.entities.location}`);
+    }
+  }
+  
+  // Very broad search
+  fallbacks.push(`hotel ${intent.entities.destination || intent.entities.location || 'hotel'}`);
+  
+  return fallbacks;
+}
+
+// Search with fallback logic
+async function searchWithFallbacks(tabId, primaryQuery, intent) {
+  console.log(`🔍 Trying primary search: "${primaryQuery}"`);
+  
+  // Try primary query first
+  let result = await analyzeMapsResults(tabId, primaryQuery, 0, 2, intent);
+  
+  // If primary search fails or finds no results, try fallbacks
+  if (!result.success || (result.results && result.results.length === 0)) {
+    console.log('❌ Primary search failed, trying fallbacks...');
+    
+    const fallbackQueries = generateFallbackQueries(intent);
+    console.log('🔄 Fallback queries:', fallbackQueries);
+    
+    for (let i = 0; i < fallbackQueries.length; i++) {
+      const fallbackQuery = fallbackQueries[i];
+      console.log(`🔄 Trying fallback ${i + 1}/${fallbackQueries.length}: "${fallbackQuery}"`);
+      
+      // Perform the fallback search
+      const fallbackResult = await performFallbackSearch(tabId, fallbackQuery);
+      
+      if (fallbackResult.success) {
+        // Analyze the fallback results
+        const analysis = await analyzeMapsResults(tabId, fallbackQuery, 0, 2, intent);
+        
+        if (analysis.success && analysis.results && analysis.results.length > 0) {
+          console.log(`✅ Fallback search successful: "${fallbackQuery}" found ${analysis.results.length} results`);
+          return {
+            ...analysis,
+            message: `🔍 **Search Results** (using fallback: "${fallbackQuery}")\n\nFound ${analysis.results.length} results after trying alternative search terms.`
+          };
+        }
+      }
+      
+      // Wait before next attempt
+      await new Promise(resolve => setTimeout(resolve, 2000));
+    }
+    
+    // All fallbacks failed - try to extract visible results
+    console.log('❌ All fallback searches failed, trying to extract visible results...');
+    const visibleResults = await extractVisibleResults(tabId, intent);
+    
+    if (visibleResults.length > 0) {
+      console.log(`✅ Found ${visibleResults.length} visible results on page`);
+      return {
+        success: true,
+        results: visibleResults,
+        totalResults: visibleResults.length,
+        message: `🔍 **Found Visible Results**\n\nExtracted ${visibleResults.length} hotels from the current page view. These may not be exactly what you're looking for, but here are the available options:`,
+        fallback: true
+      };
+    }
+    
+    return {
+      success: false,
+      message: `❌ **Search Failed**\n\nTried multiple search terms but couldn't find results. This might be due to:\n- Incorrect location name\n- No hotels in the area\n- Google Maps search issues\n\n**Attempted searches:**\n- Primary: "${primaryQuery}"\n- Fallbacks: ${fallbackQueries.join(', ')}`,
+      debug: {
+        primaryQuery,
+        fallbackQueries,
+        intent: intent
+      }
+    };
+  }
+  
+  return result;
+}
+
+// Perform a fallback search by updating the search box
+async function performFallbackSearch(tabId, query) {
+  return new Promise((resolve) => {
+    chrome.scripting.executeScript({
+      target: { tabId: tabId },
+      func: (searchQuery) => {
+        return new Promise((resolveSearch) => {
+          try {
+            // Find the search box
+            const searchBox = document.querySelector('input#searchboxinput');
+            if (!searchBox) {
+              resolveSearch({ success: false, error: 'Search box not found' });
+              return;
+            }
+            
+            // Clear and set new search query
+            searchBox.value = '';
+            searchBox.focus();
+            
+            // Type the search query
+            for (let i = 0; i < searchQuery.length; i++) {
+              searchBox.value += searchQuery[i];
+              searchBox.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+            
+            // Press Enter
+            searchBox.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+            searchBox.dispatchEvent(new KeyboardEvent('keyup', { key: 'Enter', bubbles: true }));
+            
+            resolveSearch({ success: true });
+          } catch (error) {
+            resolveSearch({ success: false, error: error.message });
+          }
+        });
+      },
+      args: [query]
+    }, (results) => {
+      if (chrome.runtime.lastError) {
+        resolve({ success: false, error: chrome.runtime.lastError.message });
+      } else {
+        resolve(results[0]?.result || { success: false, error: 'Unknown error' });
+      }
+    });
+  });
+}
+
+// Extract visible results from the current page view
+async function extractVisibleResults(tabId, intent) {
+  return new Promise((resolve) => {
+    chrome.scripting.executeScript({
+      target: { tabId: tabId },
+      func: (userIntent) => {
+        return new Promise((resolveExtraction) => {
+          try {
+            console.log('🔍 Extracting visible results from current page...');
+            
+            const results = [];
+            
+            // Look for any visible hotel/place cards
+            const selectors = [
+              'div[role="article"]',
+              'div[jsaction*="click"]',
+              'div[data-result-index]',
+              'div[aria-label*="result"]',
+              'div.g',
+              'div[jsaction*="mouseover"]',
+              'div[role="button"]',
+              'div[tabindex="0"]'
+            ];
+            
+            const allElements = document.querySelectorAll(selectors.join(','));
+            console.log(`Found ${allElements.length} potential elements`);
+            
+            allElements.forEach((element, index) => {
+              if (results.length >= 10) return; // Limit to 10 results
+              
+              const text = element.textContent || '';
+              
+              // Look for hotel-related content
+              if (text.toLowerCase().includes('hotel') || 
+                  text.toLowerCase().includes('inn') || 
+                  text.toLowerCase().includes('resort') ||
+                  text.toLowerCase().includes('suite') ||
+                  text.toLowerCase().includes('lodge')) {
+                
+                // Extract basic info
+                const title = element.querySelector('h3, h2, h1, [role="heading"]')?.textContent?.trim() || 
+                             text.split('\n')[0]?.trim() || 
+                             'Unknown Hotel';
+                
+                const address = element.querySelector('[aria-label*="Address"], [aria-label*="address"]')?.textContent?.trim() ||
+                               text.split('\n')[1]?.trim() || 
+                               'Address not available';
+                
+                const rating = element.querySelector('[aria-label*="rating"], [aria-label*="star"]')?.textContent?.trim() ||
+                              text.match(/\d+\.?\d*\s*★/)?.[0] ||
+                              'Rating not available';
+                
+                const price = element.querySelector('[aria-label*="price"], [aria-label*="$"]')?.textContent?.trim() ||
+                             text.match(/\$\d+/)?.[0] ||
+                             'Price not available';
+                
+                if (title && title !== 'Unknown Hotel') {
+                  results.push({
+                    title: title,
+                    address: address,
+                    rating: rating,
+                    price: price,
+                    description: text.substring(0, 200) + '...',
+                    element: element,
+                    isVisible: true
+                  });
+                }
+              }
+            });
+            
+            console.log(`Extracted ${results.length} visible results`);
+            resolveExtraction({ success: true, results: results });
+            
+          } catch (error) {
+            console.log('Error extracting visible results:', error);
+            resolveExtraction({ success: false, error: error.message, results: [] });
+          }
+        });
+      },
+      args: [intent]
+    }, (results) => {
+      if (chrome.runtime.lastError) {
+        resolve([]);
+      } else {
+        resolve(results[0]?.result?.results || []);
+      }
+    });
+  });
+}
+
 async function searchGoogleMaps(query) {
   console.log(`🗺️ Searching Google Maps: ${query}`);
   
@@ -2347,7 +2585,7 @@ async function searchGoogleMaps(query) {
       await new Promise(resolve => setTimeout(resolve, 3000));
       
       // Now perform the enhanced search and analysis with intent
-      return await analyzeMapsResults(newTab.id, optimizedQuery, 0, 3, intent);
+      return await searchWithFallbacks(newTab.id, optimizedQuery, intent);
     }
     
     // If already on Maps, perform the search
@@ -2415,8 +2653,8 @@ async function searchGoogleMaps(query) {
           // Wait for results to load
           await new Promise(r => setTimeout(r, 4000));
           
-          // Analyze the results with intent
-          const analysis = await analyzeMapsResults(activeTab.id, optimizedQuery, 0, 3, intent);
+          // Analyze the results with intent and fallbacks
+          const analysis = await searchWithFallbacks(activeTab.id, optimizedQuery, intent);
           resolve(analysis);
         } else {
           resolve(results[0]?.result || { success: false, error: 'Unknown error' });
