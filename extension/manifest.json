@@ -10,7 +10,8 @@
     "storage",
     "sidePanel",
     "scripting",
-    "tabs"
+    "tabs",
+    "tabCapture"
   ],
   "host_permissions": [
     "https://*/*",

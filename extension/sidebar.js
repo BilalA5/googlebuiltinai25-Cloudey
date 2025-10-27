@@ -5,8 +5,6 @@ console.log('Cloudey side panel loaded');
 // Audio recording variables
 let microphonePermission = false;
 let isRecording = false;
-let mediaRecorder = null;
-let audioChunks = [];
 let isUserInitiated = false; // Flag to ensure user-initiated microphone access
 let micButtonCooldown = false; // Prevent rapid clicking
 let listeningStartTime = null; // Track recording start time
@@ -177,6 +175,41 @@ async function toggleRecording() {
   }
 }
 
+// Reusable microphone function
+async function startMicrophone() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      audio: { 
+        echoCancellation: true, 
+        noiseSuppression: true,
+        sampleRate: 44100
+      }
+    });
+    console.log("✅ Microphone access granted");
+    return stream;
+  } catch (err) {
+    console.error("❌ Microphone access error:", err);
+    
+    let errorMessage = '';
+    switch (err.name) {
+      case 'NotAllowedError':
+        errorMessage = '🎤 **Microphone Permission Denied**\n\nPlease enable microphone access in Chrome settings:\n1. Click the microphone button again and select "Allow"\n2. Go to chrome://settings/content/microphone\n3. Find this extension and set it to "Allow"';
+        break;
+      case 'NotFoundError':
+        errorMessage = '🎤 **No Microphone Found**\n\nPlease connect a microphone to your computer.';
+        break;
+      case 'NotReadableError':
+        errorMessage = '🎤 **Microphone In Use**\n\nAnother application is using your microphone. Please close other apps and try again.';
+        break;
+      default:
+        errorMessage = `🎤 **Microphone Error**\n\nError: ${err.message}\n\nPlease check your microphone settings.`;
+    }
+    
+    addMessage('system', errorMessage);
+    throw err;
+  }
+}
+
 async function requestMicrophonePermission() {
   try {
     console.log('🎤 Requesting microphone permission...');
@@ -186,72 +219,19 @@ async function requestMicrophonePermission() {
       throw new Error('Microphone access must be initiated by user interaction');
     }
     
-    // Get the active tab first
-    const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-    if (tabs.length === 0) {
-      throw new Error('No active tab found');
-    }
+    // Use the simple microphone function
+    const stream = await startMicrophone();
     
-    // Try content script approach first
-    try {
-      const response = await new Promise((resolve, reject) => {
-        const timeout = setTimeout(() => {
-          reject(new Error('Content script timeout - no response received'));
-        }, 5000); // 5 second timeout
-        
-        chrome.tabs.sendMessage(tabs[0].id, { 
-          action: 'requestMicrophonePermission' 
-        }, (response) => {
-          clearTimeout(timeout);
-          if (chrome.runtime.lastError) {
-            reject(new Error(chrome.runtime.lastError.message));
-          } else {
-            resolve(response);
-          }
-        });
-      });
-      
-      if (response && response.success) {
-        microphonePermission = true;
-        console.log('✅ Microphone permission granted via content script');
-        
-        // Show success message
-        addMessage('system', '🎤 **Microphone Access Granted!**\n\nYou can now use voice input. Click the microphone button to start recording.');
-        
-        return true;
-      } else {
-        throw new Error(response?.error || 'Permission denied');
-      }
-      
-    } catch (contentScriptError) {
-      console.log('⚠️ Content script approach failed, trying direct approach:', contentScriptError.message);
-      
-      // Fallback: Try direct microphone access in sidebar
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ 
-          audio: {
-            echoCancellation: true,
-            noiseSuppression: true,
-            sampleRate: 44100
-          } 
-        });
-        
-        // Stop the stream immediately - we just needed permission
-        stream.getTracks().forEach(track => track.stop());
-        
-        microphonePermission = true;
-        console.log('✅ Microphone permission granted via direct access');
-        
-        // Show success message
-        addMessage('system', '🎤 **Microphone Access Granted!**\n\nYou can now use voice input. Click the microphone button to start recording.');
-        
-        return true;
-        
-      } catch (directError) {
-        console.log('❌ Direct microphone access also failed:', directError.message);
-        throw directError; // Re-throw the direct error
-      }
-    }
+    // Stop the stream immediately - we just needed permission
+    stream.getTracks().forEach(track => track.stop());
+    
+    microphonePermission = true;
+    console.log('✅ Microphone permission granted');
+    
+    // Show success message
+    addMessage('system', '🎤 **Microphone Access Granted!**\n\nYou can now use voice input. Click the microphone button to start recording.');
+    
+    return true;
     
   } catch (error) {
     console.log('❌ Microphone permission denied:', error);
@@ -302,28 +282,6 @@ function stopRecording() {
   if (isRecording) {
     console.log('🎤 Stopping recording...');
     
-    // Try content script approach first
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      if (tabs.length > 0) {
-        chrome.tabs.sendMessage(tabs[0].id, { 
-          action: 'stopRecording' 
-        }, (response) => {
-          if (chrome.runtime.lastError) {
-            console.log('⚠️ Content script stop failed, using direct approach');
-            // Fallback: Stop direct recording
-            if (mediaRecorder && mediaRecorder.state === 'recording') {
-              mediaRecorder.stop();
-            }
-          }
-        });
-      } else {
-        // Fallback: Stop direct recording
-        if (mediaRecorder && mediaRecorder.state === 'recording') {
-          mediaRecorder.stop();
-        }
-      }
-    });
-    
     isRecording = false;
     
     // Update UI
@@ -339,76 +297,6 @@ function stopRecording() {
     
     console.log('🎤 Recording stopped');
   }
-}
-
-async function processAudio(audioBlob) {
-  try {
-    // Convert audio to base64
-    const base64Audio = await blobToBase64(audioBlob);
-    
-    // Call Google Speech-to-Text API
-    const transcription = await callGoogleSpeechAPI(base64Audio);
-    
-    if (transcription && transcription.trim()) {
-      // Insert transcribed text into chat input
-      chatInput.value = transcription;
-      chatInput.focus();
-      
-      // Show success message
-      addMessage('system', `🎤 **Voice Input Received**\n\n"${transcription}"`);
-      
-      console.log('✅ Transcription successful:', transcription);
-    } else {
-      addMessage('system', '❌ **No Speech Detected**\n\nPlease try speaking more clearly or check your microphone.');
-    }
-    
-  } catch (error) {
-    console.log('❌ Transcription failed:', error);
-    addMessage('system', '❌ **Transcription Failed**\n\nUnable to process audio. Please try again.');
-  } finally {
-    // Reset UI
-    micBtn.classList.remove('processing');
-    micBtn.title = 'Voice input';
-  }
-}
-
-async function callGoogleSpeechAPI(base64Audio) {
-  // Get API key from background script
-  const response = await chrome.runtime.sendMessage({ action: 'getApiKey' });
-  const apiKey = response?.apiKey;
-  
-  if (!apiKey) {
-    throw new Error('API key not available');
-  }
-  
-  const speechResponse = await fetch('https://speech.googleapis.com/v1/speech:recognize', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      config: {
-        encoding: 'WEBM_OPUS',
-        sampleRateHertz: 44100,
-        languageCode: 'en-US',
-        alternativeLanguageCodes: ['es', 'fr', 'de', 'it', 'pt'],
-        enableAutomaticPunctuation: true,
-        model: 'latest_long'
-      },
-      audio: {
-        content: base64Audio.split(',')[1] // Remove data:audio/webm;base64, prefix
-      }
-    })
-  });
-  
-  const result = await speechResponse.json();
-  
-  if (result.results && result.results.length > 0) {
-    return result.results[0].alternatives[0].transcript;
-  }
-  
-  return null;
 }
 
 // Minimal Listening Animation Controller
@@ -838,44 +726,6 @@ chatInput.addEventListener('keydown', (e) => {
     sendMessage();
   }
 });
-
-if (micBtn) {
-  micBtn.addEventListener('click', async () => {
-  if (!recognition) {
-    announceToScreenReader('Speech recognition not supported in this browser', 'assertive');
-    return;
-  }
-    
-  if (isListening) {
-    recognition.stop();
-  } else {
-      // Check if microphone permission is granted before starting
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        // Permission granted, stop the test stream and start recognition
-        stream.getTracks().forEach(track => track.stop());
-    recognition.start();
-      } catch (error) {
-        const errorName = error.name || 'Unknown error';
-        const errorMessage = error.message || '';
-        console.error('Microphone permission denied:', errorName, errorMessage);
-        
-        let userMessage = 'Microphone permission denied. Please enable microphone access in Chrome settings.';
-        if (errorName === 'NotAllowedError' || errorName === 'PermissionDeniedError') {
-          userMessage = 'Microphone access denied. Please allow microphone access in Chrome settings and reload.';
-        } else if (errorName === 'NotFoundError') {
-          userMessage = 'No microphone found. Please connect a microphone.';
-        } else if (errorName === 'NotReadableError') {
-          userMessage = 'Microphone is being used by another application. Please close other apps using the microphone.';
-        }
-        
-        announceToScreenReader(userMessage, 'assertive');
-        micBtn.disabled = true;
-        micBtn.title = 'Microphone access denied';
-      }
-    }
-  });
-}
 
 // File input is now handled by the action button
 if (fileInput) {
