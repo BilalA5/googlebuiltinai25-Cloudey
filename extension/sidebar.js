@@ -2,6 +2,17 @@ import { icons, getIconHTML } from './icons.js';
 
 console.log('Cloudey side panel loaded');
 
+// Platform detection
+let isMacOS = false;
+
+function detectPlatform() {
+  const userAgent = navigator.userAgent.toLowerCase();
+  isMacOS = userAgent.includes('mac os x') || userAgent.includes('macintosh');
+}
+
+// Call platform detection on load
+detectPlatform();
+
 // Audio recording variables
 let microphonePermission = false;
 let isRecording = false;
@@ -714,8 +725,13 @@ if (attachBtn) {
 
 // Microphone button event listener
 if (micBtn) {
-  micBtn.addEventListener('click', toggleRecording);
-  console.log('🎤 Microphone button event listener added');
+  micBtn.addEventListener('click', () => {
+    if (isMacOS) {
+      addMessage('system', '🎤 **Microphone Not Available on macOS**\n\nVoice input is currently not supported on macOS. Please use text input instead.');
+      return;
+    }
+    toggleRecording();
+  });
 } else {
   console.log('❌ Microphone button not found');
 }

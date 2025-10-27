@@ -386,6 +386,30 @@ body {
   background-clip: text;
 }
 
+/* Hide microphone button on macOS */
+body.macos #mic-btn {
+  opacity: 0.5;
+  cursor: not-allowed;
+  position: relative;
+}
+
+body.macos #mic-btn::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 2px;
+  height: 24px;
+  background: #ff4444;
+  transform: translate(-50%, -50%) rotate(45deg);
+  z-index: 10;
+}
+
+body.macos #mic-btn:hover {
+  background: rgba(255, 68, 68, 0.1);
+  border-color: rgba(255, 68, 68, 0.3);
+}
+
 /* Microphone button states */
 #mic-btn.recording {
   background: rgba(255, 100, 100, 0.2);
