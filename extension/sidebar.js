@@ -9,6 +9,9 @@ let mediaRecorder = null;
 let audioChunks = [];
 let isUserInitiated = false; // Flag to ensure user-initiated microphone access
 let micButtonCooldown = false; // Prevent rapid clicking
+let listeningStartTime = null; // Track recording start time
+let listeningTimer = null; // Timer for updating display
+let speechRecognition = null; // Web Speech API for real-time transcription
 
 // DOM elements
 const chatInput = document.getElementById('chat-input');
@@ -310,8 +313,8 @@ async function startRecording() {
         // Show audio visualizer
         showAudioVisualizer();
         
-        // Start listening animation
-        startListeningAnimation();
+        // Start minimal listening UI
+        startMinimalListeningUI();
         
         console.log('🎤 Recording started successfully via content script');
         return;
@@ -361,8 +364,8 @@ async function startRecording() {
       // Show audio visualizer
       showAudioVisualizer();
       
-      // Start listening animation
-      startListeningAnimation();
+      // Start minimal listening UI
+      startMinimalListeningUI();
       
       console.log('🎤 Recording started successfully via direct access');
     }
@@ -415,8 +418,8 @@ function stopRecording() {
     // Hide audio visualizer
     hideAudioVisualizer();
     
-    // Stop listening animation
-    stopListeningAnimation();
+    // Stop minimal listening UI
+    stopMinimalListeningUI();
     
     console.log('🎤 Recording stopped');
   }
@@ -492,77 +495,128 @@ async function callGoogleSpeechAPI(base64Audio) {
   return null;
 }
 
-// Listening Animation Controller
-function startListeningAnimation() {
-  const promptBox = document.getElementById('prompt-box');
-  const listeningStatus = document.getElementById('listening-status');
-  const listeningWaveform = document.getElementById('listening-waveform');
+// Minimal Listening Animation Controller
+function startMinimalListeningUI() {
+  const listeningOverlay = document.getElementById('listening-overlay');
+  const listeningTimerElement = document.getElementById('listening-timer');
   
-  if (promptBox) {
-    promptBox.classList.add('listening');
-    console.log('🎤 Started listening animation');
+  if (listeningOverlay) {
+    listeningOverlay.classList.add('active');
+    console.log('🎤 Started minimal listening UI');
   }
   
-  if (listeningStatus) {
-    listeningStatus.textContent = '🎤 Listening...';
+  // Start timer
+  listeningStartTime = Date.now();
+  listeningTimer = setInterval(updateListeningTimer, 100);
+  
+  // Start real-time speech recognition
+  startSpeechRecognition();
+}
+
+function stopMinimalListeningUI() {
+  const listeningOverlay = document.getElementById('listening-overlay');
+  
+  if (listeningOverlay) {
+    listeningOverlay.classList.remove('active');
+    console.log('🎤 Stopped minimal listening UI');
   }
   
-  if (listeningWaveform) {
-    listeningWaveform.style.display = 'block';
+  // Stop timer
+  if (listeningTimer) {
+    clearInterval(listeningTimer);
+    listeningTimer = null;
+  }
+  
+  // Stop speech recognition
+  stopSpeechRecognition();
+}
+
+function updateListeningTimer() {
+  const listeningTimerElement = document.getElementById('listening-timer');
+  if (listeningTimerElement && listeningStartTime) {
+    const elapsed = Math.floor((Date.now() - listeningStartTime) / 1000);
+    const minutes = Math.floor(elapsed / 60);
+    const seconds = elapsed % 60;
+    listeningTimerElement.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
   }
 }
 
-function stopListeningAnimation() {
-  const promptBox = document.getElementById('prompt-box');
-  const listeningStatus = document.getElementById('listening-status');
-  const listeningWaveform = document.getElementById('listening-waveform');
-  
-  if (promptBox) {
-    promptBox.classList.remove('listening');
-    console.log('🎤 Stopped listening animation');
+function startSpeechRecognition() {
+  // Check if Speech Recognition is supported
+  if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+    console.log('❌ Speech Recognition not supported');
+    return;
   }
   
-  if (listeningStatus) {
-    listeningStatus.textContent = '🎤 Processing...';
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  speechRecognition = new SpeechRecognition();
+  
+  // Configure speech recognition
+  speechRecognition.continuous = true;
+  speechRecognition.interimResults = true;
+  speechRecognition.lang = 'en-US';
+  
+  let finalTranscript = '';
+  
+  speechRecognition.onstart = () => {
+    console.log('🎤 Speech recognition started');
+  };
+  
+  speechRecognition.onresult = (event) => {
+    let interimTranscript = '';
     
-    // Change to processing state briefly
-    setTimeout(() => {
-      if (listeningStatus) {
-        listeningStatus.textContent = '✅ Complete';
-        setTimeout(() => {
-          if (listeningStatus) {
-            listeningStatus.style.opacity = '0';
-          }
-        }, 1000);
+    for (let i = event.resultIndex; i < event.results.length; i++) {
+      const transcript = event.results[i][0].transcript;
+      
+      if (event.results[i].isFinal) {
+        finalTranscript += transcript + ' ';
+      } else {
+        interimTranscript += transcript;
       }
-    }, 500);
-  }
+    }
+    
+    // Update the chat input with real-time transcription
+    if (chatInput) {
+      chatInput.value = finalTranscript + interimTranscript;
+      chatInput.focus();
+    }
+    
+    console.log('🎤 Interim:', interimTranscript);
+    console.log('🎤 Final:', finalTranscript);
+  };
   
-  if (listeningWaveform) {
-    setTimeout(() => {
-      if (listeningWaveform) {
-        listeningWaveform.style.display = 'none';
-      }
-    }, 1000);
+  speechRecognition.onerror = (event) => {
+    console.log('❌ Speech recognition error:', event.error);
+  };
+  
+  speechRecognition.onend = () => {
+    console.log('🎤 Speech recognition ended');
+    // Process the final transcript
+    if (finalTranscript.trim()) {
+      processSpeechTranscript(finalTranscript.trim());
+    }
+  };
+  
+  speechRecognition.start();
+}
+
+function stopSpeechRecognition() {
+  if (speechRecognition) {
+    speechRecognition.stop();
+    speechRecognition = null;
   }
 }
 
-function resetListeningAnimation() {
-  const promptBox = document.getElementById('prompt-box');
-  const listeningStatus = document.getElementById('listening-status');
-  const listeningWaveform = document.getElementById('listening-waveform');
+function processSpeechTranscript(transcript) {
+  console.log('🎤 Processing speech transcript:', transcript);
   
-  if (promptBox) {
-    promptBox.classList.remove('listening');
-  }
-  
-  if (listeningStatus) {
-    listeningStatus.style.opacity = '0';
-    listeningStatus.textContent = '🎤 Listening...';
-  }
-  
-  if (listeningWaveform) {
-    listeningWaveform.style.display = 'none';
+  // Add transcript to message input
+  if (chatInput && transcript) {
+    chatInput.value = transcript;
+    chatInput.focus();
+    
+    // Show success message
+    addMessage('system', `🎤 **Voice Input Received**\n\n"${transcript}"\n\nClick send to process your voice message.`);
   }
 }
 
@@ -653,8 +707,8 @@ function handleMicrophonePermissionError(error) {
     micBtn.title = 'Voice input';
   }
   
-  // Reset listening animation
-  resetListeningAnimation();
+  // Stop minimal listening UI
+  stopMinimalListeningUI();
   
   // Show microphone status indicator only for certain errors (not permission dismissed)
   if (!error.message.includes('Permission dismissed')) {
@@ -705,8 +759,8 @@ function resetMicrophoneUI() {
   // Hide audio visualizer
   hideAudioVisualizer();
   
-  // Reset listening animation
-  resetListeningAnimation();
+  // Stop minimal listening UI
+  stopMinimalListeningUI();
   
   // Hide microphone status indicator
   hideMicrophoneStatusIndicator();
