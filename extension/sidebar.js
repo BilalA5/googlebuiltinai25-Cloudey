@@ -261,7 +261,7 @@ async function requestMicrophonePermission() {
 }
 
 async function startRecording() {
-  console.log('🎤 Starting recording process...');
+  console.log('🎤 Starting speech recognition...');
   
   if (!microphonePermission) {
     console.log('🎤 No permission yet, requesting...');
@@ -275,103 +275,21 @@ async function startRecording() {
   }
   
   try {
-    console.log('🎤 Starting recording via content script...');
+    // Set recording state
+    isRecording = true;
     
-    // Get the active tab first
-    const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-    if (tabs.length === 0) {
-      throw new Error('No active tab found');
-    }
+    // Update UI with visual feedback
+    micBtn.classList.add('recording');
+    micBtn.classList.add('active'); // Add blue glow effect
+    micBtn.title = 'Stop recording';
     
-    // Try content script approach first
-    try {
-      const response = await new Promise((resolve, reject) => {
-        const timeout = setTimeout(() => {
-          reject(new Error('Content script timeout - no response received'));
-        }, 5000); // 5 second timeout
-        
-        chrome.tabs.sendMessage(tabs[0].id, { 
-          action: 'startRecording' 
-        }, (response) => {
-          clearTimeout(timeout);
-          if (chrome.runtime.lastError) {
-            reject(new Error(chrome.runtime.lastError.message));
-          } else {
-            resolve(response);
-          }
-        });
-      });
-      
-      if (response && response.success) {
-        isRecording = true;
-        
-        // Update UI with visual feedback
-        micBtn.classList.add('recording');
-        micBtn.classList.add('active'); // Add blue glow effect
-        micBtn.title = 'Stop recording';
-        
-        // Show audio visualizer
-        showAudioVisualizer();
-        
-        // Start minimal listening UI
-        startMinimalListeningUI();
-        
-        console.log('🎤 Recording started successfully via content script');
-        return;
-      } else {
-        throw new Error(response?.error || 'Recording failed');
-      }
-      
-    } catch (contentScriptError) {
-      console.log('⚠️ Content script recording failed, trying direct approach:', contentScriptError.message);
-      
-      // Fallback: Try direct recording in sidebar
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          sampleRate: 44100
-        } 
-      });
-      
-      mediaRecorder = new MediaRecorder(stream, {
-        mimeType: 'audio/webm;codecs=opus'
-      });
-      
-      audioChunks = [];
-      
-      mediaRecorder.ondataavailable = (event) => {
-        audioChunks.push(event.data);
-      };
-      
-      mediaRecorder.onstop = async () => {
-        console.log('🎤 Recording stopped, processing audio...');
-        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-        await processAudio(audioBlob);
-        
-        // Clean up
-        stream.getTracks().forEach(track => track.stop());
-      };
-      
-      mediaRecorder.start();
-      isRecording = true;
-      
-      // Update UI with visual feedback
-      micBtn.classList.add('recording');
-      micBtn.classList.add('active'); // Add blue glow effect
-      micBtn.title = 'Stop recording';
-      
-      // Show audio visualizer
-      showAudioVisualizer();
-      
-      // Start minimal listening UI
-      startMinimalListeningUI();
-      
-      console.log('🎤 Recording started successfully via direct access');
-    }
+    // Start minimal listening UI (this will start Web Speech API)
+    startMinimalListeningUI();
+    
+    console.log('🎤 Speech recognition started successfully');
     
   } catch (error) {
-    console.log('❌ Recording failed:', error);
+    console.log('❌ Speech recognition failed:', error);
     
     // Reset UI state on any error
     resetMicrophoneUI();
@@ -887,26 +805,7 @@ function getFileIcon(fileName) {
   return iconMap[extension] || iconMap['default'];
 }
 
-function handleAudioTranscriptionResult(transcript) {
-  console.log('🎤 Audio transcription result:', transcript);
-  
-  // Update UI
-  micBtn.classList.remove('processing');
-  micBtn.title = 'Voice input';
-  
-  // Reset listening animation
-  resetListeningAnimation();
-  
-  // Add transcript to message input
-  const messageInput = document.getElementById('message-input');
-  if (messageInput && transcript) {
-    messageInput.value = transcript;
-    messageInput.focus();
-    
-    // Show success message
-    addMessage('system', `🎤 **Voice Input Received**\n\n"${transcript}"\n\nClick send to process your voice message.`);
-  }
-}
+// handleAudioTranscriptionResult removed - Web Speech API handles transcription directly in startSpeechRecognition()
 
 function showAudioVisualizer() {
   const visualizer = document.createElement('div');
@@ -1281,9 +1180,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     }
   }
   
-  if (request.action === 'audioTranscriptionResult') {
-    handleAudioTranscriptionResult(request.transcript);
-  }
+  // audioTranscriptionResult handler removed - Web Speech API handles transcription directly
 });
 
 // Context is always enabled - no toggle needed
