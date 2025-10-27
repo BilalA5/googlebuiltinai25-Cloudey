@@ -161,8 +161,14 @@ async function requestMicrophonePermission() {
   try {
     console.log('🎤 Requesting microphone permission via content script...');
     
-    // Send message to content script to request microphone permission
-    const response = await chrome.runtime.sendMessage({ 
+    // Get the active tab first
+    const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (tabs.length === 0) {
+      throw new Error('No active tab found');
+    }
+    
+    // Send message to content script in the active tab
+    const response = await chrome.tabs.sendMessage(tabs[0].id, { 
       action: 'requestMicrophonePermission' 
     });
     
@@ -189,6 +195,8 @@ async function requestMicrophonePermission() {
       errorMessage += 'No microphone found. Please connect a microphone and try again.';
     } else if (error.message.includes('NotSupportedError')) {
       errorMessage += 'Microphone access is not supported in this browser.';
+    } else if (error.message.includes('Unknown action')) {
+      errorMessage += 'Content script not loaded. Please refresh the page and try again.';
     } else {
       errorMessage += `Error: ${error.message}\n\nPlease try clicking the microphone button again.`;
     }
@@ -213,8 +221,14 @@ async function startRecording() {
   try {
     console.log('🎤 Starting recording via content script...');
     
+    // Get the active tab first
+    const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (tabs.length === 0) {
+      throw new Error('No active tab found');
+    }
+    
     // Send message to content script to start recording
-    const response = await chrome.runtime.sendMessage({ 
+    const response = await chrome.tabs.sendMessage(tabs[0].id, { 
       action: 'startRecording' 
     });
     
@@ -244,6 +258,8 @@ async function startRecording() {
       errorMessage += 'No microphone found. Please connect a microphone and try again.';
     } else if (error.message.includes('NotSupportedError')) {
       errorMessage += 'Microphone access is not supported in this browser.';
+    } else if (error.message.includes('Unknown action')) {
+      errorMessage += 'Content script not loaded. Please refresh the page and try again.';
     } else {
       errorMessage += `Error: ${error.message}\n\nPlease try again.`;
     }
@@ -256,9 +272,14 @@ function stopRecording() {
   if (isRecording) {
     console.log('🎤 Stopping recording...');
     
-    // Send message to content script to stop recording
-    chrome.runtime.sendMessage({ 
-      action: 'stopRecording' 
+    // Get the active tab first
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      if (tabs.length > 0) {
+        // Send message to content script to stop recording
+        chrome.tabs.sendMessage(tabs[0].id, { 
+          action: 'stopRecording' 
+        });
+      }
     });
     
     isRecording = false;
@@ -352,6 +373,33 @@ function blobToBase64(blob) {
     reader.onerror = reject;
     reader.readAsDataURL(blob);
   });
+}
+
+function getFileIcon(fileName) {
+  const extension = fileName.split('.').pop().toLowerCase();
+  
+  const iconMap = {
+    // Images
+    'jpg': '🖼️', 'jpeg': '🖼️', 'png': '🖼️', 'gif': '🖼️', 'bmp': '🖼️', 'webp': '🖼️', 'svg': '🖼️',
+    // Documents
+    'pdf': '📄', 'doc': '📄', 'docx': '📄', 'txt': '📄', 'rtf': '📄',
+    // Spreadsheets
+    'xls': '📊', 'xlsx': '📊', 'csv': '📊',
+    // Presentations
+    'ppt': '📽️', 'pptx': '📽️',
+    // Code
+    'js': '📝', 'ts': '📝', 'html': '📝', 'css': '📝', 'json': '📝', 'xml': '📝', 'md': '📝',
+    // Archives
+    'zip': '📦', 'rar': '📦', '7z': '📦', 'tar': '📦', 'gz': '📦',
+    // Audio
+    'mp3': '🎵', 'wav': '🎵', 'flac': '🎵', 'aac': '🎵', 'ogg': '🎵',
+    // Video
+    'mp4': '🎬', 'avi': '🎬', 'mov': '🎬', 'wmv': '🎬', 'flv': '🎬', 'webm': '🎬',
+    // Default
+    'default': '📎'
+  };
+  
+  return iconMap[extension] || iconMap['default'];
 }
 
 function handleAudioTranscriptionResult(transcript) {
@@ -787,7 +835,10 @@ function addAttachmentChip(file) {
   chip.dataset.fileName = file.name;
   
   const sizeKB = (file.size / 1024).toFixed(1);
+  const fileIcon = getFileIcon(file.name);
+  
   chip.innerHTML = `
+    <div class="attachment-chip-icon">${fileIcon}</div>
     <span class="attachment-chip-name">${file.name}</span>
     <span class="attachment-chip-size">(${sizeKB}KB)</span>
     <button class="attachment-chip-remove" aria-label="Remove ${file.name}">
