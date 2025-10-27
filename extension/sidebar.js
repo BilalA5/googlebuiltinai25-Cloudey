@@ -115,6 +115,72 @@ async function toggleRecording() {
   }
 }
 
+// Microphone Permission Window Functions
+async function openMicrophonePermissionWindow() {
+  try {
+    console.log('🎤 Opening microphone permission window...');
+    
+    const window = await chrome.windows.create({
+      url: chrome.runtime.getURL('mic-permission.html'),
+      type: 'popup',
+      width: 420,
+      height: 280,
+      focused: true
+    });
+    
+    console.log('✅ Microphone permission window opened:', window.id);
+    return window.id;
+    
+  } catch (error) {
+    console.error('❌ Failed to open microphone permission window:', error);
+    throw error;
+  }
+}
+
+function showMicrophonePermissionRequired() {
+  addMessage('system', `🎤 **Microphone Access Required**
+
+To use voice input on macOS, Cloudey needs to request microphone permission from a trusted window.
+
+**Click the microphone button below to enable microphone access.**`);
+}
+
+// Check if microphone is actually working (not just permission granted)
+async function testMicrophoneAccess() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      audio: { 
+        echoCancellation: true,
+        noiseSuppression: true,
+        sampleRate: 44100
+      }
+    });
+    
+    // Test if we can actually get audio data
+    const audioContext = new AudioContext();
+    const source = audioContext.createMediaStreamSource(stream);
+    const analyser = audioContext.createAnalyser();
+    source.connect(analyser);
+    
+    const dataArray = new Uint8Array(analyser.frequencyBinCount);
+    analyser.getByteFrequencyData(dataArray);
+    
+    // Stop the stream
+    stream.getTracks().forEach(track => track.stop());
+    audioContext.close();
+    
+    // Check if we got any audio data (not just silence)
+    const hasAudio = dataArray.some(value => value > 0);
+    
+    console.log('🎤 Microphone test result:', hasAudio ? 'Audio detected' : 'No audio detected');
+    return hasAudio;
+    
+  } catch (error) {
+    console.log('❌ Microphone test failed:', error);
+    return false;
+  }
+}
+
 // Reusable microphone function
 async function startMicrophone() {
   try {
@@ -198,6 +264,18 @@ async function startRecording() {
     // Stop the stream immediately - we just needed permission
     stream.getTracks().forEach(track => track.stop());
     
+    // Test if microphone is actually working (not just permission granted)
+    const microphoneWorking = await testMicrophoneAccess();
+    
+    if (!microphoneWorking) {
+      console.log('⚠️ Microphone permission granted but no audio detected - likely blocked on macOS');
+      showMicrophonePermissionRequired();
+      
+      // Open the trusted permission window
+      await openMicrophonePermissionWindow();
+      return; // Don't start recording yet, wait for permission window
+    }
+    
     // Set recording state
     isRecording = true;
     microphonePermission = true;
@@ -213,6 +291,19 @@ async function startRecording() {
     
   } catch (error) {
     console.log('❌ Speech recognition failed:', error);
+    
+    // Check if this is a macOS permission issue
+    if (error.name === 'NotAllowedError' || error.message.includes('Permission dismissed')) {
+      console.log('🎤 macOS permission issue detected, opening trusted window');
+      showMicrophonePermissionRequired();
+      
+      try {
+        await openMicrophonePermissionWindow();
+        return; // Don't show error, permission window will handle it
+      } catch (windowError) {
+        console.error('❌ Failed to open permission window:', windowError);
+      }
+    }
     
     // Reset UI state on any error
     resetMicrophoneUI();
@@ -970,6 +1061,32 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       setTimeout(() => {
         hideTypingIndicator();
       }, 1000);
+    }
+  }
+  
+  // Handle microphone permission messages from trusted window
+  if (request.action === 'micPermissionGranted') {
+    console.log('✅ Microphone permission granted via trusted window');
+    addMessage('system', '🎤 **Microphone Access Enabled!**\n\nYou can now use voice input. Click the microphone button to start recording.');
+    
+    // Reset microphone button state
+    if (micBtn) {
+      micBtn.classList.remove('recording', 'processing');
+      micBtn.title = 'Voice input';
+    }
+    
+    // Set permission flag
+    microphonePermission = true;
+  }
+  
+  if (request.action === 'micPermissionCancelled') {
+    console.log('❌ Microphone permission cancelled');
+    addMessage('system', '🎤 **Microphone Access Cancelled**\n\nVoice input is not available. You can try again by clicking the microphone button.');
+    
+    // Reset microphone button state
+    if (micBtn) {
+      micBtn.classList.remove('recording', 'processing');
+      micBtn.title = 'Voice input';
     }
   }
   
