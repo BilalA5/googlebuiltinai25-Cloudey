@@ -280,7 +280,6 @@ async function startRecording() {
     
     // Update UI with visual feedback
     micBtn.classList.add('recording');
-    micBtn.classList.add('active'); // Add blue glow effect
     micBtn.title = 'Stop recording';
     
     // Start minimal listening UI (this will start Web Speech API)
@@ -329,7 +328,6 @@ function stopRecording() {
     
     // Update UI
     micBtn.classList.remove('recording');
-    micBtn.classList.remove('active'); // Remove blue glow effect
     micBtn.classList.add('processing');
     micBtn.title = 'Processing...';
     
@@ -713,7 +711,7 @@ function handleMicrophonePermissionError(error) {
   
   // Reset microphone button state
   if (micBtn) {
-    micBtn.classList.remove('recording', 'processing', 'active');
+    micBtn.classList.remove('recording', 'processing');
     micBtn.title = 'Voice input';
   }
   
@@ -757,7 +755,7 @@ function resetMicrophoneUI() {
   
   // Reset microphone button state
   if (micBtn) {
-    micBtn.classList.remove('recording', 'processing', 'active');
+    micBtn.classList.remove('recording', 'processing');
     micBtn.title = 'Voice input';
   }
   
