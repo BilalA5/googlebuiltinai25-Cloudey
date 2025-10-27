@@ -2122,66 +2122,182 @@ async function analyzeMapsResults(tabId, query, retryCount = 0, maxRetries = 3) 
             
             // Function to extract results from current view
             const extractCurrentResults = () => {
-              // Look for sidebar results
+              // Enhanced selectors for Google Maps sidebar results
               const resultSelectors = [
                 'div[role="article"]',
-                'div.g',
                 'div[jsaction*="mouseover"]',
-                'div[data-value]'
+                'div[data-value]',
+                'div[data-result-index]',
+                'div[aria-label*="result"]',
+                'div.g'
               ];
               
               const resultsList = document.querySelectorAll(resultSelectors.join(','));
+              console.log(`Found ${resultsList.length} potential results`);
               
               resultsList.forEach((result, index) => {
-                if (results.length >= 20) return; // Limit to 20 results
+                if (results.length >= 25) return; // Increased limit
                 
-                // Extract title
-                const titleEl = result.querySelector('h3, [role="heading"], div[data-value]');
-                const title = titleEl?.textContent?.trim() || result.textContent.substring(0, 50).trim();
+                // Enhanced title extraction
+                const titleSelectors = [
+                  'h3',
+                  '[role="heading"]',
+                  'div[data-value]',
+                  '.fontHeadlineSmall',
+                  '.fontHeadlineMedium',
+                  'span[aria-label*="title"]'
+                ];
+                
+                let titleEl = null;
+                let title = '';
+                for (const selector of titleSelectors) {
+                  titleEl = result.querySelector(selector);
+                  if (titleEl && titleEl.textContent.trim()) {
+                    title = titleEl.textContent.trim();
+                    break;
+                  }
+                }
+                
+                if (!title || title.length < 3) {
+                  // Fallback: extract from first text node
+                  title = result.textContent.split('\n')[0].trim().substring(0, 60);
+                }
                 
                 if (!title || title.length < 3) return; // Skip empty results
                 
-                // Extract full description/reviews
-                const descriptionEl = result.querySelector('div.MyEned, div.fontBodyMedium, div.rVqRsc');
-                const fullDescription = descriptionEl?.textContent?.trim() || '';
+                // Enhanced description extraction
+                const descriptionSelectors = [
+                  'div.MyEned',
+                  'div.fontBodyMedium',
+                  'div.rVqRsc',
+                  'div[data-value="description"]',
+                  '.fontBodySmall',
+                  'span[aria-label*="description"]'
+                ];
                 
-                // Check for keywords in description (free, open, etc.)
+                let fullDescription = '';
+                for (const selector of descriptionSelectors) {
+                  const descEl = result.querySelector(selector);
+                  if (descEl && descEl.textContent.trim()) {
+                    fullDescription = descEl.textContent.trim();
+                    break;
+                  }
+                }
+                
+                // Enhanced keyword detection
                 const keywords = {
-                  isFree: /\b(?:free|no charge|complimentary|gratis)\b/i.test(fullDescription),
-                  hasHours: /\b(?:open|closed|hours|am|pm)\b/i.test(fullDescription),
-                  hasParking: /\b(?:parking|park|lot|spot|space)\b/i.test(fullDescription),
+                  isFree: /\b(?:free|no charge|complimentary|gratis|no fee)\b/i.test(fullDescription + ' ' + title),
+                  hasHours: /\b(?:open|closed|hours|am|pm|monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/i.test(fullDescription),
+                  hasParking: /\b(?:parking|park|lot|spot|space|garage|valet)\b/i.test(fullDescription),
+                  isOpenNow: /\b(?:open now|currently open|now open)\b/i.test(fullDescription),
+                  hasDelivery: /\b(?:delivery|delivers|takeout|take-out)\b/i.test(fullDescription),
+                  hasReservations: /\b(?:reservation|book|booking|reserve)\b/i.test(fullDescription)
                 };
                 
-                // Extract address/description
-                const addressEl = result.querySelector('[data-value="address"]') || 
-                                 result.querySelector('div.fontBodyMedium') ||
-                                 result.querySelector('span[aria-label*="Address"]');
-                const address = addressEl?.textContent?.trim() || '';
+                // Enhanced address extraction
+                const addressSelectors = [
+                  '[data-value="address"]',
+                  'span[aria-label*="Address"]',
+                  '.fontBodyMedium',
+                  'div[data-value="location"]',
+                  'span[aria-label*="location"]'
+                ];
                 
-                // Extract rating
-                const ratingEl = result.querySelector('[aria-label*="rating"]') ||
-                                result.querySelector('span[aria-label*="stars"]') ||
-                                result.querySelector('.fontBodyMedium span');
-                const rating = ratingEl?.textContent?.trim() || '';
+                let address = '';
+                for (const selector of addressSelectors) {
+                  const addrEl = result.querySelector(selector);
+                  if (addrEl && addrEl.textContent.trim()) {
+                    address = addrEl.textContent.trim();
+                    break;
+                  }
+                }
                 
-                // Extract distance
-                const distanceEl = result.querySelector('[data-value="distance"]') ||
-                                 result.querySelector('span:has-text("km")') ||
-                                 result.querySelector('span:has-text("mi")');
-                const distance = distanceEl?.textContent?.trim() || '';
+                // Enhanced rating extraction
+                const ratingSelectors = [
+                  '[aria-label*="rating"]',
+                  'span[aria-label*="stars"]',
+                  '.fontBodyMedium span',
+                  '[data-value="rating"]',
+                  'span:contains("★")',
+                  'span:contains("⭐")'
+                ];
                 
-                // Extract price level
-                const priceEl = result.querySelector('[aria-label*="dollar"]') ||
-                              result.querySelector('[aria-label*="price"]');
-                const price = priceEl?.textContent?.trim() || '';
+                let rating = '';
+                for (const selector of ratingSelectors) {
+                  const ratingEl = result.querySelector(selector);
+                  if (ratingEl && ratingEl.textContent.trim()) {
+                    rating = ratingEl.textContent.trim();
+                    break;
+                  }
+                }
                 
-                // Extract type/category
-                const typeEl = result.querySelector('[data-value="type"]') ||
-                             result.querySelector('.fontBodyMedium').querySelector('span:not([aria-label])');
-                const type = typeEl?.textContent?.trim() || '';
+                // Enhanced distance extraction
+                const distanceSelectors = [
+                  '[data-value="distance"]',
+                  'span:contains("km")',
+                  'span:contains("mi")',
+                  'span:contains("miles")',
+                  'span:contains("meters")',
+                  '[aria-label*="distance"]'
+                ];
                 
-                // Extract review count if available
-                const reviewCount = result.textContent.match(/(\d+(?:,\d+)?)\s*(?:review|rating)/i)?.[1] || '';
+                let distance = '';
+                for (const selector of distanceSelectors) {
+                  const distEl = result.querySelector(selector);
+                  if (distEl && distEl.textContent.trim()) {
+                    distance = distEl.textContent.trim();
+                    break;
+                  }
+                }
+                
+                // Enhanced price extraction
+                const priceSelectors = [
+                  '[aria-label*="dollar"]',
+                  '[aria-label*="price"]',
+                  '[data-value="price"]',
+                  'span:contains("$")',
+                  'span:contains("€")',
+                  'span:contains("£")'
+                ];
+                
+                let price = '';
+                for (const selector of priceSelectors) {
+                  const priceEl = result.querySelector(selector);
+                  if (priceEl && priceEl.textContent.trim()) {
+                    price = priceEl.textContent.trim();
+                    break;
+                  }
+                }
+                
+                // Enhanced type/category extraction
+                const typeSelectors = [
+                  '[data-value="type"]',
+                  '.fontBodyMedium span:not([aria-label])',
+                  '[aria-label*="category"]',
+                  '[data-value="category"]'
+                ];
+                
+                let type = '';
+                for (const selector of typeSelectors) {
+                  const typeEl = result.querySelector(selector);
+                  if (typeEl && typeEl.textContent.trim()) {
+                    type = typeEl.textContent.trim();
+                    break;
+                  }
+                }
+                
+                // Enhanced review count extraction
+                const reviewCountMatch = result.textContent.match(/(\d+(?:,\d+)?)\s*(?:review|rating|reviewer)/i);
+                const reviewCount = reviewCountMatch ? reviewCountMatch[1] : '';
+                
+                // Extract additional metadata
+                const isSponsored = result.querySelector('[aria-label*="sponsored"]') || 
+                                   result.textContent.includes('Sponsored') ||
+                                   result.textContent.includes('Ad');
+                
+                const hasPhotos = result.querySelector('[aria-label*="photo"]') ||
+                                result.querySelector('img') ||
+                                result.textContent.includes('photo');
                 
                 // Check if we've already added this result
                 if (!results.some(r => r.title === title && r.address === address)) {
@@ -2193,10 +2309,13 @@ async function analyzeMapsResults(tabId, query, retryCount = 0, maxRetries = 3) 
                     distance: distance,
                     price: price,
                     type: type,
-                    description: fullDescription.substring(0, 200), // First 200 chars
+                    description: fullDescription.substring(0, 300), // Increased to 300 chars
                     keywords: keywords,
                     reviewCount: reviewCount,
-                    rawText: result.textContent.substring(0, 500) // Full text for AI analysis
+                    isSponsored: isSponsored,
+                    hasPhotos: hasPhotos,
+                    rawText: result.textContent.substring(0, 800), // Increased to 800 chars
+                    element: result // Store reference for highlighting
                   });
                 }
               });
@@ -2254,78 +2373,86 @@ async function analyzeMapsResults(tabId, query, retryCount = 0, maxRetries = 3) 
         
                  // Check if we have results - if not, retry recursively
         if (analysis.success && analysis.results && analysis.results.length > 0) {
-           // Use Gemini to analyze and rank the results
-           const rankingPrompt = `You are analyzing Google Maps search results and need to THINK through the criteria before selecting the BEST match.
+           // Enhanced Gemini ranking prompt for better analysis
+           const rankingPrompt = `You are an expert location analyst helping a user find the PERFECT match from Google Maps search results.
 
 USER'S REQUEST: "${analysis.query}"
 
-CRITICAL ANALYSIS TASK:
-1. Parse the user's request to identify ALL criteria:
-   - What type of place? (e.g., parking, restaurant, clinic)
-   - What filters? (free, nearest, closest to X, cheapest, best rated, open now)
-   - What location/reference point? (e.g., "closest to Stampede", "near me")
+🎯 ANALYSIS FRAMEWORK:
+1. CRITERIA EXTRACTION: Parse the user's request to identify ALL requirements:
+   - Place type (restaurant, parking, hotel, etc.)
+   - Filters (free, nearest, cheapest, best rated, open now, etc.)
+   - Location context (closest to X, near me, in downtown, etc.)
+   - Special requirements (delivery, reservations, parking, etc.)
 
-2. For each result, analyze:
-   - Does it match the type? (e.g., if user wants parking, is this a parking lot?)
-   - Does it meet the filters? (e.g., if "free" is required, check keywords.isFree in data)
-   - How close is it? (parse distance field)
-   - What's the quality? (rating, review count)
-   - Any special notes? (description field)
+2. DATA EVALUATION: For each result, analyze:
+   - Type match: Does it match the requested place type?
+   - Filter compliance: Does it meet ALL specified filters?
+   - Distance analysis: Parse and compare distances
+   - Quality metrics: Rating, review count, price level
+   - Availability: Open now, has hours, etc.
+   - Additional features: Photos, delivery, reservations, etc.
 
-3. Apply your reasoning logic:
-   - "Free" requirement: ONLY consider results where keywords.isFree = true
-   - "Nearest" requirement: Prioritize shortest distance
-   - "Closest to X": Check if address/description mentions the reference location
-   - "Best rated": Prioritize highest rating with most reviews
+3. RANKING LOGIC: Apply weighted scoring:
+   - CRITICAL filters (e.g., "free") = MUST be met or result is eliminated
+   - Distance = Higher weight for "nearest" requests
+   - Rating = Higher weight for "best rated" requests
+   - Price = Higher weight for "cheapest" requests
+   - Availability = Bonus points for "open now"
 
-4. Rank results by relevance to ALL criteria, not just one factor
-
-DETAILED RESULTS DATA:
+📊 DETAILED RESULTS DATA:
 ${analysis.results.map((r, i) => `
 ${i + 1}. ${r.title}
-   Address: ${r.address || 'N/A'}
-   Distance: ${r.distance || 'N/A'}
-   Rating: ${r.rating || 'N/A'}
-   Reviews: ${r.reviewCount || 'N/A'}
-   Price: ${r.price || 'N/A'}
-   Type: ${r.type || 'N/A'}
-   Description: ${r.description || 'N/A'}
-   Keywords detected: FREE=${r.keywords?.isFree || false}, OPEN_HOURS=${r.keywords?.hasHours || false}, PARKING_MENTION=${r.keywords?.hasParking || false}
+   📍 Address: ${r.address || 'N/A'}
+   📏 Distance: ${r.distance || 'N/A'}
+   ⭐ Rating: ${r.rating || 'N/A'} (${r.reviewCount || 'N/A'} reviews)
+   💰 Price: ${r.price || 'N/A'}
+   🏷️ Type: ${r.type || 'N/A'}
+   📝 Description: ${r.description || 'N/A'}
+   🔍 Keywords: FREE=${r.keywords?.isFree || false}, OPEN_NOW=${r.keywords?.isOpenNow || false}, PARKING=${r.keywords?.hasParking || false}, DELIVERY=${r.keywords?.hasDelivery || false}, RESERVATIONS=${r.keywords?.hasReservations || false}
+   📸 Has Photos: ${r.hasPhotos || false}
+   💼 Sponsored: ${r.isSponsored || false}
 `).join('\n')}
 
-THINKING PROCESS:
-${analysis.query.toLowerCase().includes('free') ? '- REQUIRING "FREE" items only' : ''}
-${analysis.query.toLowerCase().includes('nearest') || analysis.query.toLowerCase().includes('closest') ? '- PRIORITIZING shortest distance' : ''}
-${analysis.query.toLowerCase().includes('best') || analysis.query.toLowerCase().includes('highest') ? '- PRIORITIZING highest ratings' : ''}
+🧠 THINKING PROCESS:
+${analysis.query.toLowerCase().includes('free') ? '🔴 CRITICAL: Only considering FREE options' : ''}
+${analysis.query.toLowerCase().includes('nearest') || analysis.query.toLowerCase().includes('closest') ? '🟡 PRIORITY: Distance is the primary factor' : ''}
+${analysis.query.toLowerCase().includes('best') || analysis.query.toLowerCase().includes('highest') ? '🟡 PRIORITY: Rating and reviews matter most' : ''}
+${analysis.query.toLowerCase().includes('cheapest') || analysis.query.toLowerCase().includes('affordable') ? '🟡 PRIORITY: Price is the primary factor' : ''}
+${analysis.query.toLowerCase().includes('open') ? '🟡 PRIORITY: Currently open locations preferred' : ''}
 
-CRITICAL: You must provide a DEFINITIVE answer, not multiple options. The user needs ONE clear recommendation.
+🎯 REQUIRED OUTPUT FORMAT:
+You MUST provide a comprehensive analysis with actionable insights:
 
-Your output MUST include:
-1. Your reasoning (what criteria you applied)
-2. Which results were eliminated and why
-3. ONE definitive recommendation with detailed justification
-
-Respond in this EXACT format:
 MY ANALYSIS:
-[Explain your critical reasoning: What did you look for? What factors mattered most? 
-What made you eliminate the other options? Be specific about why you chose this ONE result.]
+[Detailed reasoning: What criteria did you apply? What factors mattered most? 
+How did you eliminate options? Why did you choose this ONE result?]
 
-DEFINITIVE ANSWER:
+🏆 DEFINITIVE ANSWER:
 [Single result title and address]
 
-WHY THIS IS THE BEST CHOICE:
-[Detailed justification with evidence from the data:
-- DISTANCE: [Exact distance from reference point] - [Why this distance matters]
-- Does it meet ALL criteria? (prove it with specific data)
-- What makes it better than the others? (specific comparison with distances)
-- Any potential downsides? (be honest)
-- Why should the user choose this and not the alternatives?]
+✅ WHY THIS IS THE BEST CHOICE:
+[Detailed justification with specific evidence:
+- DISTANCE: [Exact distance] - [Why this distance matters]
+- FILTER COMPLIANCE: [Prove it meets ALL criteria with specific data]
+- QUALITY: [Rating/reviews analysis]
+- AVAILABILITY: [Open hours, current status]
+- VALUE: [Price analysis if relevant]
+- ADDITIONAL BENEFITS: [Photos, delivery, reservations, etc.]
+- COMPARISON: [What makes it better than alternatives?]
+- POTENTIAL DOWNSIDES: [Be honest about limitations]]
 
-ALTERNATIVES CONSIDERED:
-[For EACH alternative (at least 3): 
-1. [Name] - Distance: [X]km - Eliminated because: [specific reason with distance comparison]]
+📋 TOP 3 ALTERNATIVES CONSIDERED:
+1. [Name] - Distance: [X]km - Rating: [X]⭐ - Eliminated: [specific reason with comparison]
+2. [Name] - Distance: [X]km - Rating: [X]⭐ - Eliminated: [specific reason with comparison]  
+3. [Name] - Distance: [X]km - Rating: [X]⭐ - Eliminated: [specific reason with comparison]
 
-IMPORTANT: You MUST list the actual distance numbers from the data for your recommendation and ALL alternatives. Be explicit about distance comparisons.`;
+💡 ACTIONABLE INSIGHTS:
+- [Key insight about the area/type of places]
+- [Recommendation for the user]
+- [Any warnings or considerations]
+
+CRITICAL: You MUST include actual distance numbers, ratings, and specific comparisons. Be explicit about why each alternative was eliminated.`;
 
            try {
              const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-001:generateContent', {
@@ -2346,49 +2473,94 @@ IMPORTANT: You MUST list the actual distance numbers from the data for your reco
              const data = await response.json();
              const rankingText = data.candidates[0].content.parts[0].text;
              
-                           // Click the best result on the map
+                           // Enhanced visual highlighting and auto-selection
               try {
-                // Wait a moment for the analysis text
+                // Wait for analysis to complete
                 await new Promise(r => setTimeout(r, 500));
                 
                 // Extract the definitive answer title from the AI response
-                const answerMatch = rankingText.match(/DEFINITIVE ANSWER:\s*(.+?)(?:\n|$)/i);
+                const answerMatch = rankingText.match(/🏆 DEFINITIVE ANSWER:\s*(.+?)(?:\n|$)/i) ||
+                                  rankingText.match(/DEFINITIVE ANSWER:\s*(.+?)(?:\n|$)/i);
+                
                 if (answerMatch && answerMatch[1]) {
                   const bestMatchTitle = answerMatch[1].trim();
+                  console.log('🎯 Best match identified:', bestMatchTitle);
                   
-                  // Find and click the matching result in the sidebar
+                  // Enhanced result finding and highlighting
                   await new Promise((resolveClick) => {
                     chrome.scripting.executeScript({
                       target: { tabId: tabId },
-                      func: (targetTitle) => {
-                        // Find the result that contains this title
-                        const results = document.querySelectorAll('div[role="article"]');
+                      func: (targetTitle, resultsData) => {
+                        // Find all results in the sidebar
+                        const results = document.querySelectorAll('div[role="article"], div[jsaction*="mouseover"], div[data-value]');
+                        let bestMatch = null;
+                        let bestScore = 0;
                         
-                        for (const result of results) {
-                          const titleEl = result.querySelector('h3, [role="heading"]');
-                          const resultTitle = titleEl?.textContent?.trim();
+                        // Score each result for matching
+                        results.forEach((result, index) => {
+                          const titleEl = result.querySelector('h3, [role="heading"], .fontHeadlineSmall, .fontHeadlineMedium');
+                          const resultTitle = titleEl?.textContent?.trim() || '';
                           
-                          // Check if this is the best match (fuzzy match)
-                          if (resultTitle && (
-                            resultTitle.toLowerCase().includes(targetTitle.toLowerCase()) ||
-                            targetTitle.toLowerCase().includes(resultTitle.toLowerCase()) ||
-                            resultTitle.toLowerCase().substring(0, 30) === targetTitle.toLowerCase().substring(0, 30)
-                          )) {
-                            console.log('Found best match, clicking:', resultTitle);
-                            
-                            // Click to open the details panel
-                            result.click();
-                            
-                            // Also scroll into view
-                            result.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                            
-                            return { success: true, clicked: resultTitle };
+                          if (!resultTitle) return;
+                          
+                          // Calculate match score
+                          let score = 0;
+                          const titleLower = resultTitle.toLowerCase();
+                          const targetLower = targetTitle.toLowerCase();
+                          
+                          // Exact match
+                          if (titleLower === targetLower) score = 100;
+                          // Contains match
+                          else if (titleLower.includes(targetLower) || targetLower.includes(titleLower)) score = 80;
+                          // Partial match
+                          else if (titleLower.substring(0, 30) === targetLower.substring(0, 30)) score = 60;
+                          // Word overlap
+                          else {
+                            const targetWords = targetLower.split(' ');
+                            const titleWords = titleLower.split(' ');
+                            const overlap = targetWords.filter(word => titleWords.includes(word)).length;
+                            score = (overlap / targetWords.length) * 40;
                           }
+                          
+                          if (score > bestScore) {
+                            bestScore = score;
+                            bestMatch = result;
+                          }
+                        });
+                        
+                        if (bestMatch && bestScore > 30) {
+                          console.log('🎯 Found best match with score:', bestScore);
+                          
+                          // Add visual highlight
+                          bestMatch.style.cssText = `
+                            background: rgba(147, 51, 234, 0.15) !important;
+                            border: 3px solid rgba(147, 51, 234, 0.8) !important;
+                            border-radius: 12px !important;
+                            padding: 8px !important;
+                            box-shadow: 0 0 20px rgba(147, 51, 234, 0.4) !important;
+                            animation: cloudey-best-match-pulse 2s infinite !important;
+                            transform: scale(1.02) !important;
+                            transition: all 0.3s ease !important;
+                          `;
+                          
+                          // Scroll into view
+                          bestMatch.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                          
+                          // Click to open details
+                          setTimeout(() => {
+                            bestMatch.click();
+                          }, 1000);
+                          
+                          return { 
+                            success: true, 
+                            clicked: bestMatch.querySelector('h3, [role="heading"]')?.textContent?.trim() || 'Best match',
+                            score: bestScore
+                          };
                         }
                         
-                        // Fallback: click the first result
+                        // Fallback: click first result
                         if (results.length > 0) {
-                          console.log('Fallback: clicking first result');
+                          console.log('⚠️ Fallback: clicking first result');
                           results[0].click();
                           results[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
                           return { success: true, clicked: 'first result (fallback)' };
@@ -2396,40 +2568,51 @@ IMPORTANT: You MUST list the actual distance numbers from the data for your reco
                         
                         return { success: false, error: 'No results found' };
                       },
-                      args: [bestMatchTitle]
+                      args: [bestMatchTitle, analysis.results]
                     }, (result) => {
                       if (result && result[0] && result[0].result) {
-                        console.log('Clicked result:', result[0].result);
+                        console.log('✅ Clicked result:', result[0].result);
                       }
-                      setTimeout(() => resolveClick(), 2000); // Wait for details to load
+                      setTimeout(() => resolveClick(), 3000); // Wait for details to load
                     });
                   });
                 }
                 
-                // Visualize results on the map
-                for (let i = 0; i < Math.min(3, analysis.results.length); i++) {
-                  // Highlight results in sidebar
+                // Enhanced visual highlighting for top 3 results
+                const topResults = analysis.results.slice(0, 3);
+                for (let i = 0; i < topResults.length; i++) {
                   await new Promise((resolveViz) => {
                     chrome.tabs.sendMessage(tabId, {
                       action: 'mapHighlightResult',
-                      selector: `div[role="article"]:nth-child(${i + 1})`
+                      selector: `div[role="article"]:nth-child(${i + 1})`,
+                      rank: i + 1,
+                      isBest: i === 0
                     }, () => {
-                      setTimeout(() => resolveViz(), 1000);
+                      setTimeout(() => resolveViz(), 800);
                     });
                   });
                 }
                 
-                // Draw circles on map for top results
+                // Enhanced map visualization with different colors for rankings
                 for (let i = 0; i < Math.min(5, analysis.results.length); i++) {
                   await new Promise((resolveCircle) => {
+                    const colors = [
+                      'rgba(147, 51, 234, 0.7)', // #1 - Purple
+                      'rgba(59, 130, 246, 0.6)', // #2 - Blue  
+                      'rgba(16, 185, 129, 0.5)', // #3 - Green
+                      'rgba(245, 158, 11, 0.4)', // #4 - Yellow
+                      'rgba(239, 68, 68, 0.3)'   // #5 - Red
+                    ];
+                    
                     chrome.tabs.sendMessage(tabId, {
                       action: 'mapDrawCircle',
                       lat: null,
                       lng: null,
-                      radius: 500 - (i * 100),
-                      color: i === 0 ? 'rgba(147, 51, 234, 0.5)' : 'rgba(147, 51, 234, 0.3)'
+                      radius: 600 - (i * 100),
+                      color: colors[i],
+                      rank: i + 1
                     }, () => {
-                      setTimeout(() => resolveCircle(), 500);
+                      setTimeout(() => resolveCircle(), 400);
                     });
                   });
                 }

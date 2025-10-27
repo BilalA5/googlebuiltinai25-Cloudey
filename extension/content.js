@@ -228,25 +228,76 @@ function drawLineOnMap(startLat, startLng, endLat, endLng, color = 'rgba(147, 51
   return line;
 }
 
-function highlightMapResult(selector) {
+function highlightMapResult(selector, rank = 1, isBest = false) {
   // Find the result in the sidebar
   const result = document.querySelector(selector);
   if (result) {
-    result.style.cssText = `
-      background: rgba(147, 51, 234, 0.2);
-      border: 2px solid rgba(147, 51, 234, 0.6);
-      border-radius: 8px;
-      padding: 8px;
-      animation: cloudey-highlight-pulse 1.5s infinite;
-    `;
+    // Different styling based on rank
+    const colors = {
+      1: 'rgba(147, 51, 234, 0.8)', // Purple for #1
+      2: 'rgba(59, 130, 246, 0.7)',  // Blue for #2
+      3: 'rgba(16, 185, 129, 0.6)'   // Green for #3
+    };
+    
+    const color = colors[rank] || 'rgba(147, 51, 234, 0.6)';
+    
+    if (isBest) {
+      // Special styling for the best match
+      result.style.cssText = `
+        background: rgba(147, 51, 234, 0.15) !important;
+        border: 3px solid rgba(147, 51, 234, 0.9) !important;
+        border-radius: 12px !important;
+        padding: 8px !important;
+        box-shadow: 0 0 25px rgba(147, 51, 234, 0.5) !important;
+        animation: cloudey-best-match-pulse 2s infinite !important;
+        transform: scale(1.02) !important;
+        transition: all 0.3s ease !important;
+        position: relative !important;
+      `;
+      
+      // Add a "BEST MATCH" badge
+      const badge = document.createElement('div');
+      badge.textContent = '🏆 BEST MATCH';
+      badge.style.cssText = `
+        position: absolute;
+        top: -8px;
+        right: -8px;
+        background: rgba(147, 51, 234, 0.9);
+        color: white;
+        padding: 4px 8px;
+        border-radius: 12px;
+        font-size: 10px;
+        font-weight: bold;
+        z-index: 1000;
+        animation: cloudey-badge-pulse 1.5s infinite;
+      `;
+      result.appendChild(badge);
+      
+      // Remove badge after 5 seconds
+      setTimeout(() => {
+        if (badge.parentNode) {
+          badge.parentNode.removeChild(badge);
+        }
+      }, 5000);
+    } else {
+      // Regular highlighting for other results
+      result.style.cssText = `
+        background: ${color.replace('0.8', '0.2')} !important;
+        border: 2px solid ${color} !important;
+        border-radius: 8px !important;
+        padding: 6px !important;
+        animation: cloudey-highlight-pulse 1.5s infinite !important;
+        transition: all 0.3s ease !important;
+      `;
+    }
     
     // Scroll into view
     result.scrollIntoView({ behavior: 'smooth', block: 'center' });
     
-    // Remove highlight after 3 seconds
+    // Remove highlight after 4 seconds
     setTimeout(() => {
       result.style.cssText = '';
-    }, 3000);
+    }, 4000);
   }
 }
 
@@ -258,7 +309,7 @@ function clearMapDrawings() {
   mapMarkers = [];
 }
 
-// Add CSS animations
+// Add enhanced CSS animations
 if (!document.getElementById('cloudey-map-styles')) {
   const style = document.createElement('style');
   style.id = 'cloudey-map-styles';
@@ -283,11 +334,53 @@ if (!document.getElementById('cloudey-map-styles')) {
       }
     }
     
+    @keyframes cloudey-best-match-pulse {
+      0%, 100% {
+        box-shadow: 0 0 20px rgba(147, 51, 234, 0.5);
+        transform: scale(1.02);
+      }
+      50% {
+        box-shadow: 0 0 35px rgba(147, 51, 234, 0.8);
+        transform: scale(1.05);
+      }
+    }
+    
+    @keyframes cloudey-badge-pulse {
+      0%, 100% {
+        transform: scale(1);
+        opacity: 1;
+      }
+      50% {
+        transform: scale(1.1);
+        opacity: 0.8;
+      }
+    }
+    
+    @keyframes cloudey-rank-highlight {
+      0%, 100% {
+        box-shadow: 0 0 8px currentColor;
+      }
+      50% {
+        box-shadow: 0 0 16px currentColor;
+      }
+    }
+    
     .agent-element-highlight {
       outline: 3px solid rgba(147, 51, 234, 0.8) !important;
       outline-offset: 2px !important;
       animation: cloudey-highlight-pulse 1s infinite !important;
     }
+    
+    .cloudey-best-match {
+      background: rgba(147, 51, 234, 0.15) !important;
+      border: 3px solid rgba(147, 51, 234, 0.9) !important;
+      border-radius: 12px !important;
+      animation: cloudey-best-match-pulse 2s infinite !important;
+    }
+    
+    .cloudey-rank-1 { border-color: rgba(147, 51, 234, 0.8) !important; }
+    .cloudey-rank-2 { border-color: rgba(59, 130, 246, 0.7) !important; }
+    .cloudey-rank-3 { border-color: rgba(16, 185, 129, 0.6) !important; }
   `;
   document.head.appendChild(style);
 }
@@ -310,7 +403,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     const line = drawLineOnMap(request.startLat, request.startLng, request.endLat, request.endLng, request.color);
     sendResponse({ success: true });
   } else if (request.action === 'mapHighlightResult') {
-    highlightMapResult(request.selector);
+    highlightMapResult(request.selector, request.rank, request.isBest);
     sendResponse({ success: true });
   } else if (request.action === 'mapClear') {
     clearMapDrawings();
