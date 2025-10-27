@@ -935,11 +935,44 @@ ${pageContext.content}`;
 - NO: Long paragraphs with bullets inline
 - YES: Proper line breaks for readability`;
 
+    // Parse images from message
+    const imageParts = [];
+    const textParts = [];
+    
+    // Check if message contains image data
+    const imageRegex = /\[Image: ([^\]]+)\]\nType: ([^\n]+)\nSize: (\d+) bytes\nData: (data:[^;]+;base64,[^\s]+)/g;
+    let match;
+    let processedMessage = message;
+    
+    while ((match = imageRegex.exec(message)) !== null) {
+      const [, imageName, mimeType, size, imageData] = match;
+      console.log(`🖼️ Found image in message: ${imageName}`);
+      
+      imageParts.push({
+        inline_data: {
+          mime_type: mimeType,
+          data: imageData.split(',')[1] // Remove data:image/...;base64, prefix
+        }
+      });
+      
+      // Remove image data from text to avoid duplication
+      processedMessage = processedMessage.replace(match[0], `[Image: ${imageName}]`);
+    }
+    
+    // Build parts array
+    const parts = [];
+    
+    // Add text part
+    parts.push({ text: contextPrompt.replace(message, processedMessage) });
+    
+    // Add image parts
+    parts.push(...imageParts);
+    
     const requestBody = {
       contents: [
         {
           role: 'user',
-          parts: [{ text: contextPrompt }]
+          parts: parts
         }
       ],
       generationConfig: {

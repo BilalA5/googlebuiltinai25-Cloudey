@@ -911,8 +911,16 @@ async function readFileContent(file) {
         case 'jpeg':
         case 'gif':
         case 'webp':
-          // For images, return data URL for vision API or just metadata
-          resolve(`[Image file: ${file.name}, Size: ${file.size} bytes]`);
+        case 'bmp':
+        case 'svg':
+          // For images, return base64 data URL for vision API
+          resolve({
+            type: 'image',
+            name: file.name,
+            mimeType: file.type,
+            data: content, // This is the data URL (base64)
+            size: file.size
+          });
           break;
         default:
           // For other files, try to read as text
@@ -926,7 +934,7 @@ async function readFileContent(file) {
     
     // Handle different file types
     const extension = file.name.split('.').pop().toLowerCase();
-    if (['png', 'jpg', 'jpeg', 'gif', 'webp'].includes(extension)) {
+    if (['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 'svg'].includes(extension)) {
       reader.readAsDataURL(file);
     } else {
       reader.readAsText(file);
@@ -1000,12 +1008,23 @@ async function sendMessage() {
     
     for (const file of attachedFiles) {
       try {
-        const content = await readFileContent(file);
-        fileContext += `\n\n[File: ${file.name}]\n${content}`;
-        console.log(`✅ Processed file: ${file.name}`);
+        const fileData = await readFileContent(file);
         
-        // Show success message for each file
-        addMessage('system', `📎 **File Processed**: ${file.name}\n\nFile content has been added to your message context.`);
+        if (fileData.type === 'image') {
+          // Handle image files
+          fileContext += `\n\n[Image: ${fileData.name}]\nType: ${fileData.mimeType}\nSize: ${fileData.size} bytes\nData: ${fileData.data}`;
+          console.log(`✅ Processed image: ${fileData.name}`);
+          
+          // Show success message for image
+          addMessage('system', `🖼️ **Image Processed**: ${fileData.name}\n\nImage has been added to your message context for analysis.`);
+        } else {
+          // Handle text files
+          fileContext += `\n\n[File: ${fileData.name}]\n${fileData}`;
+          console.log(`✅ Processed file: ${fileData.name}`);
+          
+          // Show success message for text file
+          addMessage('system', `📎 **File Processed**: ${fileData.name}\n\nFile content has been added to your message context.`);
+        }
         
       } catch (error) {
         console.error(`Error reading file ${file.name}:`, error);
