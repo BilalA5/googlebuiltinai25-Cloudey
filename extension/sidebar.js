@@ -168,11 +168,19 @@ async function requestMicrophonePermission() {
     }
     
     // Send message to content script in the active tab
-    const response = await chrome.tabs.sendMessage(tabs[0].id, { 
-      action: 'requestMicrophonePermission' 
+    const response = await new Promise((resolve, reject) => {
+      chrome.tabs.sendMessage(tabs[0].id, { 
+        action: 'requestMicrophonePermission' 
+      }, (response) => {
+        if (chrome.runtime.lastError) {
+          reject(new Error(chrome.runtime.lastError.message));
+        } else {
+          resolve(response);
+        }
+      });
     });
     
-    if (response.success) {
+    if (response && response.success) {
       microphonePermission = true;
       console.log('✅ Microphone permission granted');
       
@@ -181,7 +189,7 @@ async function requestMicrophonePermission() {
       
       return true;
     } else {
-      throw new Error(response.error || 'Permission denied');
+      throw new Error(response?.error || 'Permission denied');
     }
     
   } catch (error) {
@@ -228,15 +236,24 @@ async function startRecording() {
     }
     
     // Send message to content script to start recording
-    const response = await chrome.tabs.sendMessage(tabs[0].id, { 
-      action: 'startRecording' 
+    const response = await new Promise((resolve, reject) => {
+      chrome.tabs.sendMessage(tabs[0].id, { 
+        action: 'startRecording' 
+      }, (response) => {
+        if (chrome.runtime.lastError) {
+          reject(new Error(chrome.runtime.lastError.message));
+        } else {
+          resolve(response);
+        }
+      });
     });
     
-    if (response.success) {
+    if (response && response.success) {
       isRecording = true;
       
-      // Update UI
+      // Update UI with visual feedback
       micBtn.classList.add('recording');
+      micBtn.classList.add('active'); // Add blue glow effect
       micBtn.title = 'Stop recording';
       
       // Show audio visualizer
@@ -244,7 +261,7 @@ async function startRecording() {
       
       console.log('🎤 Recording started successfully');
     } else {
-      throw new Error(response.error || 'Recording failed');
+      throw new Error(response?.error || 'Recording failed');
     }
     
   } catch (error) {
@@ -286,6 +303,7 @@ function stopRecording() {
     
     // Update UI
     micBtn.classList.remove('recording');
+    micBtn.classList.remove('active'); // Remove blue glow effect
     micBtn.classList.add('processing');
     micBtn.title = 'Processing...';
     
@@ -924,9 +942,6 @@ async function sendMessage() {
     return;
   }
   
-  // Set flag immediately to prevent race conditions
-  isSending = true;
-  
   let message = chatInput.value.trim();
   
   // Validate message length - must be at least 1 character
@@ -944,11 +959,11 @@ async function sendMessage() {
     
     // Show brief error message
     announceToScreenReader('Please enter a message before sending', 'assertive');
-    
-    // Reset flag for early return
-    isSending = false;
     return;
   }
+  
+  // Set flag after validation to prevent race conditions
+  isSending = true;
   
   // Clear input
   chatInput.value = '';
@@ -980,13 +995,21 @@ async function sendMessage() {
   if (attachedFiles.length > 0) {
     console.log('📎 Files attached:', attachedFiles.map(f => f.name));
     
+    // Show file processing indicator
+    showTypingIndicator('Processing files...', 'processing');
+    
     for (const file of attachedFiles) {
       try {
         const content = await readFileContent(file);
         fileContext += `\n\n[File: ${file.name}]\n${content}`;
         console.log(`✅ Processed file: ${file.name}`);
+        
+        // Show success message for each file
+        addMessage('system', `📎 **File Processed**: ${file.name}\n\nFile content has been added to your message context.`);
+        
       } catch (error) {
         console.error(`Error reading file ${file.name}:`, error);
+        addMessage('system', `❌ **File Processing Failed**: ${file.name}\n\nCould not read file content: ${error.message}`);
       }
     }
     
@@ -995,8 +1018,13 @@ async function sendMessage() {
     
     // Clear attachments after processing
     attachedFiles = [];
-    attachmentChips.innerHTML = '';
-    attachmentChips.classList.add('hidden');
+    if (attachmentChips) {
+      attachmentChips.innerHTML = '';
+      attachmentChips.classList.add('hidden');
+    }
+    
+    // Hide file processing indicator
+    hideTypingIndicator();
   }
   
   try {
