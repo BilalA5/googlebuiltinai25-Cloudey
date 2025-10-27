@@ -2448,6 +2448,11 @@ async function analyzeMapsResults(tabId, query, retryCount = 0, maxRetries = 3, 
             
             // Function to extract results from current view
             const extractCurrentResults = () => {
+              console.log('🔍 Starting result extraction...');
+              console.log('Page title:', document.title);
+              console.log('Current URL:', window.location.href);
+              console.log('Search box value:', document.querySelector('input#searchboxinput')?.value);
+              
               // Enhanced selectors for Google Maps sidebar results
               const resultSelectors = [
                 'div[role="article"]',
@@ -2455,35 +2460,44 @@ async function analyzeMapsResults(tabId, query, retryCount = 0, maxRetries = 3, 
                 'div[data-value]',
                 'div[data-result-index]',
                 'div[aria-label*="result"]',
-                'div.g'
+                'div.g',
+                'div[data-result-index]',
+                'div[jsaction*="click"]',
+                'div[role="button"]',
+                'div[tabindex="0"]'
               ];
               
               const resultsList = document.querySelectorAll(resultSelectors.join(','));
               console.log(`Found ${resultsList.length} potential results`);
               
-              // Debug: Check what's actually on the page
-              console.log('Page title:', document.title);
-              console.log('Current URL:', window.location.href);
-              console.log('Search box value:', document.querySelector('input#searchboxinput')?.value);
-              
-              // Try alternative selectors
-              const altSelectors = [
-                'div[data-result-index]',
-                'div[jsaction*="click"]',
-                'div[role="button"]',
-                'div[tabindex="0"]',
-                'div[aria-label*="result"]',
-                'div[data-value]',
-                'div.g',
-                'div[jsaction*="mouseover"]'
-              ];
-              
-              altSelectors.forEach(selector => {
+              // Try each selector individually
+              resultSelectors.forEach(selector => {
                 const elements = document.querySelectorAll(selector);
                 if (elements.length > 0) {
-                  console.log(`Selector "${selector}" found ${elements.length} elements`);
+                  console.log(`✅ Selector "${selector}" found ${elements.length} elements`);
+                } else {
+                  console.log(`❌ Selector "${selector}" found 0 elements`);
                 }
               });
+              
+              // Check for any divs with text content
+              const allDivs = document.querySelectorAll('div');
+              console.log(`Total divs on page: ${allDivs.length}`);
+              
+              // Look for divs that might contain hotel names
+              const hotelDivs = Array.from(allDivs).filter(div => {
+                const text = div.textContent?.toLowerCase() || '';
+                return text.includes('hotel') || text.includes('colosseum') || text.includes('rome');
+              });
+              console.log(`Divs containing hotel/colosseum/rome: ${hotelDivs.length}`);
+              
+              if (hotelDivs.length > 0) {
+                console.log('Sample hotel divs:', hotelDivs.slice(0, 3).map(d => ({
+                  text: d.textContent?.substring(0, 100),
+                  classes: d.className,
+                  id: d.id
+                })));
+              }
               
               resultsList.forEach((result, index) => {
                 if (results.length >= 25) return; // Increased limit
@@ -2693,13 +2707,35 @@ async function analyzeMapsResults(tabId, query, retryCount = 0, maxRetries = 3, 
               scrollAttempts++;
             }
             
-            resolveAnalysis({
-              success: true,
-              query: searchQuery,
-              totalResults: results.length,
-              results: results,
-              message: `Found ${results.length} results for "${searchQuery}"`
-            });
+            // If no results found, add debug info
+            if (results.length === 0) {
+              console.log('❌ No results found - adding debug info');
+              resolveAnalysis({
+                success: false,
+                error: 'No results found',
+                query: searchQuery,
+                totalResults: 0,
+                results: [],
+                debug: {
+                  pageTitle: document.title,
+                  url: window.location.href,
+                  searchValue: document.querySelector('input#searchboxinput')?.value,
+                  totalDivs: document.querySelectorAll('div').length,
+                  hotelDivs: Array.from(document.querySelectorAll('div')).filter(div => {
+                    const text = div.textContent?.toLowerCase() || '';
+                    return text.includes('hotel') || text.includes('colosseum') || text.includes('rome');
+                  }).length
+                }
+              });
+            } else {
+              resolveAnalysis({
+                success: true,
+                query: searchQuery,
+                totalResults: results.length,
+                results: results,
+                message: `Found ${results.length} results for "${searchQuery}"`
+              });
+            }
             
           } catch (error) {
             resolveAnalysis({ success: false, error: error.message });
@@ -3047,7 +3083,13 @@ CRITICAL: You MUST include actual distance numbers, ratings, and specific compar
           const retryResult = await analyzeMapsResults(tabId, query, retryCount + 1, maxRetries, intent);
           resolve(retryResult);
         } else {
-          resolve({ success: true, message: 'Search completed but no detailed results found after multiple attempts' });
+          // Final attempt failed - show debug info
+          console.log('❌ All retry attempts failed - showing debug info');
+          resolve({ 
+            success: false, 
+            message: 'Search completed but no results found after multiple attempts',
+            debug: analysis.debug || 'No debug info available'
+          });
         }
       } else {
         // Handle unknown errors with retry
