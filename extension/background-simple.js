@@ -3041,3 +3041,12 @@ CRITICAL: You MUST include actual distance numbers, ratings, and specific compar
 }
 
 console.log('Cloudey background script ready');
+
+// Test function for debugging intent parsing
+function testIntentParsing() {
+  const testQuery = "best hotel in terms of price and distance to the Colosseum in Italy";
+  console.log('🧪 Testing intent parsing with:', testQuery);
+  const intent = parseMapsIntent(testQuery);
+  console.log('🧪 Test result:', intent);
+  return intent;
+}
