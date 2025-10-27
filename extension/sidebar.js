@@ -2,12 +2,18 @@ import { icons, getIconHTML } from './icons.js';
 
 console.log('Cloudey side panel loaded');
 
+// Audio recording variables
+let microphonePermission = false;
+let isRecording = false;
+let mediaRecorder = null;
+let audioChunks = [];
+
 // DOM elements
 const chatInput = document.getElementById('chat-input');
 const sendBtn = document.getElementById('send-btn');
 const pauseBtn = document.getElementById('pause-btn');
 const stopBtn = document.getElementById('stop-btn');
-const micBtn = document.getElementById('microphone-btn');
+const micBtn = document.getElementById('mic-btn');
 const attachBtn = document.getElementById('attach-btn') || document.querySelector('.prompt-action-btn[title="Attach image"]');
 const fileInput = document.getElementById('file-input');
 const messagesContainer = document.getElementById('messages-container');
@@ -142,6 +148,204 @@ document.addEventListener('keydown', (e) => {
   }
 });
 
+// Audio recording functions
+async function toggleRecording() {
+  if (isRecording) {
+    stopRecording();
+  } else {
+    await startRecording();
+  }
+}
+
+async function requestMicrophonePermission() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ 
+      audio: {
+        echoCancellation: true,
+        noiseSuppression: true,
+        sampleRate: 44100
+      } 
+    });
+    
+    // Stop the stream immediately - we just needed permission
+    stream.getTracks().forEach(track => track.stop());
+    
+    microphonePermission = true;
+    console.log('✅ Microphone permission granted');
+    return true;
+  } catch (error) {
+    console.log('❌ Microphone permission denied:', error);
+    addMessage('system', '🎤 **Microphone Access Required**\n\nTo use voice input, please:\n1. Click the microphone button\n2. Allow microphone access when prompted\n3. Try again!');
+    return false;
+  }
+}
+
+async function startRecording() {
+  if (!microphonePermission) {
+    const hasPermission = await requestMicrophonePermission();
+    if (!hasPermission) return;
+  }
+  
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ 
+      audio: {
+        echoCancellation: true,
+        noiseSuppression: true,
+        sampleRate: 44100
+      } 
+    });
+    
+    mediaRecorder = new MediaRecorder(stream, {
+      mimeType: 'audio/webm;codecs=opus'
+    });
+    
+    audioChunks = [];
+    
+    mediaRecorder.ondataavailable = (event) => {
+      audioChunks.push(event.data);
+    };
+    
+    mediaRecorder.onstop = async () => {
+      const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+      await processAudio(audioBlob);
+      
+      // Clean up
+      stream.getTracks().forEach(track => track.stop());
+    };
+    
+    mediaRecorder.start();
+    isRecording = true;
+    
+    // Update UI
+    micBtn.classList.add('recording');
+    micBtn.title = 'Stop recording';
+    
+    // Show audio visualizer
+    showAudioVisualizer();
+    
+    console.log('🎤 Recording started');
+    
+  } catch (error) {
+    console.log('❌ Recording failed:', error);
+    addMessage('system', '❌ **Recording Failed**\n\nUnable to access microphone. Please check your permissions and try again.');
+  }
+}
+
+function stopRecording() {
+  if (mediaRecorder && isRecording) {
+    mediaRecorder.stop();
+    isRecording = false;
+    
+    // Update UI
+    micBtn.classList.remove('recording');
+    micBtn.classList.add('processing');
+    micBtn.title = 'Processing...';
+    
+    hideAudioVisualizer();
+    
+    console.log('🎤 Recording stopped, processing...');
+  }
+}
+
+async function processAudio(audioBlob) {
+  try {
+    // Convert audio to base64
+    const base64Audio = await blobToBase64(audioBlob);
+    
+    // Call Google Speech-to-Text API
+    const transcription = await callGoogleSpeechAPI(base64Audio);
+    
+    if (transcription && transcription.trim()) {
+      // Insert transcribed text into chat input
+      chatInput.value = transcription;
+      chatInput.focus();
+      
+      // Show success message
+      addMessage('system', `🎤 **Voice Input Received**\n\n"${transcription}"`);
+      
+      console.log('✅ Transcription successful:', transcription);
+    } else {
+      addMessage('system', '❌ **No Speech Detected**\n\nPlease try speaking more clearly or check your microphone.');
+    }
+    
+  } catch (error) {
+    console.log('❌ Transcription failed:', error);
+    addMessage('system', '❌ **Transcription Failed**\n\nUnable to process audio. Please try again.');
+  } finally {
+    // Reset UI
+    micBtn.classList.remove('processing');
+    micBtn.title = 'Voice input';
+  }
+}
+
+async function callGoogleSpeechAPI(base64Audio) {
+  // Get API key from background script
+  const response = await chrome.runtime.sendMessage({ action: 'getApiKey' });
+  const apiKey = response?.apiKey;
+  
+  if (!apiKey) {
+    throw new Error('API key not available');
+  }
+  
+  const speechResponse = await fetch('https://speech.googleapis.com/v1/speech:recognize', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      config: {
+        encoding: 'WEBM_OPUS',
+        sampleRateHertz: 44100,
+        languageCode: 'en-US',
+        alternativeLanguageCodes: ['es', 'fr', 'de', 'it', 'pt'],
+        enableAutomaticPunctuation: true,
+        model: 'latest_long'
+      },
+      audio: {
+        content: base64Audio.split(',')[1] // Remove data:audio/webm;base64, prefix
+      }
+    })
+  });
+  
+  const result = await speechResponse.json();
+  
+  if (result.results && result.results.length > 0) {
+    return result.results[0].alternatives[0].transcript;
+  }
+  
+  return null;
+}
+
+function blobToBase64(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
+
+function showAudioVisualizer() {
+  const visualizer = document.createElement('div');
+  visualizer.className = 'audio-visualizer';
+  visualizer.innerHTML = `
+    <div class="audio-bar"></div>
+    <div class="audio-bar"></div>
+    <div class="audio-bar"></div>
+    <div class="audio-bar"></div>
+  `;
+  
+  micBtn.appendChild(visualizer);
+}
+
+function hideAudioVisualizer() {
+  const visualizer = document.querySelector('.audio-visualizer');
+  if (visualizer) {
+    visualizer.remove();
+  }
+}
+
 // Event listeners
 sendBtn.addEventListener('click', sendMessage);
 pauseBtn.addEventListener('click', stopGeneration);
@@ -232,6 +436,11 @@ if (attachBtn) {
       fileInput.click();
     }
   });
+}
+
+// Microphone button event listener
+if (micBtn) {
+  micBtn.addEventListener('click', toggleRecording);
 }
 
 // FAB actions

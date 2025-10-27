@@ -114,6 +114,10 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         sendResponse({ success: true });
         break;
         
+      case 'getApiKey':
+        sendResponse({ apiKey: GEMINI_API_KEY });
+        break;
+        
       default:
         sendResponse({ error: 'Unknown action' });
     }
