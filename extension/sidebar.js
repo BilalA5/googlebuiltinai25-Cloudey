@@ -13,6 +13,36 @@ function detectPlatform() {
 // Call platform detection on load
 detectPlatform();
 
+// Apply macOS-specific styling after DOM loads
+document.addEventListener('DOMContentLoaded', () => {
+  if (isMacOS && micBtn) {
+    micBtn.classList.add('macos-hidden');
+  }
+});
+
+// Scroll detection for scroll-to-bottom button
+function checkScrollPosition() {
+  if (!messagesContainer || !scrollToBottomBtn) return;
+  
+  const isAtBottom = messagesContainer.scrollTop + messagesContainer.clientHeight >= messagesContainer.scrollHeight - 10;
+  
+  if (isAtBottom) {
+    scrollToBottomBtn.classList.remove('show');
+  } else {
+    scrollToBottomBtn.classList.add('show');
+  }
+}
+
+// Scroll to bottom function
+function scrollToBottom() {
+  if (!messagesContainer) return;
+  
+  messagesContainer.scrollTo({
+    top: messagesContainer.scrollHeight,
+    behavior: 'smooth'
+  });
+}
+
 // Audio recording variables
 let microphonePermission = false;
 let isRecording = false;
@@ -34,6 +64,7 @@ const messagesContainer = document.getElementById('messages-container');
 const attachmentChips = document.getElementById('attachment-chips');
 const assistantTypingRow = document.getElementById('assistant-typing-row');
 const fabToggle = document.getElementById('fab-toggle');
+const scrollToBottomBtn = document.getElementById('scroll-to-bottom');
 const fabActions = document.getElementById('fab-actions');
 const closeBtn = document.getElementById('close-btn');
 const ariaPolite = document.getElementById('aria-polite');
@@ -839,6 +870,16 @@ if (attachBtn) {
   });
 }
 
+// Scroll to bottom button event listener
+if (scrollToBottomBtn) {
+  scrollToBottomBtn.addEventListener('click', scrollToBottom);
+}
+
+// Messages container scroll listener
+if (messagesContainer) {
+  messagesContainer.addEventListener('scroll', checkScrollPosition);
+}
+
 // Microphone button event listener
 if (micBtn) {
   micBtn.addEventListener('click', () => {
@@ -1469,9 +1510,19 @@ function addMessage(role, content) {
   messageDiv.appendChild(contentDiv);
   messagesContainer.appendChild(messageDiv);
   
+  // Enhanced auto-scroll with better timing
+  setTimeout(() => {
+    messagesContainer.scrollTo({
+      top: messagesContainer.scrollHeight,
+      behavior: 'smooth'
+    });
+  }, 50);
+  
+  // Fallback scroll in case smooth scroll doesn't work
   setTimeout(() => {
     messagesContainer.scrollTop = messagesContainer.scrollHeight;
-  }, 100);
+    checkScrollPosition(); // Update scroll button visibility
+  }, 200);
 }
 
 // Typewriter effect
@@ -1513,7 +1564,11 @@ async function typewriterEffect(text, speed = 30) {
       currentText += text[i];
       contentDiv.textContent = currentText;
       
-      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+      // Smooth scroll during typewriter effect
+      messagesContainer.scrollTo({
+        top: messagesContainer.scrollHeight,
+        behavior: 'smooth'
+      });
       
       const adjustedSpeed = text.length > 500 ? speed * 0.6 : speed;
       await sleep(adjustedSpeed);
@@ -1597,7 +1652,13 @@ function showTypingIndicator() {
     messagesContainer.appendChild(assistantTypingRow);
   }
   
-  messagesContainer.scrollTop = messagesContainer.scrollHeight;
+  // Enhanced scroll for typing indicator
+  setTimeout(() => {
+    messagesContainer.scrollTo({
+      top: messagesContainer.scrollHeight,
+      behavior: 'smooth'
+    });
+  }, 50);
   announceToScreenReader('Assistant is thinking', 'polite');
 }
 

@@ -91,11 +91,33 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Global scrollbar styling for the side panel */
+#side-panel-container::-webkit-scrollbar {
+  width: 8px;
+}
+
+#side-panel-container::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 4px;
+}
+
+#side-panel-container::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 4px;
+  transition: background var(--transition-base);
+}
+
+#side-panel-container::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.5);
+}
+
 #side-panel-container {
   display: flex;
   flex-direction: column;
   height: 100vh;
   background: var(--color-surface-base);
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.3) rgba(0, 0, 0, 0.1);
 }
 
 /* ===== HEADER REGION: Persistent Navigation ===== */
@@ -156,7 +178,7 @@ body {
 /* ===== CONTENT REGION: Message History ===== */
 .messages-container {
   flex: 1;
-  overflow-y: auto;
+  overflow-y: scroll;
   overflow-x: hidden;
   padding: var(--space-xl) var(--space-lg);
   padding-top: var(--space-lg);
@@ -168,6 +190,9 @@ body {
   padding-bottom: 180px;
   align-items: flex-start;
   justify-content: flex-start;
+  box-sizing: border-box;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.4) rgba(0, 0, 0, 0.1);
 }
 
 /* Ensure messages start from top */
@@ -175,27 +200,65 @@ body {
   margin-top: 0;
 }
 
+/* Enhanced scrollbar styling for messages container */
 .messages-container::-webkit-scrollbar {
-  width: 10px;
-  background: rgba(0, 0, 0, 0.1);
+  width: 8px;
 }
 
 .messages-container::-webkit-scrollbar-track {
-  background: transparent;
-  border-radius: var(--radius-sm);
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 4px;
 }
 
 .messages-container::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.4);
+  border-radius: 4px;
   transition: background var(--transition-base);
-  border: 2px solid transparent;
-  background-clip: padding-box;
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .messages-container::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.35);
-  background-clip: padding-box;
+  background: rgba(255, 255, 255, 0.6);
+}
+
+.messages-container::-webkit-scrollbar-thumb:active {
+  background: rgba(255, 255, 255, 0.7);
+}
+
+
+/* ===== SCROLL TO BOTTOM BUTTON ===== */
+.scroll-to-bottom-btn {
+  position: fixed;
+  bottom: 120px;
+  right: 20px;
+  width: 40px;
+  height: 40px;
+  background: rgba(59, 130, 246, 0.9);
+  border: none;
+  border-radius: 50%;
+  color: white;
+  cursor: pointer;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  transition: all var(--transition-base);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.scroll-to-bottom-btn:hover {
+  background: rgba(59, 130, 246, 1);
+  transform: scale(1.1);
+  box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
+}
+
+.scroll-to-bottom-btn.show {
+  display: flex;
+}
+
+.scroll-to-bottom-btn .lucide-icon {
+  width: 20px;
+  height: 20px;
 }
 
 /* ===== EMPTY STATE ===== */
@@ -240,7 +303,6 @@ body {
   max-width: 80%;
   min-width: 0;
   animation: slideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  overflow: hidden;
   margin-bottom: 12px;
   margin-top: 0;
 }
@@ -282,6 +344,8 @@ body {
   color: var(--color-text-primary);
   max-width: 100%;
   min-width: 0;
+  display: block;
+  box-sizing: border-box;
 }
 
 .message.user .message-content {
@@ -850,7 +914,27 @@ body.macos #mic-btn:hover {
   transition: all var(--transition-base);
   overflow-y: auto;
   scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+  scrollbar-color: rgba(255, 255, 255, 0.3) rgba(0, 0, 0, 0.1);
+}
+
+/* Prompt textarea scrollbar styling */
+.prompt-textarea::-webkit-scrollbar {
+  width: 6px;
+}
+
+.prompt-textarea::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 3px;
+}
+
+.prompt-textarea::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 3px;
+  transition: background var(--transition-base);
+}
+
+.prompt-textarea::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.5);
 }
 
 /* Right Actions */

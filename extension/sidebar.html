@@ -25,6 +25,14 @@
         <h2 class="empty-state-title">Welcome to Cloudey</h2>
         <p class="empty-state-description">Your AI-powered browser assistant powered by Gemini.</p>
       </div>
+      
+      <!-- Scroll to bottom button -->
+      <button id="scroll-to-bottom" class="scroll-to-bottom-btn" title="Scroll to latest message" aria-label="Scroll to latest message">
+        <svg class="lucide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <path d="M7 13l3 3 7-7"></path>
+          <path d="M7 6l3 3 7-7"></path>
+        </svg>
+      </button>
     </main>
     
     <!-- Assistant Typing Row (Hidden by default) -->
@@ -111,7 +119,7 @@
               </button>
               
               <!-- Microphone Button -->
-              <button class="prompt-action-btn macos-hidden" id="mic-btn" title="Voice input">
+              <button class="prompt-action-btn" id="mic-btn" title="Voice input">
                 <svg class="lucide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                   <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
                   <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
