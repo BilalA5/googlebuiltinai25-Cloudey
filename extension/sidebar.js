@@ -510,7 +510,7 @@ function startMinimalListeningUI() {
   if (listeningStopBtn) {
     listeningStopBtn.addEventListener('click', () => {
       console.log('🛑 Stop button clicked');
-      stopRecording();
+      handleStopButtonClick();
     });
   }
   
@@ -607,6 +607,12 @@ function startSpeechRecognition() {
   speechRecognition.onerror = (event) => {
     console.log('❌ Speech recognition error:', event.error);
     
+    // Don't show error messages for aborted recognition (when user stops)
+    if (event.error === 'aborted') {
+      console.log('🎤 Speech recognition aborted by user');
+      return;
+    }
+    
     let errorMessage = '';
     switch (event.error) {
       case 'no-speech':
@@ -631,12 +637,13 @@ function startSpeechRecognition() {
   speechRecognition.onend = () => {
     console.log('🎤 Speech recognition ended');
     
-    // Process the final transcript
+    // Only process transcript if we have one and it wasn't aborted
     if (finalTranscript.trim()) {
-      processSpeechTranscript(finalTranscript.trim());
+      console.log('🎤 Processing final transcript:', finalTranscript.trim());
+      // Don't process here - let the stop button handle it
     } else if (interimTranscript.trim()) {
-      // Use interim transcript if no final transcript
-      processSpeechTranscript(interimTranscript.trim());
+      console.log('🎤 Processing interim transcript:', interimTranscript.trim());
+      // Don't process here - let the stop button handle it
     } else {
       console.log('🎤 No speech detected');
     }
@@ -669,6 +676,40 @@ function processSpeechTranscript(transcript) {
     // Show success message
     addMessage('system', `🎤 **Voice Input Received**\n\n"${transcript}"\n\nClick send to process your voice message.`);
   }
+}
+
+function handleStopButtonClick() {
+  const listeningStopBtn = document.getElementById('listening-stop-btn');
+  
+  // Show spinner animation
+  if (listeningStopBtn) {
+    listeningStopBtn.classList.add('processing');
+    listeningStopBtn.textContent = '';
+  }
+  
+  // Stop speech recognition first
+  stopSpeechRecognition();
+  
+  // Get the current transcript from chat input
+  const currentTranscript = chatInput ? chatInput.value.trim() : '';
+  
+  // Stop the recording
+  stopRecording();
+  
+  // Process the transcript after a short delay
+  setTimeout(() => {
+    if (currentTranscript) {
+      processSpeechTranscript(currentTranscript);
+    } else {
+      addMessage('system', '🎤 **No Speech Detected**\n\nPlease try speaking again.');
+    }
+    
+    // Reset stop button
+    if (listeningStopBtn) {
+      listeningStopBtn.classList.remove('processing');
+      listeningStopBtn.textContent = '⏹';
+    }
+  }, 1000);
 }
 
 function handleMicrophonePermissionError(error) {

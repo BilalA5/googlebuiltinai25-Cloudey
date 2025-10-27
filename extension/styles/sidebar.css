@@ -524,6 +524,33 @@ body {
   box-shadow: 0 4px 12px rgba(255, 68, 68, 0.4);
 }
 
+.listening-stop-btn.processing {
+  background: #666666;
+  cursor: not-allowed;
+  animation: spinner-rotate 1s linear infinite;
+}
+
+.listening-stop-btn.processing::before {
+  content: '';
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  border: 2px solid transparent;
+  border-top: 2px solid white;
+  border-radius: 50%;
+  animation: spinner-spin 1s linear infinite;
+}
+
+@keyframes spinner-rotate {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes spinner-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
 @keyframes listening-icon-pulse {
   0%, 100% { 
     transform: rotate(-15deg) scale(1);
