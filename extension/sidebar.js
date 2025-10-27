@@ -183,8 +183,8 @@ async function requestMicrophonePermission() {
     
     let errorMessage = '🎤 **Microphone Access Denied**\n\n';
     
-    if (error.message.includes('NotAllowedError')) {
-      errorMessage += 'To enable voice input:\n1. Click the microphone button again\n2. Click "Allow" when Chrome asks for microphone access\n3. Or check Chrome settings: chrome://settings/content/microphone';
+    if (error.message.includes('NotAllowedError') || error.message.includes('Permission dismissed')) {
+      errorMessage += 'To enable voice input:\n1. Click the microphone button again\n2. Click "Allow" when Chrome asks for microphone access\n3. Or check Chrome settings: chrome://settings/content/microphone\n4. Make sure to click "Allow" instead of dismissing the dialog';
     } else if (error.message.includes('NotFoundError')) {
       errorMessage += 'No microphone found. Please connect a microphone and try again.';
     } else if (error.message.includes('NotSupportedError')) {
@@ -775,6 +775,11 @@ function handleFileSelection(e) {
 }
 
 function addAttachmentChip(file) {
+  if (!attachmentChips) {
+    console.log('❌ Attachment chips container not found');
+    return;
+  }
+  
   attachmentChips.classList.remove('hidden');
   
   const chip = document.createElement('div');
@@ -868,7 +873,10 @@ async function sendMessage() {
     return;
   }
   
-  const message = chatInput.value.trim();
+  // Set flag immediately to prevent race conditions
+  isSending = true;
+  
+  let message = chatInput.value.trim();
   
   // Validate message length - must be at least 1 character
   if (message.length < 1) {
@@ -885,10 +893,11 @@ async function sendMessage() {
     
     // Show brief error message
     announceToScreenReader('Please enter a message before sending', 'assertive');
+    
+    // Reset flag for early return
+    isSending = false;
     return;
   }
-  
-  isSending = true;
   
   // Clear input
   chatInput.value = '';
