@@ -542,7 +542,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     clearMapDrawings();
     sendResponse({ success: true });
   } else if (request.action === 'aiCursorMove') {
-    moveAICursor(request.x, request.y, request.action);
+    moveAICursor(request.x, request.y, request.actionText || '');
     sendResponse({ success: true });
   } else if (request.action === 'aiCursorHide') {
     hideAICursor();

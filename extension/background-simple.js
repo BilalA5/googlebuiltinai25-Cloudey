@@ -2386,8 +2386,17 @@ async function searchWithFallbacks(tabId, primaryQuery, intent) {
       await new Promise(resolve => setTimeout(resolve, 2000));
     }
     
-    // All fallbacks failed - try to extract visible results
-    console.log('❌ All fallback searches failed, trying to extract visible results...');
+    // All fallbacks failed - try interactive filter manipulation
+    console.log('❌ All fallback searches failed, trying interactive filter manipulation...');
+    const filteredResults = await extractAndAnalyzeFilteredResults(tabId, intent);
+    
+    if (filteredResults.success) {
+      console.log(`✅ Found ${filteredResults.totalResults} filtered results`);
+      return filteredResults;
+    }
+    
+    // Final fallback - extract visible results without filters
+    console.log('❌ Filter manipulation failed, trying basic visible results...');
     const visibleResults = await extractVisibleResults(tabId, intent);
     
     if (visibleResults.length > 0) {
@@ -2570,6 +2579,215 @@ async function extractVisibleResults(tabId, intent) {
       }
     });
   });
+}
+
+// Interactive Google Maps Filter Manipulation
+async function manipulateMapsFilters(tabId, intent) {
+  console.log('🎛️ Manipulating Google Maps filters based on intent:', intent);
+  
+  return new Promise((resolve) => {
+    chrome.scripting.executeScript({
+      target: { tabId: tabId },
+      func: (userIntent) => {
+        return new Promise((resolveFilters) => {
+          try {
+            console.log('🎛️ Starting filter manipulation...');
+            const actions = [];
+            
+            // 1. Adjust price range based on intent
+            if (userIntent.criteria.price === 'low') {
+              const priceSlider = document.querySelector('input[type="range"], .price-range input');
+              if (priceSlider) {
+                // Move cursor to price slider
+                const rect = priceSlider.getBoundingClientRect();
+                chrome.runtime.sendMessage({
+                  action: 'aiCursorMove',
+                  x: rect.left + rect.width / 2,
+                  y: rect.top + rect.height / 2,
+                  actionText: 'Adjusting price range'
+                });
+                
+                // Set to lower price range (e.g., $0-$100)
+                priceSlider.value = 100;
+                priceSlider.dispatchEvent(new Event('input', { bubbles: true }));
+                priceSlider.dispatchEvent(new Event('change', { bubbles: true }));
+                actions.push('Set price range to $0-$100 for budget search');
+                console.log('✅ Adjusted price range to budget');
+              }
+            } else if (userIntent.criteria.price === 'high') {
+              const priceSlider = document.querySelector('input[type="range"], .price-range input');
+              if (priceSlider) {
+                // Move cursor to price slider
+                const rect = priceSlider.getBoundingClientRect();
+                chrome.runtime.sendMessage({
+                  action: 'aiCursorMove',
+                  x: rect.left + rect.width / 2,
+                  y: rect.top + rect.height / 2,
+                  actionText: 'Setting luxury price range'
+                });
+                
+                // Set to higher price range (e.g., $200+)
+                priceSlider.value = 200;
+                priceSlider.dispatchEvent(new Event('input', { bubbles: true }));
+                priceSlider.dispatchEvent(new Event('change', { bubbles: true }));
+                actions.push('Set price range to $200+ for luxury search');
+                console.log('✅ Adjusted price range to luxury');
+              }
+            }
+            
+            // 2. Adjust guest count if specified
+            const guestField = document.querySelector('[aria-label*="guest"], [aria-label*="Guest"], input[placeholder*="guest"]');
+            if (guestField) {
+              // Default to 2 guests if not specified
+              guestField.value = '2';
+              guestField.dispatchEvent(new Event('input', { bubbles: true }));
+              guestField.dispatchEvent(new Event('change', { bubbles: true }));
+              actions.push('Set guest count to 2');
+              console.log('✅ Set guest count to 2');
+            }
+            
+            // 3. Set dates (default to next week)
+            const dateInputs = document.querySelectorAll('input[type="date"], input[placeholder*="date"], input[aria-label*="date"]');
+            if (dateInputs.length >= 2) {
+              const today = new Date();
+              const tomorrow = new Date(today);
+              tomorrow.setDate(today.getDate() + 1);
+              const dayAfter = new Date(today);
+              dayAfter.setDate(today.getDate() + 2);
+              
+              const formatDate = (date) => {
+                return date.toISOString().split('T')[0];
+              };
+              
+              dateInputs[0].value = formatDate(tomorrow);
+              dateInputs[1].value = formatDate(dayAfter);
+              
+              dateInputs[0].dispatchEvent(new Event('input', { bubbles: true }));
+              dateInputs[1].dispatchEvent(new Event('input', { bubbles: true }));
+              dateInputs[0].dispatchEvent(new Event('change', { bubbles: true }));
+              dateInputs[1].dispatchEvent(new Event('change', { bubbles: true }));
+              
+              actions.push(`Set dates to ${formatDate(tomorrow)} - ${formatDate(dayAfter)}`);
+              console.log('✅ Set check-in/check-out dates');
+            }
+            
+            // 4. Adjust sort order based on criteria
+            const sortDropdown = document.querySelector('select[aria-label*="sort"], select[aria-label*="Sort"], .sort-dropdown select');
+            if (sortDropdown) {
+              // Move cursor to sort dropdown
+              const rect = sortDropdown.getBoundingClientRect();
+              chrome.runtime.sendMessage({
+                action: 'aiCursorMove',
+                x: rect.left + rect.width / 2,
+                y: rect.top + rect.height / 2,
+                actionText: 'Sorting results'
+              });
+              
+              if (userIntent.criteria.distance === 'minimize') {
+                // Sort by distance
+                const distanceOption = Array.from(sortDropdown.options).find(option => 
+                  option.text.toLowerCase().includes('distance') || 
+                  option.text.toLowerCase().includes('closest') ||
+                  option.text.toLowerCase().includes('nearby')
+                );
+                if (distanceOption) {
+                  sortDropdown.value = distanceOption.value;
+                  sortDropdown.dispatchEvent(new Event('change', { bubbles: true }));
+                  actions.push('Sorted by distance (closest first)');
+                  console.log('✅ Sorted by distance');
+                }
+              } else if (userIntent.criteria.price === 'low') {
+                // Sort by price (low to high)
+                const priceOption = Array.from(sortDropdown.options).find(option => 
+                  option.text.toLowerCase().includes('price') && 
+                  option.text.toLowerCase().includes('low')
+                );
+                if (priceOption) {
+                  sortDropdown.value = priceOption.value;
+                  sortDropdown.dispatchEvent(new Event('change', { bubbles: true }));
+                  actions.push('Sorted by price (lowest first)');
+                  console.log('✅ Sorted by price (low to high)');
+                }
+              } else if (userIntent.criteria.rating === 'high') {
+                // Sort by rating
+                const ratingOption = Array.from(sortDropdown.options).find(option => 
+                  option.text.toLowerCase().includes('rating') || 
+                  option.text.toLowerCase().includes('review') ||
+                  option.text.toLowerCase().includes('score')
+                );
+                if (ratingOption) {
+                  sortDropdown.value = ratingOption.value;
+                  sortDropdown.dispatchEvent(new Event('change', { bubbles: true }));
+                  actions.push('Sorted by rating (highest first)');
+                  console.log('✅ Sorted by rating');
+                }
+              }
+            }
+            
+            // 5. Click "Search this area" to apply filters
+            const searchButton = document.querySelector('button[aria-label*="Search this area"], button:contains("Search this area"), .search-area-button');
+            if (searchButton) {
+              searchButton.click();
+              actions.push('Applied filters and searched area');
+              console.log('✅ Clicked search this area');
+            }
+            
+            console.log('🎛️ Filter manipulation complete:', actions);
+            resolveFilters({ success: true, actions: actions });
+            
+          } catch (error) {
+            console.log('Error manipulating filters:', error);
+            resolveFilters({ success: false, error: error.message });
+          }
+        });
+      },
+      args: [intent]
+    }, (results) => {
+      if (chrome.runtime.lastError) {
+        resolve({ success: false, error: chrome.runtime.lastError.message });
+      } else {
+        resolve(results[0]?.result || { success: false, error: 'Unknown error' });
+      }
+    });
+  });
+}
+
+// Enhanced result extraction with filter interaction
+async function extractAndAnalyzeFilteredResults(tabId, intent) {
+  console.log('🔍 Extracting and analyzing filtered results...');
+  
+  // First manipulate the filters
+  const filterResult = await manipulateMapsFilters(tabId, intent);
+  console.log('🎛️ Filter manipulation result:', filterResult);
+  
+  // Wait for results to update
+  await new Promise(resolve => setTimeout(resolve, 3000));
+  
+  // Then extract the filtered results
+  const results = await extractVisibleResults(tabId, intent);
+  
+  if (results.length > 0) {
+    // Score and rank the results
+    const scoredResults = scoreResultsByIntent(results, intent);
+    const bestMatch = scoredResults[0];
+    
+    console.log('🏆 Best match found:', bestMatch);
+    
+    return {
+      success: true,
+      results: scoredResults,
+      bestMatch: bestMatch,
+      totalResults: scoredResults.length,
+      filterActions: filterResult.actions || [],
+      message: `🎛️ **Filtered Search Results**\n\nApplied filters based on your criteria and found ${scoredResults.length} hotels:\n\n🏆 **BEST MATCH:**\n**${bestMatch.title}**\n📍 ${bestMatch.address}\n⭐ ${bestMatch.rating}\n💰 ${bestMatch.price}\n🎯 Score: ${bestMatch.intentScore}\n\n📋 **Top 3 Alternatives:**\n${scoredResults.slice(1, 4).map((r, i) => `${i + 2}. **${r.title}** - ${r.price} - ${r.rating} - Score: ${r.intentScore}`).join('\n')}\n\n🎛️ **Filters Applied:**\n${filterResult.actions?.join('\n') || 'No filters applied'}\n\n⚠️ Note: Results are based on current page view and applied filters.`
+    };
+  }
+  
+  return {
+    success: false,
+    message: 'No results found after applying filters',
+    filterActions: filterResult.actions || []
+  };
 }
 
 async function searchGoogleMaps(query) {
