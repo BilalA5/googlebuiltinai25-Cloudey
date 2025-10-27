@@ -30,7 +30,6 @@ const ariaAssertive = document.getElementById('aria-assertive');
 
 
 // State
-let isListening = false;
 let isStreaming = false;
 let conversationHistory = [];
 let attachedFiles = [];
@@ -46,65 +45,6 @@ const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25MB
 function initializeIcons() {
   // Note: Icons are now embedded directly in HTML as SVG, so no JS initialization needed
   console.log('Icons embedded in HTML structure');
-}
-
-// Initialize Speech Recognition
-const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-let recognition = null;
-
-if (SpeechRecognition) {
-  recognition = new SpeechRecognition();
-  recognition.continuous = false;
-  recognition.interimResults = false;
-  recognition.lang = 'en-US';
-  
-  recognition.onstart = () => {
-    isListening = true;
-    if (micBtn) micBtn.classList.add('listening');
-    announceToScreenReader('Listening for voice input', 'polite');
-  };
-  
-  recognition.onend = () => {
-    isListening = false;
-    if (micBtn) micBtn.classList.remove('listening');
-  };
-  
-  recognition.onresult = (event) => {
-    let transcript = '';
-    for (let i = event.resultIndex; i < event.results.length; i++) {
-      transcript += event.results[i][0].transcript;
-    }
-    if (transcript) {
-      chatInput.value = transcript;
-      autoResizeTextarea();
-      chatInput.focus();
-      announceToScreenReader('Voice input received. Review and press Enter to send.', 'polite');
-    }
-  };
-  
-  recognition.onerror = (event) => {
-    console.error('Speech recognition error:', event.error);
-    
-    let errorMessage = 'Voice input failed. Please try again.';
-    
-    if (event.error === 'not-allowed') {
-      errorMessage = 'Microphone permission denied. Please enable microphone access in Chrome settings.';
-      if (micBtn) {
-        micBtn.disabled = true;
-        micBtn.title = 'Microphone access denied';
-      }
-    } else if (event.error === 'no-speech') {
-      errorMessage = 'No speech detected. Please try again.';
-    } else if (event.error === 'audio-capture') {
-      errorMessage = 'No microphone found. Please check your microphone.';
-    } else if (event.error === 'network') {
-      errorMessage = 'Network error. Please check your connection.';
-    }
-    
-    announceToScreenReader(errorMessage, 'assertive');
-    isListening = false;
-    if (micBtn) micBtn.classList.remove('listening');
-  };
 }
 
 // Auto-resize textarea (0-4 lines)
@@ -130,8 +70,8 @@ document.addEventListener('keydown', (e) => {
   
   // Escape to cancel recording or blur
   if (e.key === 'Escape') {
-    if (isListening && recognition) {
-      recognition.stop();
+    if (isRecording) {
+      stopRecording();
     } else if (document.activeElement === chatInput) {
       chatInput.blur();
     }
@@ -243,20 +183,24 @@ async function requestMicrophonePermission() {
 async function startRecording() {
   console.log('🎤 Starting speech recognition...');
   
-  if (!microphonePermission) {
-    console.log('🎤 No permission yet, requesting...');
-    const hasPermission = await requestMicrophonePermission();
-    if (!hasPermission) {
-      console.log('❌ Permission denied, cannot start recording');
-      // Reset UI state when permission is denied
-      resetMicrophoneUI();
-      return;
-    }
-  }
-  
   try {
+    // Always request microphone permission from user gesture first
+    console.log('🎤 Requesting microphone permission from click...');
+    const stream = await navigator.mediaDevices.getUserMedia({
+      audio: { 
+        echoCancellation: true, 
+        noiseSuppression: true,
+        sampleRate: 44100
+      }
+    });
+    console.log('✅ Microphone access granted from click');
+    
+    // Stop the stream immediately - we just needed permission
+    stream.getTracks().forEach(track => track.stop());
+    
     // Set recording state
     isRecording = true;
+    microphonePermission = true;
     
     // Update UI with visual feedback
     micBtn.classList.add('recording');
@@ -453,6 +397,7 @@ function startSpeechRecognition() {
     }
   };
   
+  // Start speech recognition - this will trigger microphone access
   try {
     speechRecognition.start();
     console.log('🎤 Speech recognition started successfully');
