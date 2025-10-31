@@ -13,24 +13,38 @@ chrome.tabs.onActivated.addListener(async (activeInfo) => {
   if (isAgentModeActive) {
     currentActiveTabId = activeInfo.tabId;
     
+    console.log('Tab activated, agent mode is active. Moving border to tab:', activeInfo.tabId);
+    
     // Remove border from all tabs
     const allTabs = await chrome.tabs.query({});
-    allTabs.forEach(tab => {
+    for (const tab of allTabs) {
       try {
-        chrome.tabs.sendMessage(tab.id, { action: 'agentEnd' });
+        await chrome.tabs.sendMessage(tab.id, { action: 'agentEnd' });
       } catch (error) {
-        // Ignore errors
+        // Content script not available on this tab
+        console.log(`Could not remove border from tab ${tab.id}:`, error.message);
       }
-    });
+    }
     
-    // Add border to new active tab
-    setTimeout(() => {
-      try {
-        chrome.tabs.sendMessage(activeInfo.tabId, { action: 'agentStart' });
-      } catch (error) {
-        console.error('Error starting agent border on new tab:', error);
+    // Add border to new active tab with retry logic
+    const addBorderWithRetry = async (tabId, retries = 3) => {
+      for (let i = 0; i < retries; i++) {
+        try {
+          // Wait for content script to be ready
+          await new Promise(resolve => setTimeout(resolve, 200 * (i + 1)));
+          await chrome.tabs.sendMessage(tabId, { action: 'agentStart' });
+          console.log('Agent border added to tab:', tabId);
+          return;
+        } catch (error) {
+          console.log(`Attempt ${i + 1} failed for tab ${tabId}:`, error.message);
+          if (i === retries - 1) {
+            console.error('Failed to add agent border after all retries:', error);
+          }
+        }
       }
-    }, 100);
+    };
+    
+    addBorderWithRetry(activeInfo.tabId);
   }
 });
 
