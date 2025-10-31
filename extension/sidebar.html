@@ -119,32 +119,14 @@
               </button>
               
               <!-- Microphone Button -->
-              <div class="mic-button-container">
-                <button class="prompt-action-btn" id="mic-btn" title="Voice input">
-                  <svg class="lucide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                    <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
-                    <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
-                    <line x1="12" y1="19" x2="12" y2="23"></line>
-                    <line x1="8" y1="23" x2="16" y2="23"></line>
-                  </svg>
-                </button>
-                
-                <!-- macOS Tooltip -->
-                <div class="mic-tooltip" id="mic-tooltip">
-                  <div class="tooltip-content">
-                    <div class="tooltip-header">
-                      <svg class="lucide-icon-small" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <circle cx="12" cy="12" r="10"></circle>
-                        <path d="M12 6v6l4 2"></path>
-                      </svg>
-                      <span>Not Supported on macOS</span>
-                    </div>
-                    <div class="tooltip-description">
-                      Voice input is currently unavailable on macOS. Please use text input instead.
-                    </div>
-                  </div>
-                </div>
-              </div>
+              <button class="prompt-action-btn" id="mic-btn" title="Voice input">
+                <svg class="lucide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+                  <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                  <line x1="12" y1="19" x2="12" y2="23"></line>
+                  <line x1="8" y1="23" x2="16" y2="23"></line>
+                </svg>
+              </button>
               
               <!-- Toggle Buttons -->
               <div class="toggle-buttons">
@@ -272,18 +254,5 @@
   </div>
 
   <script type="module" src="sidebar.js"></script>
-  
-  <!-- Platform Detection Script -->
-  <script>
-    // Add platform class to body
-    document.addEventListener('DOMContentLoaded', () => {
-      const userAgent = navigator.userAgent.toLowerCase();
-      const isMacOS = userAgent.includes('mac os x') || userAgent.includes('macintosh');
-      
-      if (isMacOS) {
-        document.body.classList.add('macos');
-      }
-    });
-  </script>
 </body>
 </html>

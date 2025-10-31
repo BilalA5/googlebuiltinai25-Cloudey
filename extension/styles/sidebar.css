@@ -450,82 +450,99 @@ body {
   background-clip: text;
 }
 
-/* Hide microphone button on macOS */
-body.macos #mic-btn {
-  opacity: 0.5;
-  cursor: not-allowed;
+/* Microphone button visual states */
+
+/* Default state - ready to use */
+#mic-btn {
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+/* Active/Recording state - mic is actively recording */
+#mic-btn.recording.active {
+  background: rgba(239, 68, 68, 0.25) !important;
+  border-color: rgba(239, 68, 68, 0.7) !important;
+  animation: mic-recording-pulse 1.5s infinite;
+  box-shadow: 0 0 15px rgba(239, 68, 68, 0.5), 0 0 30px rgba(239, 68, 68, 0.3);
+}
+
+#mic-btn.recording.active svg {
+  color: #ef4444;
+  filter: drop-shadow(0 0 5px rgba(239, 68, 68, 0.8));
+}
+
+/* Processing state - transcribing */
+#mic-btn.processing {
+  background: rgba(100, 200, 255, 0.25) !important;
+  border-color: rgba(100, 200, 255, 0.6) !important;
   position: relative;
 }
 
-body.macos #mic-btn::after {
+#mic-btn.processing svg {
+  display: none;
+}
+
+#mic-btn.processing::after {
+  content: '';
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(96, 165, 250, 0.3);
+  border-top-color: #60a5fa;
+  border-radius: 50%;
+  animation: spinner-spin 0.8s linear infinite;
+}
+
+/* Disabled state - no access/permission denied */
+#mic-btn.disabled {
+  opacity: 0.4;
+  cursor: not-allowed !important;
+  background: rgba(100, 100, 100, 0.1) !important;
+  border-color: rgba(100, 100, 100, 0.3) !important;
+  position: relative;
+}
+
+#mic-btn.disabled::after {
   content: '';
   position: absolute;
   top: 50%;
   left: 50%;
-  width: 2px;
-  height: 24px;
-  background: #ff4444;
-  transform: translate(-50%, -50%) rotate(45deg);
+  transform: translate(-50%, -50%) rotate(-45deg);
+  width: 100%;
+  height: 2px;
+  background: rgba(239, 68, 68, 0.8);
   z-index: 10;
 }
 
-body.macos #mic-btn:hover {
-  background: rgba(255, 68, 68, 0.1);
-  border-color: rgba(255, 68, 68, 0.3);
+#mic-btn.disabled:hover {
+  transform: none !important;
+  background: rgba(100, 100, 100, 0.1) !important;
 }
 
-/* Microphone button container for tooltip positioning */
-.mic-button-container {
-  position: relative;
-  display: inline-block;
+#mic-btn.disabled svg {
+  color: #9ca3af;
 }
 
-/* Microphone tooltip styling */
-.mic-tooltip {
-  position: absolute;
-  bottom: 100%;
-  left: 50%;
-  transform: translateX(-50%) translateY(-8px);
-  background: rgba(20, 20, 30, 0.95);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 8px;
-  padding: 8px 12px;
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.9);
-  white-space: nowrap;
-  opacity: 0;
-  visibility: hidden;
-  transition: all 0.2s ease;
-  z-index: 1000;
-  pointer-events: none;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+/* Animation for recording pulse */
+@keyframes mic-recording-pulse {
+  0%, 100% {
+    box-shadow: 0 0 15px rgba(239, 68, 68, 0.5), 0 0 30px rgba(239, 68, 68, 0.3);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0 25px rgba(239, 68, 68, 0.7), 0 0 45px rgba(239, 68, 68, 0.5);
+    transform: scale(1.05);
+  }
 }
 
-/* Show tooltip on macOS hover */
-body.macos .mic-button-container:hover .mic-tooltip {
-  opacity: 1;
-  visibility: visible;
-  transform: translateX(-50%) translateY(-12px);
-}
-
-/* Microphone button states */
-#mic-btn.recording {
-  background: rgba(255, 100, 100, 0.2);
-  border-color: rgba(255, 100, 100, 0.5);
-  animation: mic-pulse 1.5s infinite;
-}
-
-#mic-btn.processing {
-  background: rgba(100, 200, 255, 0.2);
-  border-color: rgba(100, 200, 255, 0.5);
-}
-
-#mic-btn.active {
-  background: rgba(59, 130, 246, 0.3);
-  border-color: rgba(59, 130, 246, 0.6);
-  box-shadow: 0 0 20px rgba(59, 130, 246, 0.4);
-  animation: mic-glow 2s ease-in-out infinite;
+/* Animation for spinner */
+@keyframes spinner-spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 @keyframes mic-pulse {
@@ -2105,11 +2122,5 @@ body.macos .mic-button-container:hover .mic-tooltip {
 }
 
 /* ===== PLATFORM-SPECIFIC RULES ===== */
-
-/* Alternative CSS-based hiding for macOS */
-@media screen and (-webkit-min-device-pixel-ratio: 0) {
-  .macos-hidden {
-    display: none !important;
-  }
-}
+/* No platform-specific restrictions */
 

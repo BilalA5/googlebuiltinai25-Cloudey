@@ -2,23 +2,7 @@ import { icons, getIconHTML } from './icons.js';
 
 console.log('Cloudey side panel loaded');
 
-// Platform detection
-let isMacOS = false;
-
-function detectPlatform() {
-  const userAgent = navigator.userAgent.toLowerCase();
-  isMacOS = userAgent.includes('mac os x') || userAgent.includes('macintosh');
-}
-
-// Call platform detection on load
-detectPlatform();
-
-// Apply macOS-specific styling after DOM loads
-document.addEventListener('DOMContentLoaded', () => {
-  if (isMacOS && micBtn) {
-    micBtn.classList.add('macos-hidden');
-  }
-});
+// Platform detection removed - microphone works on all platforms
 
 // Scroll detection for scroll-to-bottom button
 function checkScrollPosition() {
@@ -51,13 +35,15 @@ let micButtonCooldown = false; // Prevent rapid clicking
 let listeningStartTime = null; // Track recording start time
 let listeningTimer = null; // Timer for updating display
 let speechRecognition = null; // Web Speech API for real-time transcription
+let maxRecordingTime = 20000; // 20 seconds max recording time
+let recordingTimeout = null; // Timeout for auto-stop
 
 // DOM elements
 const chatInput = document.getElementById('chat-input');
 const sendBtn = document.getElementById('send-btn');
 const pauseBtn = document.getElementById('pause-btn');
 const stopBtn = document.getElementById('stop-btn');
-const micBtn = isMacOS ? null : document.getElementById('mic-btn');
+const micBtn = document.getElementById('mic-btn');
 const attachBtn = document.getElementById('attach-btn') || document.querySelector('.prompt-action-btn[title="Attach image"]');
 const fileInput = document.getElementById('file-input');
 const messagesContainer = document.getElementById('messages-container');
@@ -135,10 +121,7 @@ document.addEventListener('keydown', (e) => {
 
 // Platform check for microphone availability
 function checkMicrophoneAvailability() {
-  if (isMacOS) {
-    console.log('🎤 Microphone disabled on macOS');
-    return false;
-  }
+  // Microphone is available on all platforms
   return true;
 }
 
@@ -151,7 +134,7 @@ async function toggleRecording() {
   
   // Prevent rapid clicking
   if (micButtonCooldown) {
-    console.log('🎤 Microphone button in cooldown, ignoring click');
+    console.log('Microphone button in cooldown, ignoring click');
     return;
   }
   
@@ -171,231 +154,206 @@ async function toggleRecording() {
   }
 }
 
-// Microphone Permission Window Functions
-async function openMicrophonePermissionWindow() {
-  try {
-    console.log('🎤 Opening microphone permission window...');
-    
-    const window = await chrome.windows.create({
-      url: chrome.runtime.getURL('mic-permission.html'),
-      type: 'popup',
-      width: 420,
-      height: 280,
-      focused: true
-    });
-    
-    console.log('✅ Microphone permission window opened:', window.id);
-    return window.id;
-    
-  } catch (error) {
-    console.error('❌ Failed to open microphone permission window:', error);
-    throw error;
-  }
-}
-
-function showMicrophonePermissionRequired() {
-  addMessage('system', `🎤 **Microphone Access Required**
-
-To use voice input on macOS, Cloudey needs to request microphone permission from a trusted window.
-
-**Click the microphone button below to enable microphone access.**`);
-}
-
-// Check if microphone is actually working (not just permission granted)
-async function testMicrophoneAccess() {
-  try {
-    const stream = await navigator.mediaDevices.getUserMedia({
-      audio: { 
-        echoCancellation: true,
-        noiseSuppression: true,
-        sampleRate: 44100
-      }
-    });
-    
-    // Test if we can actually get audio data
-    const audioContext = new AudioContext();
-    const source = audioContext.createMediaStreamSource(stream);
-    const analyser = audioContext.createAnalyser();
-    source.connect(analyser);
-    
-    const dataArray = new Uint8Array(analyser.frequencyBinCount);
-    analyser.getByteFrequencyData(dataArray);
-    
-    // Stop the stream
-    stream.getTracks().forEach(track => track.stop());
-    audioContext.close();
-    
-    // Check if we got any audio data (not just silence)
-    const hasAudio = dataArray.some(value => value > 0);
-    
-    console.log('🎤 Microphone test result:', hasAudio ? 'Audio detected' : 'No audio detected');
-    return hasAudio;
-    
-  } catch (error) {
-    console.log('❌ Microphone test failed:', error);
-    return false;
-  }
-}
-
-// Reusable microphone function
-async function startMicrophone() {
-  try {
-    const stream = await navigator.mediaDevices.getUserMedia({
-      audio: { 
-        echoCancellation: true, 
-        noiseSuppression: true,
-        sampleRate: 44100
-      }
-    });
-    console.log("✅ Microphone access granted");
-    return stream;
-  } catch (err) {
-    console.error("❌ Microphone access error:", err);
-    
-    let errorMessage = '';
-    switch (err.name) {
-      case 'NotAllowedError':
-        errorMessage = '🎤 **Microphone Permission Denied**\n\nPlease enable microphone access in Chrome settings:\n1. Click the microphone button again and select "Allow"\n2. Go to chrome://settings/content/microphone\n3. Find this extension and set it to "Allow"';
-        break;
-      case 'NotFoundError':
-        errorMessage = '🎤 **No Microphone Found**\n\nPlease connect a microphone to your computer.';
-        break;
-      case 'NotReadableError':
-        errorMessage = '🎤 **Microphone In Use**\n\nAnother application is using your microphone. Please close other apps and try again.';
-        break;
-      default:
-        errorMessage = `🎤 **Microphone Error**\n\nError: ${err.message}\n\nPlease check your microphone settings.`;
-    }
-    
-    addMessage('system', errorMessage);
-    throw err;
-  }
-}
-
-async function requestMicrophonePermission() {
-  try {
-    console.log('🎤 Requesting microphone permission...');
-    
-    // Check if we're in a user-initiated context
-    if (!isUserInitiated) {
-      throw new Error('Microphone access must be initiated by user interaction');
-    }
-    
-    // Use the simple microphone function
-    const stream = await startMicrophone();
-    
-    // Stop the stream immediately - we just needed permission
-    stream.getTracks().forEach(track => track.stop());
-    
-    microphonePermission = true;
-    console.log('✅ Microphone permission granted');
-    
-    // Show success message
-    addMessage('system', '🎤 **Microphone Access Granted!**\n\nYou can now use voice input. Click the microphone button to start recording.');
-    
-    return true;
-    
-  } catch (error) {
-    console.log('❌ Microphone permission denied:', error);
-    handleMicrophonePermissionError(error);
-    return false;
-  }
-}
+// Microphone permission and recording functions simplified
 
 async function startRecording() {
-  // Check if microphone is available on this platform
-  if (!checkMicrophoneAvailability()) {
-    return;
-  }
-  
-  console.log('🎤 Starting speech recognition...');
+  console.log('Starting speech recognition');
   
   try {
-    // Always request microphone permission from user gesture first
-    console.log('🎤 Requesting microphone permission from click...');
-    const stream = await navigator.mediaDevices.getUserMedia({
-      audio: { 
-        echoCancellation: true, 
-        noiseSuppression: true,
-        sampleRate: 44100
+    // Check if Speech Recognition API is available
+    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+      addMessage('system', '**Speech Recognition Not Supported**\n\nYour browser does not support speech recognition. Please use Chrome or Edge.');
+      if (micBtn) {
+        micBtn.classList.add('disabled');
+        micBtn.title = 'Speech recognition not supported';
       }
-    });
-    console.log('✅ Microphone access granted from click');
-    
-    // Stop the stream immediately - we just needed permission
-    stream.getTracks().forEach(track => track.stop());
-    
-    // Test if microphone is actually working (not just permission granted)
-    const microphoneWorking = await testMicrophoneAccess();
-    
-    if (!microphoneWorking) {
-      console.log('⚠️ Microphone permission granted but no audio detected - likely blocked on macOS');
-      showMicrophonePermissionRequired();
-      
-      // Open the trusted permission window
-      await openMicrophonePermissionWindow();
-      return; // Don't start recording yet, wait for permission window
+      return;
     }
     
-    // Set recording state
-    isRecording = true;
-    microphonePermission = true;
+    // Check if getUserMedia is available
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      console.error('getUserMedia not supported');
+      addMessage('system', '**Microphone Not Supported**\n\nYour browser does not support microphone access.');
+      if (micBtn) {
+        micBtn.classList.add('disabled');
+        micBtn.title = 'Microphone not supported';
+      }
+      return;
+    }
     
-    // Update UI with visual feedback
-    micBtn.classList.add('recording');
-    micBtn.title = 'Stop recording';
-    
-    // Start minimal listening UI (this will start Web Speech API)
-    startMinimalListeningUI();
-    
-    console.log('🎤 Speech recognition started successfully');
-    
-  } catch (error) {
-    console.log('❌ Speech recognition failed:', error);
-    
-    // Check if this is a macOS permission issue
-    if (error.name === 'NotAllowedError' || error.message.includes('Permission dismissed')) {
-      console.log('🎤 macOS permission issue detected, opening trusted window');
-      showMicrophonePermissionRequired();
+    // Check if we already have permission
+    if (!microphonePermission) {
+      console.log('Requesting microphone permission');
+      addMessage('system', '**Permission Required**\n\nA browser permission prompt should appear. Please click "Allow" to use the microphone.');
       
       try {
-        await openMicrophonePermissionWindow();
-        return; // Don't show error, permission window will handle it
-      } catch (windowError) {
-        console.error('❌ Failed to open permission window:', windowError);
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        console.log('Microphone permission granted');
+        
+        // Log audio input device info
+        const audioTracks = stream.getAudioTracks();
+        if (audioTracks.length > 0) {
+          console.log('Using microphone:', audioTracks[0].label);
+          console.log('Microphone settings:', audioTracks[0].getSettings());
+        }
+        
+        // Stop stream immediately after permission check
+        stream.getTracks().forEach(track => track.stop());
+        
+        microphonePermission = true;
+      } catch (permError) {
+        console.error('Microphone permission error:');
+        console.error('Error name:', permError.name);
+        console.error('Error message:', permError.message);
+        console.error('Full error:', permError);
+        
+        // Update UI for disabled state
+        if (micBtn) {
+          // Don't disable button if user just dismissed the prompt
+          if (permError.message && permError.message.toLowerCase().includes('dismiss')) {
+            micBtn.title = 'Voice input - Click Allow when prompted';
+          } else {
+            micBtn.classList.add('disabled');
+            micBtn.title = 'Microphone access denied - Check system permissions';
+          }
+        }
+        
+        // Detect platform for platform-specific instructions
+        const isMacOS = navigator.platform.toLowerCase().includes('mac');
+        const isWindows = navigator.platform.toLowerCase().includes('win');
+        
+        // Display error message to user
+        let errorMessage = '**Microphone Access Required**\n\n';
+        
+        if (permError.name === 'NotAllowedError') {
+          // Check if permission prompt was dismissed
+          if (permError.message && permError.message.toLowerCase().includes('dismiss')) {
+            errorMessage += 'Permission prompt was closed without allowing access.\n\n';
+            errorMessage += '**To enable:**\n';
+            errorMessage += '1. Click the microphone button again\n';
+            errorMessage += '2. Look for the permission popup at the top of the browser window\n';
+            errorMessage += '3. Click "Allow" without clicking outside or pressing Escape';
+          } else if (isMacOS) {
+            // macOS system-level permission issue
+            errorMessage += 'macOS requires system permission for microphone access.\n\n**To enable:**\n';
+            errorMessage += '1. Open **System Preferences** (or System Settings)\n';
+            errorMessage += '2. Go to **Security & Privacy → Privacy → Microphone**\n';
+            errorMessage += '3. Find and enable your browser (Chrome/Edge)\n';
+            errorMessage += '4. **Completely quit and restart** your browser\n';
+            errorMessage += '5. Reload this extension\n';
+            errorMessage += '6. Click the microphone button again\n\n';
+            errorMessage += 'After system permission is granted, you\'ll see a browser prompt to click "Allow".';
+          } else if (isWindows) {
+            errorMessage += 'Windows requires system permission for microphone access.\n\n**To enable:**\n';
+            errorMessage += '1. Open **Windows Settings → Privacy → Microphone**\n';
+            errorMessage += '2. Enable "Allow apps to access your microphone"\n';
+            errorMessage += '3. Ensure Chrome/Edge is allowed\n';
+            errorMessage += '4. Restart your browser\n';
+            errorMessage += '5. Click the microphone button again';
+          } else {
+            errorMessage += 'Microphone access was blocked.\n\n**To enable:**\n';
+            errorMessage += '1. Look for the microphone icon in your browser address bar\n';
+            errorMessage += '2. Click it and select "Allow"\n';
+            errorMessage += '3. Or go to chrome://settings/content/microphone\n';
+            errorMessage += '4. Check your system microphone permissions';
+          }
+          
+        } else if (permError.name === 'NotFoundError') {
+          errorMessage += 'No microphone detected. Please connect a microphone and try again.';
+        } else if (permError.name === 'NotReadableError') {
+          errorMessage += 'Microphone is already in use by another application. Please close other apps using the microphone.';
+        } else {
+          errorMessage += `Error: ${permError.message}\n\nPlease check your microphone settings.`;
+        }
+        
+        addMessage('system', errorMessage);
+        return;
       }
+    } else {
+      console.log('Microphone permission already granted, starting recording');
     }
     
-    // Reset UI state on any error
+    isRecording = true;
+    
+    // Update UI for active recording
+    if (micBtn) {
+      micBtn.classList.remove('disabled');
+      micBtn.classList.add('recording', 'active');
+      micBtn.title = 'Stop recording (max 20s)';
+    }
+    
+    startMinimalListeningUI();
+    
+    // Auto-stop recording after 20 seconds
+    recordingTimeout = setTimeout(() => {
+      console.log('Recording time limit reached, auto-stopping');
+      addMessage('system', '**Recording Time Limit**\n\n20-second maximum reached. Processing your speech...');
+      
+      // Get transcript before stopping
+      const currentTranscript = chatInput ? chatInput.value.trim() : '';
+      
+      stopRecording();
+      
+      // Process transcript if available
+      if (currentTranscript) {
+        processSpeechTranscript(currentTranscript);
+        
+        // Reset mic button after processing
+        setTimeout(() => {
+          if (micBtn) {
+            micBtn.classList.remove('recording', 'processing', 'active');
+            micBtn.title = 'Voice input';
+          }
+        }, 500);
+      } else {
+        if (micBtn) {
+          micBtn.classList.remove('recording', 'processing', 'active');
+          micBtn.title = 'Voice input';
+        }
+      }
+    }, maxRecordingTime);
+    
+    console.log('Speech recognition started successfully');
+    
+  } catch (error) {
+    console.error('Speech recognition failed:', error);
+    
     resetMicrophoneUI();
     
-    // Handle the error with proper messaging
-    handleMicrophonePermissionError(error);
+    let errorMessage = '**Microphone Error**\n\n';
+    errorMessage += `${error.message}\n\nPlease try again or check your microphone settings.`;
+    
+    addMessage('system', errorMessage);
   }
 }
 
 function stopRecording() {
   if (isRecording) {
-    console.log('🎤 Stopping recording...');
+    console.log('Stopping recording');
     
     isRecording = false;
     
-    // Update UI
-    micBtn.classList.remove('recording');
-    micBtn.classList.add('processing');
-    micBtn.title = 'Processing...';
+    // Clear auto-stop timeout
+    if (recordingTimeout) {
+      clearTimeout(recordingTimeout);
+      recordingTimeout = null;
+    }
     
-    // Hide audio visualizer
+    // Update UI for processing state
+    if (micBtn) {
+      micBtn.classList.remove('recording', 'active');
+      micBtn.classList.add('processing');
+      micBtn.title = 'Processing...';
+    }
+    
     hideAudioVisualizer();
-    
-    // Stop minimal listening UI
     stopMinimalListeningUI();
     
-    console.log('🎤 Recording stopped');
+    console.log('Recording stopped');
   }
 }
 
-// Minimal Listening Animation Controller
+// Minimal listening UI controller
 function startMinimalListeningUI() {
   const listeningOverlay = document.getElementById('listening-overlay');
   const listeningTimerElement = document.getElementById('listening-timer');
@@ -403,13 +361,13 @@ function startMinimalListeningUI() {
   
   if (listeningOverlay) {
     listeningOverlay.classList.add('active');
-    console.log('🎤 Started minimal listening UI');
+    console.log('Started minimal listening UI');
   }
   
   // Add stop button event listener
   if (listeningStopBtn) {
     listeningStopBtn.addEventListener('click', () => {
-      console.log('🛑 Stop button clicked');
+      console.log('Stop button clicked');
       handleStopButtonClick();
     });
   }
@@ -418,7 +376,6 @@ function startMinimalListeningUI() {
   listeningStartTime = Date.now();
   listeningTimer = setInterval(updateListeningTimer, 100);
   
-  // Start real-time speech recognition
   startSpeechRecognition();
 }
 
@@ -427,16 +384,14 @@ function stopMinimalListeningUI() {
   
   if (listeningOverlay) {
     listeningOverlay.classList.remove('active');
-    console.log('🎤 Stopped minimal listening UI');
+    console.log('Stopped minimal listening UI');
   }
   
-  // Stop timer
   if (listeningTimer) {
     clearInterval(listeningTimer);
     listeningTimer = null;
   }
   
-  // Stop speech recognition
   stopSpeechRecognition();
 }
 
@@ -451,17 +406,17 @@ function updateListeningTimer() {
 }
 
 function startSpeechRecognition() {
-  // Check if Speech Recognition is supported
+  // Check if Speech Recognition API is available
   if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-    console.log('❌ Speech Recognition not supported');
-    addMessage('system', '🎤 **Speech Recognition Not Supported**\n\nYour browser does not support speech recognition. Please use text input instead.');
+    console.log('Speech Recognition not supported');
+    addMessage('system', '**Speech Recognition Not Supported**\n\nYour browser does not support speech recognition. Please use text input instead.');
     return;
   }
   
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   speechRecognition = new SpeechRecognition();
   
-  // Configure speech recognition for better accuracy
+  // Configure for continuous and interim results
   speechRecognition.continuous = true;
   speechRecognition.interimResults = true;
   speechRecognition.lang = 'en-US';
@@ -471,12 +426,13 @@ function startSpeechRecognition() {
   let interimTranscript = '';
   
   speechRecognition.onstart = () => {
-    console.log('🎤 Speech recognition started');
+    console.log('Speech recognition started');
     finalTranscript = '';
     interimTranscript = '';
   };
   
   speechRecognition.onresult = (event) => {
+    console.log('Speech recognition received result event');
     interimTranscript = '';
     
     for (let i = event.resultIndex; i < event.results.length; i++) {
@@ -485,14 +441,14 @@ function startSpeechRecognition() {
       
       if (event.results[i].isFinal) {
         finalTranscript += transcript + ' ';
-        console.log('🎤 Final transcript:', transcript, 'Confidence:', confidence);
+        console.log('Final transcript:', transcript, 'Confidence:', confidence);
       } else {
         interimTranscript += transcript;
-        console.log('🎤 Interim transcript:', transcript);
+        console.log('Interim transcript:', transcript);
       }
     }
     
-    // Update the chat input with real-time transcription
+    // Update chat input with real-time transcription
     if (chatInput) {
       const displayText = finalTranscript + interimTranscript;
       chatInput.value = displayText;
@@ -505,57 +461,78 @@ function startSpeechRecognition() {
   };
   
   speechRecognition.onerror = (event) => {
-    console.log('❌ Speech recognition error:', event.error);
+    console.log('Speech recognition error:', event.error);
+    console.log('Error details:', event);
     
-    // Don't show error messages for aborted recognition (when user stops)
+    // Skip error messages for user-aborted recognition
     if (event.error === 'aborted') {
-      console.log('🎤 Speech recognition aborted by user');
+      console.log('Speech recognition aborted by user');
       return;
     }
     
     let errorMessage = '';
     switch (event.error) {
       case 'no-speech':
-        errorMessage = '🎤 **No Speech Detected**\n\nPlease speak clearly into your microphone.';
+        errorMessage = '**No Speech Detected**\n\nPlease speak clearly into your microphone.';
         break;
       case 'audio-capture':
-        errorMessage = '🎤 **Microphone Error**\n\nCould not access your microphone. Please check your microphone settings.';
+        errorMessage = '**Microphone Error**\n\nCould not access your microphone. Please check your microphone settings.';
         break;
       case 'not-allowed':
-        errorMessage = '🎤 **Permission Denied**\n\nMicrophone access was denied. Please allow microphone access and try again.';
+        errorMessage = '**Permission Denied**\n\nMicrophone access was denied. Please allow microphone access and try again.';
         break;
       case 'network':
-        errorMessage = '🎤 **Network Error**\n\nSpeech recognition requires an internet connection. Please check your connection.';
+        errorMessage = '**Network Error**\n\nSpeech recognition requires an internet connection. Please check your connection.';
         break;
       default:
-        errorMessage = `🎤 **Speech Recognition Error**\n\nError: ${event.error}\n\nPlease try again.`;
+        errorMessage = `**Speech Recognition Error**\n\nError: ${event.error}\n\nPlease try again.`;
     }
     
     addMessage('system', errorMessage);
   };
   
+  speechRecognition.onaudiostart = () => {
+    console.log('Audio capture started');
+  };
+  
+  speechRecognition.onaudioend = () => {
+    console.log('Audio capture ended');
+  };
+  
+  speechRecognition.onsoundstart = () => {
+    console.log('Sound detected');
+  };
+  
+  speechRecognition.onsoundend = () => {
+    console.log('Sound ended');
+  };
+  
+  speechRecognition.onspeechstart = () => {
+    console.log('Speech detected');
+  };
+  
+  speechRecognition.onspeechend = () => {
+    console.log('Speech ended');
+  };
+  
   speechRecognition.onend = () => {
-    console.log('🎤 Speech recognition ended');
+    console.log('Speech recognition ended');
     
-    // Only process transcript if we have one and it wasn't aborted
     if (finalTranscript.trim()) {
-      console.log('🎤 Processing final transcript:', finalTranscript.trim());
-      // Don't process here - let the stop button handle it
+      console.log('Processing final transcript:', finalTranscript.trim());
     } else if (interimTranscript.trim()) {
-      console.log('🎤 Processing interim transcript:', interimTranscript.trim());
-      // Don't process here - let the stop button handle it
+      console.log('Processing interim transcript:', interimTranscript.trim());
     } else {
-      console.log('🎤 No speech detected');
+      console.log('No speech detected');
     }
   };
   
-  // Start speech recognition - this will trigger microphone access
   try {
     speechRecognition.start();
-    console.log('🎤 Speech recognition started successfully');
+    console.log('Speech recognition started successfully');
   } catch (error) {
-    console.log('❌ Failed to start speech recognition:', error);
-    addMessage('system', '🎤 **Speech Recognition Failed**\n\nCould not start speech recognition. Please try again.');
+    console.log('Failed to start speech recognition:', error);
+    addMessage('system', '**Speech Recognition Failed**\n\nCould not start speech recognition. Please try again.');
   }
 }
 
@@ -567,22 +544,28 @@ function stopSpeechRecognition() {
 }
 
 function processSpeechTranscript(transcript) {
-  console.log('🎤 Processing speech transcript:', transcript);
+  console.log('Processing speech transcript:', transcript);
   
-  // Add transcript to message input
+  // Add transcript to input for user to review
   if (chatInput && transcript) {
     chatInput.value = transcript;
-    chatInput.focus();
     
-    // Show success message
-    addMessage('system', `🎤 **Voice Input Received**\n\n"${transcript}"\n\nClick send to process your voice message.`);
+    // Auto-resize textarea
+    chatInput.style.height = 'auto';
+    chatInput.style.height = Math.min(chatInput.scrollHeight, 120) + 'px';
+    
+    // Update send button state based on content
+    updateSendButtonState();
+    
+    // Focus input so user can review and send
+    chatInput.focus();
   }
 }
 
 function handleStopButtonClick() {
   const listeningStopBtn = document.getElementById('listening-stop-btn');
   
-  // Show spinner animation
+  // Show processing state
   if (listeningStopBtn) {
     listeningStopBtn.classList.add('processing');
     listeningStopBtn.textContent = '';
@@ -597,108 +580,50 @@ function handleStopButtonClick() {
   // Stop the recording
   stopRecording();
   
-  // Process the transcript after a short delay
-  setTimeout(() => {
-    if (currentTranscript) {
-      processSpeechTranscript(currentTranscript);
-    } else {
-      addMessage('system', '🎤 **No Speech Detected**\n\nPlease try speaking again.');
-    }
+  // Process transcript if available
+  if (currentTranscript) {
+    console.log('Transcript captured');
+    processSpeechTranscript(currentTranscript);
     
-    // Reset stop button
-    if (listeningStopBtn) {
-      listeningStopBtn.classList.remove('processing');
-      listeningStopBtn.textContent = '⏹';
+    // Reset mic button after processing
+    setTimeout(() => {
+      if (micBtn) {
+        micBtn.classList.remove('recording', 'processing', 'active');
+        micBtn.title = 'Voice input';
+      }
+    }, 500);
+  } else {
+    addMessage('system', '**No Speech Detected**\n\nPlease try speaking again.');
+    
+    // Reset mic button
+    if (micBtn) {
+      micBtn.classList.remove('recording', 'processing', 'active');
+      micBtn.title = 'Voice input';
     }
-  }, 1000);
+  }
+  
+  // Reset stop button
+  if (listeningStopBtn) {
+    listeningStopBtn.classList.remove('processing');
+    listeningStopBtn.textContent = '⏹';
+  }
 }
 
 function handleMicrophonePermissionError(error) {
-  // Check if this is macOS - show different message
-  if (isMacOS) {
-    addMessage('system', '🎤 **Microphone Not Available**\n\nVoice input is not available on macOS. Please use text input instead.');
-    return;
-  }
+  let errorMessage = '**Microphone Access Error**\n\n';
   
-  let errorMessage = '';
-  let recoverySteps = '';
-  
-  if (error.message.includes('NotAllowedError') || error.message.includes('Permission dismissed')) {
-    errorMessage = '🎤 **Microphone Permission Denied**';
-    recoverySteps = `
-**The browser blocked microphone access. Here's how to fix it:**
-
-1. **Click the microphone button again** and select "Allow" when prompted
-2. **Check Chrome settings:**
-   - Go to chrome://settings/content/microphone
-   - Find this website/extension in the list
-   - Set it to "Allow"
-3. **Extension permissions:**
-   - Right-click the Cloudey extension icon
-   - Select "Manage extension"
-   - Check if microphone access is enabled
-4. **Refresh and retry:**
-   - Reload this page
-   - Try the microphone button again
-
-**Important:** Make sure to click "Allow" instead of dismissing the permission dialog.`;
-  } else if (error.message.includes('NotFoundError')) {
-    errorMessage = '🎤 **No Microphone Found**';
-    recoverySteps = `
-**No microphone device detected:**
-
-1. **Connect a microphone** to your computer
-2. **Check device settings:**
-   - Go to chrome://settings/content/microphone
-   - Verify a microphone is selected
-3. **Test your microphone** in other applications
-4. **Try refreshing** this page and try again`;
-  } else if (error.message.includes('NotSupportedError')) {
-    errorMessage = '🎤 **Microphone Not Supported**';
-    recoverySteps = `
-**Microphone access is not supported:**
-
-1. **Update Chrome** to the latest version
-2. **Use HTTPS** - microphone requires secure connection
-3. **Try a different browser** if the issue persists
-4. **Check system permissions** for microphone access`;
-  } else if (error.message.includes('Content script timeout') || error.message.includes('message port closed')) {
-    errorMessage = '🎤 **Extension Communication Failed**';
-    recoverySteps = `
-**Extension communication error:**
-
-1. **Refresh the current page** and try again
-2. **Reload the extension:**
-   - Go to chrome://extensions/
-   - Find Cloudey and click the refresh icon
-3. **Check if extension is enabled** in chrome://extensions/
-4. **Try clicking the microphone button** again`;
-  } else if (error.message.includes('user-initiated')) {
-    errorMessage = '🎤 **User Interaction Required**';
-    recoverySteps = `
-**Microphone access must be initiated by user interaction:**
-
-1. **Click the microphone button** directly
-2. **Don't use keyboard shortcuts** for microphone access
-3. **Ensure you're clicking** the button, not using automated triggers
-4. **Try clicking again** if the first attempt failed`;
+  if (error.name === 'NotAllowedError') {
+    errorMessage += 'Please allow microphone access when prompted.\n\n**To fix:**\n1. Click the microphone button again\n2. Select "Allow" when prompted\n3. Check chrome://settings/content/microphone if needed';
+  } else if (error.name === 'NotFoundError') {
+    errorMessage += 'No microphone detected. Please connect a microphone and try again.';
+  } else if (error.name === 'NotSupportedError') {
+    errorMessage += 'Speech recognition is not supported. Please use Chrome or Edge browser.';
   } else {
-    errorMessage = '🎤 **Microphone Access Error**';
-    recoverySteps = `
-**Unexpected error occurred:**
-
-**Error:** ${error.message}
-
-**Troubleshooting steps:**
-1. **Refresh this page** and try again
-2. **Check Chrome settings:** chrome://settings/content/microphone
-3. **Verify extension permissions** in chrome://extensions/
-4. **Try a different microphone** if available
-5. **Contact support** if the issue persists`;
+    errorMessage += `Error: ${error.message}\n\nPlease try again or check your microphone settings.`;
   }
   
-  // Show error message with recovery steps
-  addMessage('system', `${errorMessage}\n\n${recoverySteps}`);
+  // Show error message
+  addMessage('system', errorMessage);
   
   // Reset microphone button state
   if (micBtn) {
@@ -708,63 +633,33 @@ function handleMicrophonePermissionError(error) {
   
   // Stop minimal listening UI
   stopMinimalListeningUI();
-  
-  // Show microphone status indicator only for certain errors (not permission dismissed)
-  if (!error.message.includes('Permission dismissed')) {
-    showMicrophoneStatusIndicator();
-  }
-}
-
-function showMicrophoneStatusIndicator() {
-  const micStatusIndicator = document.getElementById('mic-status-indicator');
-  const micRetryBtn = document.getElementById('mic-retry-btn');
-  
-  if (micStatusIndicator) {
-    micStatusIndicator.classList.remove('hidden');
-    
-    // Add retry button event listener
-    if (micRetryBtn) {
-      micRetryBtn.addEventListener('click', () => {
-        hideMicrophoneStatusIndicator();
-        // Reset user-initiated flag and try again
-        isUserInitiated = true;
-        startRecording();
-      });
-    }
-  }
-}
-
-function hideMicrophoneStatusIndicator() {
-  const micStatusIndicator = document.getElementById('mic-status-indicator');
-  if (micStatusIndicator) {
-    micStatusIndicator.classList.add('hidden');
-  }
 }
 
 function resetMicrophoneUI() {
-  console.log('🔄 Resetting microphone UI state...');
+  console.log('Resetting microphone UI state');
   
-  // Reset microphone button state
+  // Reset button to default state
   if (micBtn) {
-    micBtn.classList.remove('recording', 'processing');
+    micBtn.classList.remove('recording', 'processing', 'active');
+    // Preserve disabled state if permission was denied
+    if (microphonePermission) {
+      micBtn.classList.remove('disabled');
+    }
     micBtn.title = 'Voice input';
   }
   
-  // Reset recording state
   isRecording = false;
-  microphonePermission = false;
-  micButtonCooldown = false; // Reset cooldown
+  micButtonCooldown = false;
   
-  // Hide audio visualizer
+  if (recordingTimeout) {
+    clearTimeout(recordingTimeout);
+    recordingTimeout = null;
+  }
+  
   hideAudioVisualizer();
-  
-  // Stop minimal listening UI
   stopMinimalListeningUI();
   
-  // Hide microphone status indicator
-  hideMicrophoneStatusIndicator();
-  
-  console.log('✅ Microphone UI state reset complete');
+  console.log('Microphone UI reset complete');
 }
 
 function getFileIcon(fileName) {
@@ -883,14 +778,10 @@ if (messagesContainer) {
 // Microphone button event listener
 if (micBtn) {
   micBtn.addEventListener('click', () => {
-    if (isMacOS) {
-      addMessage('system', '🎤 **Microphone Not Available on macOS**\n\nVoice input is currently not supported on macOS. Please use text input instead.');
-      return;
-    }
     toggleRecording();
   });
 } else {
-  console.log('❌ Microphone button not found');
+  console.log('Microphone button not found');
 }
 
 // FAB actions
@@ -1146,33 +1037,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     }
   }
   
-  // Handle microphone permission messages from trusted window
-  if (request.action === 'micPermissionGranted') {
-    console.log('✅ Microphone permission granted via trusted window');
-    addMessage('system', '🎤 **Microphone Access Enabled!**\n\nYou can now use voice input. Click the microphone button to start recording.');
-    
-    // Reset microphone button state
-    if (micBtn) {
-      micBtn.classList.remove('recording', 'processing');
-      micBtn.title = 'Voice input';
-    }
-    
-    // Set permission flag
-    microphonePermission = true;
-  }
-  
-  if (request.action === 'micPermissionCancelled') {
-    console.log('❌ Microphone permission cancelled');
-    addMessage('system', '🎤 **Microphone Access Cancelled**\n\nVoice input is not available. You can try again by clicking the microphone button.');
-    
-    // Reset microphone button state
-    if (micBtn) {
-      micBtn.classList.remove('recording', 'processing');
-      micBtn.title = 'Voice input';
-    }
-  }
-  
-  // audioTranscriptionResult handler removed - Web Speech API handles transcription directly
+  // Speech recognition handles transcription directly - no additional handlers needed
 });
 
 // Context is always enabled - no toggle needed
@@ -1201,7 +1066,7 @@ function handleFileSelection(e) {
 
 function addAttachmentChip(file) {
   if (!attachmentChips) {
-    console.log('❌ Attachment chips container not found');
+    console.log('Attachment chips container not found');
     return;
   }
   
@@ -1360,7 +1225,7 @@ async function sendMessage() {
   // Process attached files
   let fileContext = '';
   if (attachedFiles.length > 0) {
-    console.log('📎 Files attached:', attachedFiles.map(f => f.name));
+    console.log('Files attached:', attachedFiles.map(f => f.name));
     
     // Show file processing indicator
     showTypingIndicator('Processing files...', 'processing');
@@ -1372,22 +1237,22 @@ async function sendMessage() {
         if (fileData.type === 'image') {
           // Handle image files
           fileContext += `\n\n[Image: ${fileData.name}]\nType: ${fileData.mimeType}\nSize: ${fileData.size} bytes\nData: ${fileData.data}`;
-          console.log(`✅ Processed image: ${fileData.name}`);
+          console.log(`Processed image: ${fileData.name}`);
           
           // Show success message for image
-          addMessage('system', `🖼️ **Image Processed**: ${fileData.name}\n\nImage has been added to your message context for analysis.`);
+          addMessage('system', `**Image Processed**: ${fileData.name}\n\nImage has been added to your message context for analysis.`);
         } else {
           // Handle text files
           fileContext += `\n\n[File: ${fileData.name}]\n${fileData}`;
-          console.log(`✅ Processed file: ${fileData.name}`);
+          console.log(`Processed file: ${fileData.name}`);
           
           // Show success message for text file
-          addMessage('system', `📎 **File Processed**: ${fileData.name}\n\nFile content has been added to your message context.`);
+          addMessage('system', `**File Processed**: ${fileData.name}\n\nFile content has been added to your message context.`);
         }
         
       } catch (error) {
         console.error(`Error reading file ${file.name}:`, error);
-        addMessage('system', `❌ **File Processing Failed**: ${file.name}\n\nCould not read file content: ${error.message}`);
+        addMessage('system', `**File Processing Failed**: ${file.name}\n\nCould not read file content: ${error.message}`);
       }
     }
     
@@ -1455,7 +1320,7 @@ async function sendMessage() {
       if (sendBtn) sendBtn.classList.add('hidden');
       if (pauseBtn) pauseBtn.classList.remove('hidden');
       
-      console.log('📝 Response content:', response.response);
+      console.log('Response content:', response.response);
       typewriterEffect(response.response);
       conversationHistory.push({ role: 'assistant', content: response.response });
       return;
@@ -1463,7 +1328,7 @@ async function sendMessage() {
       // Show the helpful error message from the background script
       hideTypingIndicator();
       promptBox?.classList.remove('loading');
-      console.log('❌ Response error:', response.error);
+      console.log('Response error:', response.error);
       addMessage('assistant', response.response || response.error || 'Unknown error occurred');
       announceToScreenReader('Error occurred', 'assertive');
       return;
