@@ -36,7 +36,7 @@
 - **Speech-to-text** - Speak your questions naturally
 - **Real-time transcription** - See your words as you speak
 - **Hands-free interaction** - Perfect for accessibility
-- 
+  
 ### 🔧 **Action Buttons**
 - **Image Attachment** - Upload images for AI analysis
 - **Voice Input** - Speak your questions naturally (🎤 button)
