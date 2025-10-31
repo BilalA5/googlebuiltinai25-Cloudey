@@ -36,8 +36,7 @@
 - **Speech-to-text** - Speak your questions naturally
 - **Real-time transcription** - See your words as you speak
 - **Hands-free interaction** - Perfect for accessibility
-- **⚠️ macOS Limitation**: Voice input is currently not supported on macOS. A tooltip will appear explaining this limitation.
-
+- 
 ### 🔧 **Action Buttons**
 - **Image Attachment** - Upload images for AI analysis
 - **Voice Input** - Speak your questions naturally (🎤 button)
@@ -103,7 +102,6 @@
 - **Click microphone button** 🎤 in chat input
 - **Speak your question** clearly
 - **AI transcribes** and responds
-- **⚠️ Not available on macOS** - tooltip explains limitation
 
 ### Action Buttons
 - **Image Attachment** - Click 📎 button to upload images for AI analysis
@@ -160,16 +158,6 @@
 | `Esc` | Close sidebar |
 
 ---
-
-## Platform Support
-
-### ✅ **Supported Platforms**
-- **Windows** - Full feature support including voice input
-- **Linux** - Full feature support including voice input
-- **Chrome OS** - Full feature support including voice input
-
-### ⚠️ **Limited Support**
-- **macOS** - All features work except voice input (microphone not supported)
 
 ### **Browser Requirements**
 - **Chrome 138+** - Required for Prompt API support
