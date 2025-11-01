@@ -183,25 +183,47 @@ async function startRecording() {
     
     // Check if we already have permission
     if (!microphonePermission) {
-      console.log('Requesting microphone permission');
-      addMessage('system', '**Permission Required**\n\nA browser permission prompt should appear. Please click "Allow" to use the microphone.');
+      console.log('Requesting microphone permission via helper window');
       
+      // Open the microphone permission helper window
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        console.log('Microphone permission granted');
+        chrome.windows.create({
+          url: chrome.runtime.getURL('mic-permission.html'),
+          type: 'popup',
+          width: 400,
+          height: 550,
+          focused: true
+        });
         
-        // Log audio input device info
-        const audioTracks = stream.getAudioTracks();
-        if (audioTracks.length > 0) {
-          console.log('Using microphone:', audioTracks[0].label);
-          console.log('Microphone settings:', audioTracks[0].getSettings());
-        }
-        
-        // Stop stream immediately after permission check
-        stream.getTracks().forEach(track => track.stop());
-        
-        microphonePermission = true;
-      } catch (permError) {
+        addMessage('system', '**Permission Required**\n\nA popup window will open. Please click "Enable Microphone" and then "Allow" when prompted.\n\nAfter granting permission, click the microphone button again.');
+        return; // Exit and wait for permission to be granted
+      } catch (windowError) {
+        console.error('Failed to open permission window:', windowError);
+        addMessage('system', '**Permission Error**\n\nCould not open permission window. Please try again.');
+        return;
+      }
+    }
+    
+    // If we reach here, permission should already be granted
+    // Try to verify permission is still valid
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      console.log('Microphone permission verified');
+      
+      // Log audio input device info
+      const audioTracks = stream.getAudioTracks();
+      if (audioTracks.length > 0) {
+        console.log('Using microphone:', audioTracks[0].label);
+        console.log('Microphone settings:', audioTracks[0].getSettings());
+      }
+      
+      // Stop stream immediately after permission check
+      stream.getTracks().forEach(track => track.stop());
+      
+      microphonePermission = true;
+    } catch (permError) {
+      // Permission was revoked or not granted yet
+      microphonePermission = false;
         console.error('Microphone permission error:');
         console.error('Error name:', permError.name);
         console.error('Error message:', permError.message);
@@ -268,9 +290,6 @@ async function startRecording() {
         
         addMessage('system', errorMessage);
         return;
-      }
-    } else {
-      console.log('Microphone permission already granted, starting recording');
     }
     
     isRecording = true;
@@ -988,8 +1007,30 @@ async function getPageContextForAgent() {
   }
 }
 
-// Listen for agent step updates
+// Listen for agent step updates and microphone permission
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  // Handle microphone permission granted
+  if (request.action === 'micPermissionGranted') {
+    console.log('✅ Microphone permission granted from helper window');
+    microphonePermission = true;
+    
+    // Update mic button UI
+    if (micBtn) {
+      micBtn.classList.remove('disabled');
+      micBtn.title = 'Voice input';
+    }
+    
+    addMessage('system', '**Permission Granted**\n\nMicrophone access enabled! You can now use voice input by clicking the microphone button.');
+    return;
+  }
+  
+  // Handle microphone permission cancelled
+  if (request.action === 'micPermissionCancelled') {
+    console.log('❌ Microphone permission cancelled');
+    addMessage('system', '**Permission Cancelled**\n\nMicrophone permission was not granted. Click the microphone button to try again.');
+    return;
+  }
+  
   if (request.action === 'agentStepUpdate') {
     
     // Show action indicator based on step status and title
